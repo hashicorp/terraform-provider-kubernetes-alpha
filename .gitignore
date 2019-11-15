@@ -1,2 +1,7 @@
-/terraform-provider-raw
 /.vscode/**
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.log
+**/terraform-provider-kubernetes*
+/terraform-provider-kubernetes*

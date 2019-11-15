@@ -1,0 +1,24 @@
+name: "acceptance tests"
+on:
+  push:
+    branches:
+    - master
+    - dev
+  pull_request:
+    branches:
+    - master
+    - dev
+jobs:
+  acceptance_tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: engineerd/setup-kind@v0.3.0
+    - name: test (server side plan enabled)
+      run: |
+        make testacc 
+    - name: test (server side plan disabled)
+      env:
+        TESTARGS: "-server-side-plan=false"
+      run: |
+        make testacc 
