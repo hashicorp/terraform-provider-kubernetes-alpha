@@ -27,15 +27,25 @@ func GetConfigObjectType() cty.Type {
 	return cty.Object(BlockMap{"config_file": cty.String})
 }
 
-// GetPlanObjectType returns the type scaffolding for the manifest resource object.
-func GetPlanObjectType() cty.Type {
-	return cty.Object(BlockMap{"manifest": cty.DynamicPseudoType})
+// GetObjectTypeFromSchema returns the type scaffolding for the manifest resource object.
+func GetObjectTypeFromSchema(schema *tfplugin5.Schema) cty.Type {
+	bm := BlockMap{}
+	for _, att := range schema.Block.Attributes {
+		var t cty.Type
+		err := t.UnmarshalJSON(att.Type)
+		if err != nil {
+			Dlog.Printf("Failed to unmarshall type %s\n", att.Type)
+			return cty.NilType
+		}
+		bm[att.Name] = t
+	}
+	return cty.Object(bm)
 }
 
 // GetProviderResourceSchema contains the definitions of all supported resources
 func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
-	mType, _ := cty.DynamicPseudoType.MarshalJSON()
-	sType, _ := cty.String.MarshalJSON()
+	oType, _ := cty.DynamicPseudoType.MarshalJSON()
+	mType, _ := cty.String.MarshalJSON()
 	return map[string]*tfplugin5.Schema{
 		"raw_manifest": &tfplugin5.Schema{
 			Version: 1,
@@ -43,13 +53,14 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 				Attributes: []*tfplugin5.Schema_Attribute{
 					&tfplugin5.Schema_Attribute{
 						Name:     "manifest",
-						Type:     sType,
+						Type:     mType,
 						Required: true,
 					},
 					&tfplugin5.Schema_Attribute{
 						Name:     "object",
-						Type:     mType,
+						Type:     oType,
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},

@@ -39,5 +39,5 @@ func (p *grpcPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error
 }
 
 func (p *grpcPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
-	panic("not implemented")
+	panic("This is a plugin - it cannot implement GRPCClient")
 }

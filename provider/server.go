@@ -12,17 +12,23 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	apiextinstall "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+func init() {
+	apiextinstall.Install(scheme.Scheme)
+}
 
 // RawProviderServer implements the ProviderServer interface as exported from ProtoBuf.
 type RawProviderServer struct{}
 
 // GetSchema function
 func (s *RawProviderServer) GetSchema(ctx context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
-	Dlog.Printf("[GetSchema][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[GetSchema][Request]\n%s\n", spew.Sdump(*req))
 
 	resp := &tfplugin5.GetProviderSchema_Response{
 		Provider:        GetProviderConfigSchema(),
@@ -35,18 +41,18 @@ func (s *RawProviderServer) GetSchema(ctx context.Context, req *tfplugin5.GetPro
 func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfplugin5.PrepareProviderConfig_Request) (*tfplugin5.PrepareProviderConfig_Response, error) {
 	resp := &tfplugin5.PrepareProviderConfig_Response{}
 
-	config, err := msgpack.Unmarshal(req.Config.Msgpack, GetConfigObjectType())
-	Dlog.Printf("[PrepareProviderConfig][Request][Config] >>>>>>\n%s\n<<<<<<", spew.Sdump(config))
-	if err != nil {
-		return resp, err
-	}
+	// config, err := msgpack.Unmarshal(req.Config.Msgpack, GetConfigObjectType())
+	// Dlog.Printf("[PrepareProviderConfig][Request][Config]\n%s\n", spew.Sdump(config))
+	// if err != nil {
+	// 	return resp, err
+	// }
 
 	return resp, nil
 }
 
 // ValidateResourceTypeConfig function
 func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req *tfplugin5.ValidateResourceTypeConfig_Request) (*tfplugin5.ValidateResourceTypeConfig_Response, error) {
-	Dlog.Printf("[ValidateResourceTypeConfig][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[ValidateResourceTypeConfig][Request]\n%s\n", spew.Sdump(*req))
 
 	config := &tfplugin5.ValidateResourceTypeConfig_Response{}
 	return config, nil
@@ -54,25 +60,24 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 
 // ValidateDataSourceConfig function
 func (s *RawProviderServer) ValidateDataSourceConfig(ctx context.Context, req *tfplugin5.ValidateDataSourceConfig_Request) (*tfplugin5.ValidateDataSourceConfig_Response, error) {
-	Dlog.Printf("[ValidateDataSourceConfig][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[ValidateDataSourceConfig][Request]\n%s\n", spew.Sdump(*req))
 
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateDataSourceConfig not implemented")
 }
 
 // UpgradeResourceState function
 func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplugin5.UpgradeResourceState_Request) (*tfplugin5.UpgradeResourceState_Response, error) {
-	Dlog.Printf("[UpgradeResourceState][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
-
-	return nil, status.Errorf(codes.Unimplemented, "method UpgradeResourceState not implemented")
+	Dlog.Printf("[UpgradeResourceState][Request]\n%s\n", spew.Sdump(*req))
+	resp := &tfplugin5.UpgradeResourceState_Response{}
+	return resp, nil
 }
 
 // Configure function
 func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Configure_Request) (*tfplugin5.Configure_Response, error) {
-	Dlog.Printf("[Configure][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[Configure][Request]\n%s\n", spew.Sdump(*req))
 	response := &tfplugin5.Configure_Response{}
 
 	providerConfig, err := msgpack.Unmarshal(req.Config.Msgpack, GetConfigObjectType())
-	Dlog.Printf("[Configure][Request][Config] >>>>>>\n%s\n<<<<<<", spew.Sdump(providerConfig))
 	if err != nil {
 		return response, err
 	}
@@ -118,105 +123,147 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 
 // ReadResource function
 func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.ReadResource_Request) (*tfplugin5.ReadResource_Response, error) {
-	Dlog.Printf("[ReadResource][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[ReadResource][Request]\n%s\n", spew.Sdump(*req))
 
 	return nil, status.Errorf(codes.Unimplemented, "method ReadResource not implemented")
 }
 
 // PlanResourceChange function
 func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugin5.PlanResourceChange_Request) (*tfplugin5.PlanResourceChange_Response, error) {
-	resp := &tfplugin5.PlanResourceChange_Response{
-		PlannedState: &tfplugin5.DynamicValue{},
-	}
+	resp := &tfplugin5.PlanResourceChange_Response{}
 
-	Dlog.Printf("[PlanResourceChange][Request][ProposedNewState] >>>>>>\n%s\n<<<<<<", spew.Sdump(msgpack.Unmarshal(req.ProposedNewState.Msgpack, GetPlanObjectType())))
-
-	proposedPacked := req.GetProposedNewState().GetMsgpack()
-	priorPacked := req.GetPriorState().GetMsgpack()
-	tfconfigPacked := req.GetConfig().GetMsgpack()
-
-	proposedManifest, err := ExtractPackedManifest(proposedPacked)
+	proposedState, err := UnmarshalResource(req.GetProposedNewState().GetMsgpack())
 	if err != nil {
-		return resp, fmt.Errorf("Failed to extract manifest from proposed plan: %#v", err)
+		return resp, fmt.Errorf("Failed to extract resource from proposed plan: %#v", err)
 	}
-	Dlog.Printf("[PlanResourceChange][Request][ProposedNewState][Manifest] %s", proposedManifest)
+	Dlog.Printf("[PlanResourceChange][Request][ProposedNewState]\n%s\n", spew.Sdump(proposedState))
 
-	priorManifest, err := ExtractPackedManifest(priorPacked)
+	priorState, err := UnmarshalResource(req.GetPriorState().GetMsgpack())
 	if err != nil {
-		return resp, fmt.Errorf("Failed to extract manifest from prior state: %#v", err)
+		return resp, fmt.Errorf("Failed to extract resource from prior state: %#v", err)
 	}
-	Dlog.Printf("[PlanResourceChange][Request][PriorState][Manifest] %s", priorManifest)
+	Dlog.Printf("[PlanResourceChange][Request][PriorState]\n%s\n", spew.Sdump(priorState))
 
-	tfconfig, err := ExtractPackedManifest(tfconfigPacked)
+	tfconfig, err := UnmarshalResource(req.GetConfig().GetMsgpack())
 	if err != nil {
-		return resp, fmt.Errorf("Failed to extract manifest from configuration: %#v", err)
+		return resp, fmt.Errorf("Failed to extract resource from configuration: %#v", err)
 	}
-	Dlog.Printf("[PlanResourceChange][Request][Configuration][Manifest] %s", tfconfig)
+	Dlog.Printf("[PlanResourceChange][Request][Configuration]\n%s\n", spew.Sdump(tfconfig))
 
-	var plannedManifest string
-	if len(priorManifest) == 0 {
-		plannedManifest = proposedManifest
+	if proposedState.IsNull() {
+		// this is a delete
+		Dlog.Println("[PlanResourceChange] Resource to be deleted.")
+		resp.PlannedState = req.ProposedNewState
+	} else {
+		if priorState.IsNull() {
+			// no prior state = new resource
+			Dlog.Println("[PlanResourceChange] Resource to be created.")
+			m := proposedState.GetAttr("manifest").AsString()
+			res, gvk, err := ResourceFromManifest([]byte(m))
+			if err != nil {
+				return resp, err
+			}
+			Dlog.Printf("[PlanResourceChange][CREATE] Resource %s to be created:\n%s\n", spew.Sdump(*gvk), spew.Sdump(res))
+			obj, err := UnstructuredToCty(res)
+			if err != nil {
+				return resp, err
+			}
+			Dlog.Printf("[PlanResourceChange][CREATE] cyt.Object\n%s\n", spew.Sdump(obj))
+			planned, err := cty.Transform(proposedState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+				if path.Equals(cty.GetAttrPath("object")) {
+					return *obj, nil
+				}
+				return v, nil
+			})
+			if err != nil {
+				return resp, err
+			}
+			Dlog.Printf("[PlanResourceChange][CREATE] Transformed planned state:\n%s\n", spew.Sdump(planned))
+			planType, err := msgpack.ImpliedType(req.ProposedNewState.Msgpack)
+			if err != nil {
+				Dlog.Println("[PlanResourceChange][CREATE] Failed to inferr planned state type.")
+				return resp, err
+			}
+			plannedState, err := msgpack.Marshal(planned, planType)
+			if err != nil {
+				Dlog.Println("[PlanResourceChange][CREATE] Failed to marshall planned state after transform.")
+				return resp, err
+			}
+			resp.PlannedState = &tfplugin5.DynamicValue{
+				Msgpack: plannedState,
+			}
+		} else {
+			// resource needs an update
+			m := cty.ObjectVal(map[string]cty.Value{
+				"manifest": proposedState.GetAttr("manifest"),
+				// TODO: replace with actual update logic
+				"object": cty.ObjectVal(map[string]cty.Value{}),
+			})
+			planmsgp, err := msgpack.Marshal(m, m.Type())
+			if err != nil {
+				return resp, err
+			}
+			resp.PlannedState.Msgpack = planmsgp
+		}
 	}
 
-	m := cty.ObjectVal(map[string]cty.Value{
-		"manifest": cty.StringVal(plannedManifest),
-	})
-
-	planmsgp, err := msgpack.Marshal(m, GetPlanObjectType())
-	if err != nil {
-		return resp, err
-	}
-	resp.PlannedState.Msgpack = planmsgp
-
-	Dlog.Printf("[PlanResourceChange][Request][PlannedState] >>>>>>\n%s\n<<<<<<", spew.Sdump(m))
-
+	Dlog.Printf("[PlanResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(resp.PlannedState.Msgpack))
 	return resp, nil
 }
 
 // ApplyResourceChange function
 func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplugin5.ApplyResourceChange_Request) (*tfplugin5.ApplyResourceChange_Response, error) {
-	applyConfig, err := msgpack.Unmarshal((*req.Config).Msgpack, GetPlanObjectType())
-	if err != nil {
-		return nil, err
-	}
-	configManifest := applyConfig.GetAttr("manifest")
-	Dlog.Printf("[ApplyResourceChange][Request][Config] >>>>>>\n%s\n<<<<<<", spew.Sdump(configManifest))
+	resp := &tfplugin5.ApplyResourceChange_Response{}
 
-	applyPlannedState, err := msgpack.Unmarshal((*req.PlannedState).Msgpack, GetPlanObjectType())
+	t, err := msgpack.ImpliedType((*req.Config).Msgpack)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
-	plannedManifest := applyPlannedState.GetAttr("manifest")
-	Dlog.Printf("[ApplyResourceChange][Request][PlannedState] >>>>>>\n%s\n<<<<<<", spew.Sdump(plannedManifest))
 
-	applyPriorState, err := msgpack.Unmarshal((*req.PriorState).Msgpack, GetPlanObjectType())
+	applyConfig, err := msgpack.Unmarshal((*req.Config).Msgpack, t)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
-	applyPriorState.AsValueMap()
-	priorManifest := applyPriorState.GetAttr("manifest")
-	Dlog.Printf("[ApplyResourceChange][Request][PriorState] >>>>>>\n%s\n<<<<<<", spew.Sdump(priorManifest))
+	Dlog.Printf("[ApplyResourceChange][Request][Config]\n%s\n", spew.Sdump(applyConfig))
+	Dlog.Printf("[ApplyResourceChange][Request][Config][IsNull]\t%s\n", spew.Sdump(applyConfig.IsNull()))
 
-	return nil, status.Errorf(codes.Unimplemented, "method ApplyResourceChange not implemented")
+	applyPlannedState, err := msgpack.Unmarshal((*req.PlannedState).Msgpack, t)
+	if err != nil {
+		return resp, err
+	}
+	Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
+	Dlog.Printf("[ApplyResourceChange][Request][PlannedState][IsNull]\t%s\n", spew.Sdump(applyPlannedState.IsNull()))
+
+	applyPriorState, err := msgpack.Unmarshal((*req.PriorState).Msgpack, t)
+	if err != nil {
+		return resp, err
+	}
+	Dlog.Printf("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
+	Dlog.Printf("[ApplyResourceChange][Request][PriorState][IsNull]\t%s\n", spew.Sdump(applyPriorState.IsNull()))
+
+	Dlog.Printf("[ApplyResourceChange][Request][PlannedPrivate]\n%s\n", spew.Sdump(req.PlannedPrivate))
+
+	resp.NewState = req.PlannedState
+	return resp, nil
 }
 
 // ImportResourceState function
 func (*RawProviderServer) ImportResourceState(ctx context.Context, req *tfplugin5.ImportResourceState_Request) (*tfplugin5.ImportResourceState_Response, error) {
-	Dlog.Printf("[ImportResourceState][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[ImportResourceState][Request]\n%s\n", spew.Sdump(*req))
 
 	return nil, status.Errorf(codes.Unimplemented, "method ImportResourceState not implemented")
 }
 
 // ReadDataSource function
 func (s *RawProviderServer) ReadDataSource(ctx context.Context, req *tfplugin5.ReadDataSource_Request) (*tfplugin5.ReadDataSource_Response, error) {
-	Dlog.Printf("[ReadDataSource][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[ReadDataSource][Request]\n%s\n", spew.Sdump(*req))
 
 	return nil, status.Errorf(codes.Unimplemented, "method ReadDataSource not implemented")
 }
 
 // Stop function
 func (s *RawProviderServer) Stop(ctx context.Context, req *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
-	Dlog.Printf("[Stop][Request] >>>>>>\n%s\n<<<<<<", spew.Sdump(*req))
+	Dlog.Printf("[Stop][Request]\n%s\n", spew.Sdump(*req))
 
 	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
