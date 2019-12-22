@@ -1,1 +1,1 @@
-# terraform-provider-raw
+# terraform-provider-kubedynamic

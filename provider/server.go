@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/alexsomesan/terraform-provider-raw/tfplugin5"
+	"github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	apiextinstall "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -132,19 +134,19 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugin5.PlanResourceChange_Request) (*tfplugin5.PlanResourceChange_Response, error) {
 	resp := &tfplugin5.PlanResourceChange_Response{}
 
-	proposedState, err := UnmarshalResource(req.GetProposedNewState().GetMsgpack())
+	proposedState, err := UnmarshalResource(req.TypeName, req.GetProposedNewState().GetMsgpack())
 	if err != nil {
 		return resp, fmt.Errorf("Failed to extract resource from proposed plan: %#v", err)
 	}
 	Dlog.Printf("[PlanResourceChange][Request][ProposedNewState]\n%s\n", spew.Sdump(proposedState))
 
-	priorState, err := UnmarshalResource(req.GetPriorState().GetMsgpack())
+	priorState, err := UnmarshalResource(req.TypeName, req.GetPriorState().GetMsgpack())
 	if err != nil {
 		return resp, fmt.Errorf("Failed to extract resource from prior state: %#v", err)
 	}
 	Dlog.Printf("[PlanResourceChange][Request][PriorState]\n%s\n", spew.Sdump(priorState))
 
-	tfconfig, err := UnmarshalResource(req.GetConfig().GetMsgpack())
+	tfconfig, err := UnmarshalResource(req.TypeName, req.GetConfig().GetMsgpack())
 	if err != nil {
 		return resp, fmt.Errorf("Failed to extract resource from configuration: %#v", err)
 	}
@@ -152,26 +154,43 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 
 	if proposedState.IsNull() {
 		// this is a delete
-		Dlog.Println("[PlanResourceChange] Resource to be deleted.")
+		if !priorState.Type().HasAttribute("object") {
+			return resp, fmt.Errorf("cannot find existing object state before delete")
+		}
+		dobj := priorState.GetAttr("object")
+		Dlog.Printf("[PlanResourceChange] Resource to be deleted:\n%s", spew.Sdump(dobj))
 		resp.PlannedState = req.ProposedNewState
 	} else {
+		var cobj *cty.Value
 		if priorState.IsNull() {
 			// no prior state = new resource
 			Dlog.Println("[PlanResourceChange] Resource to be created.")
-			m := proposedState.GetAttr("manifest").AsString()
-			res, gvk, err := ResourceFromManifest([]byte(m))
-			if err != nil {
-				return resp, err
+			m := proposedState.GetAttr("manifest")
+			switch req.TypeName {
+			case "kubedynamic_yaml_manifest":
+				rawRes, gvk, err := ResourceFromYAMLManifest([]byte(m.AsString()))
+				if err != nil {
+					return resp, err
+				}
+				cobj, err = UnstructuredToCty(rawRes)
+				if err != nil {
+					return resp, err
+				}
+				Dlog.Printf("[PlanResourceChange][CREATE] YAML resource %s to be created:\n%s\n", spew.Sdump(*gvk), spew.Sdump(cobj))
+			case "kubedynamic_hcl_manifest":
+				cobj = &m
+				ag := m.GetAttr("apiVersion").AsString()
+				gvk := &schema.GroupVersionKind{
+					Group:   strings.Split(ag, "/")[0],
+					Version: strings.Split(ag, "/")[1],
+					Kind:    m.GetAttr("kind").AsString(),
+				}
+				Dlog.Printf("[PlanResourceChange][CREATE] HCL resource %s to be created:\n%s\n", spew.Sdump(*gvk), spew.Sdump(*cobj))
 			}
-			Dlog.Printf("[PlanResourceChange][CREATE] Resource %s to be created:\n%s\n", spew.Sdump(*gvk), spew.Sdump(res))
-			obj, err := UnstructuredToCty(res)
-			if err != nil {
-				return resp, err
-			}
-			Dlog.Printf("[PlanResourceChange][CREATE] cyt.Object\n%s\n", spew.Sdump(obj))
+			Dlog.Printf("[PlanResourceChange][CREATE] cyt.Object\n%s\n", spew.Sdump(cobj))
 			planned, err := cty.Transform(proposedState, func(path cty.Path, v cty.Value) (cty.Value, error) {
 				if path.Equals(cty.GetAttrPath("object")) {
-					return *obj, nil
+					return *cobj, nil
 				}
 				return v, nil
 			})
@@ -179,12 +198,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 				return resp, err
 			}
 			Dlog.Printf("[PlanResourceChange][CREATE] Transformed planned state:\n%s\n", spew.Sdump(planned))
-			planType, err := msgpack.ImpliedType(req.ProposedNewState.Msgpack)
-			if err != nil {
-				Dlog.Println("[PlanResourceChange][CREATE] Failed to inferr planned state type.")
-				return resp, err
-			}
-			plannedState, err := msgpack.Marshal(planned, planType)
+			plannedState, err := MarshalResource(req.TypeName, planned)
 			if err != nil {
 				Dlog.Println("[PlanResourceChange][CREATE] Failed to marshall planned state after transform.")
 				return resp, err
@@ -215,32 +229,23 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplugin5.ApplyResourceChange_Request) (*tfplugin5.ApplyResourceChange_Response, error) {
 	resp := &tfplugin5.ApplyResourceChange_Response{}
 
-	t, err := msgpack.ImpliedType((*req.Config).Msgpack)
-	if err != nil {
-		return resp, err
-	}
-
-	applyConfig, err := msgpack.Unmarshal((*req.Config).Msgpack, t)
+	applyConfig, err := UnmarshalResource(req.TypeName, (*req.Config).Msgpack)
 	if err != nil {
 		return resp, err
 	}
 	Dlog.Printf("[ApplyResourceChange][Request][Config]\n%s\n", spew.Sdump(applyConfig))
-	Dlog.Printf("[ApplyResourceChange][Request][Config][IsNull]\t%s\n", spew.Sdump(applyConfig.IsNull()))
 
-	applyPlannedState, err := msgpack.Unmarshal((*req.PlannedState).Msgpack, t)
+	applyPlannedState, err := UnmarshalResource(req.TypeName, (*req.PlannedState).Msgpack)
 	if err != nil {
 		return resp, err
 	}
 	Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
-	Dlog.Printf("[ApplyResourceChange][Request][PlannedState][IsNull]\t%s\n", spew.Sdump(applyPlannedState.IsNull()))
 
-	applyPriorState, err := msgpack.Unmarshal((*req.PriorState).Msgpack, t)
+	applyPriorState, err := UnmarshalResource(req.TypeName, (*req.PriorState).Msgpack)
 	if err != nil {
 		return resp, err
 	}
 	Dlog.Printf("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
-	Dlog.Printf("[ApplyResourceChange][Request][PriorState][IsNull]\t%s\n", spew.Sdump(applyPriorState.IsNull()))
-
 	Dlog.Printf("[ApplyResourceChange][Request][PlannedPrivate]\n%s\n", spew.Sdump(req.PlannedPrivate))
 
 	resp.NewState = req.PlannedState

@@ -1,2 +1,3 @@
-/terraform-provider-raw
+/terraform-provider-kubedynamic
 /.vscode/**
+**/.terraform/

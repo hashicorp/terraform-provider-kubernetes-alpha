@@ -13,33 +13,28 @@ import (
 )
 
 // UnmarshalResource extracts a msgpack-ed resource into it's corresponding cty.Value
-func UnmarshalResource(data []byte) (cty.Value, error) {
-	t, err := msgpack.ImpliedType(data)
-	if err != nil {
-		return cty.NullVal(cty.DynamicPseudoType), err
-	}
-
+func UnmarshalResource(resource string, data []byte) (cty.Value, error) {
+	// t, err := msgpack.ImpliedType(data)
+	// if err != nil {
+	// 	return cty.NullVal(cty.DynamicPseudoType), err
+	// }
+	s := GetProviderResourceSchema()
+	t := GetObjectTypeFromSchema(s[resource])
 	return msgpack.Unmarshal(data, t)
 }
 
-// ExtractPackedManifest function expands the value of the manifest attribute from a MsgPack plan.
-func ExtractPackedManifest(in []byte) (out string, err error) {
-	r, err := UnmarshalResource(in)
-	if err != nil {
-		Dlog.Printf("[ExtractManifestFromPlan][UnmarshaledPlan] Failed to unmarshal msgpack: %s\n", err.Error())
-		return
-	}
-	if r.IsNull() {
-		return
-	}
-	m := r.GetAttr("manifest")
-	if !m.IsNull() {
-		out = m.AsString()
-	}
-	return
+// MarshalResource extracts a msgpack-ed resource into it's corresponding cty.Value
+func MarshalResource(resource string, data cty.Value) ([]byte, error) {
+	// t, err := msgpack.ImpliedType(data)
+	// if err != nil {
+	// 	return cty.NullVal(cty.DynamicPseudoType), err
+	// }
+	s := GetProviderResourceSchema()
+	t := GetObjectTypeFromSchema(s[resource])
+	return msgpack.Marshal(data, t)
 }
 
-func ResourceFromManifest(manifest []byte) (map[string]interface{}, *schema.GroupVersionKind, error) {
+func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.GroupVersionKind, error) {
 	kdecoder := scheme.Codecs.UniversalDecoder()
 	obj, gvk, err := kdecoder.Decode(manifest, nil, nil)
 	if err != nil {
@@ -50,7 +45,6 @@ func ResourceFromManifest(manifest []byte) (map[string]interface{}, *schema.Grou
 	if err != nil {
 		return nil, nil, err
 	}
-
 	return unstruct, gvk, nil
 }
 
@@ -66,4 +60,18 @@ func UnstructuredToCty(in map[string]interface{}) (*cty.Value, error) {
 		return nil, errors.Wrapf(err, "unable to unmarshal to simple value")
 	}
 	return &simple.Value, nil
+}
+
+func CtyToUnstructured(in *cty.Value) (map[string]interface{}, error) {
+	simple := &ctyjson.SimpleJSONValue{*in}
+	jsonVal, err := simple.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	udata := map[string]interface{}{}
+	err = json.Unmarshal(jsonVal, &udata)
+	if err != nil {
+		return nil, err
+	}
+	return udata, nil
 }

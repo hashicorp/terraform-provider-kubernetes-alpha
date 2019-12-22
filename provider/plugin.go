@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 
-	"github.com/alexsomesan/terraform-provider-raw/tfplugin5"
+	"github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
 	"github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 )

@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/alexsomesan/terraform-provider-raw/provider"
+	"github.com/alexsomesan/terraform-provider-kubedynamic/provider"
 )
 
 func main() {

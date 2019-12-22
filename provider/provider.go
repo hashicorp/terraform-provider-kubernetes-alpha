@@ -1,8 +1,9 @@
 package provider
 
 import (
-	"github.com/alexsomesan/terraform-provider-raw/tfplugin5"
+	"github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
+	"k8s.io/client-go/dynamic"
 )
 
 var providerState map[string]interface{}
@@ -17,6 +18,12 @@ func GetProviderState() map[string]interface{} {
 		providerState = make(map[string]interface{})
 	}
 	return providerState
+}
+
+func GetDynamicClient() dynamic.Interface {
+	s := GetProviderState()
+	c := s[DynamicClient]
+	return c.(dynamic.Interface)
 }
 
 // BlockMap a the basic building block of a configuration or resource object.
@@ -47,13 +54,31 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 	oType, _ := cty.DynamicPseudoType.MarshalJSON()
 	mType, _ := cty.String.MarshalJSON()
 	return map[string]*tfplugin5.Schema{
-		"raw_manifest": &tfplugin5.Schema{
+		"kubedynamic_yaml_manifest": &tfplugin5.Schema{
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{
 					&tfplugin5.Schema_Attribute{
 						Name:     "manifest",
 						Type:     mType,
+						Required: true,
+					},
+					&tfplugin5.Schema_Attribute{
+						Name:     "object",
+						Type:     oType,
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+		},
+		"kubedynamic_hcl_manifest": &tfplugin5.Schema{
+			Version: 1,
+			Block: &tfplugin5.Schema_Block{
+				Attributes: []*tfplugin5.Schema_Attribute{
+					&tfplugin5.Schema_Attribute{
+						Name:     "manifest",
+						Type:     oType,
 						Required: true,
 					},
 					&tfplugin5.Schema_Attribute{

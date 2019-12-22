@@ -1,4 +1,4 @@
-module github.com/alexsomesan/terraform-provider-raw
+module github.com/alexsomesan/terraform-provider-kubedynamic
 
 go 1.12
 
@@ -10,7 +10,7 @@ require (
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
-	github.com/zclconf/go-cty v1.0.1-0.20190708163926-19588f92a98f
+	github.com/zclconf/go-cty v1.1.1
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	google.golang.org/grpc v1.23.1
 	k8s.io/apiextensions-apiserver v0.0.0-20191117020858-b615a37f53e7

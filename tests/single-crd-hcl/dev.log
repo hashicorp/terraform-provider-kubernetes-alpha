@@ -1,0 +1,1025 @@
+RAW provider 2019/12/22 16:06:15 Starting up with command line: []string{"/Users/alex/.terraform.d/plugins/terraform-provider-kubedynamic"}
+RAW provider 2019/12/22 16:06:15 [GetSchema][Request]
+(tfplugin5.GetProviderSchema_Request) 
+
+RAW provider 2019/12/22 16:06:15 Finished
+RAW provider 2019/12/22 16:06:15 Starting up with command line: []string{"/Users/alex/.terraform.d/plugins/terraform-provider-kubedynamic"}
+RAW provider 2019/12/22 16:06:15 [GetSchema][Request]
+(tfplugin5.GetProviderSchema_Request) 
+
+RAW provider 2019/12/22 16:06:15 [ValidateResourceTypeConfig][Request]
+(tfplugin5.ValidateResourceTypeConfig_Request) type_name:"kubedynamic_hcl_manifest" config:<msgpack:"\202\250manifest\222\305\001\036[\"object\",{\"apiVersion\":\"string\",\"kind\":\"string\",\"objectMeta\":[\"object\",{\"name\":\"string\"}],\"spec\":[\"object\",{\"group\":\"string\",\"names\":[\"object\",{\"kind\":\"string\",\"plural\":\"string\"}],\"scope\":\"string\",\"versions\":[\"tuple\",[[\"object\",{\"name\":\"string\",\"served\":\"bool\",\"storage\":\"bool\"}]]]}]}]\204\252apiVersion\267apiextensions.k8s.io/v1\244kind\270CustomResourceDefinition\252objectMeta\201\244name\263testcrds.somesan.de\244spec\204\245group\252somesan.de\245names\202\244kind\247TestCrd\246plural\250testcrds\245scope\252Namespaced\250versions\221\203\244name\247v1alpha\246served\303\247storage\303\246object\300" > 
+
+RAW provider 2019/12/22 16:06:15 Finished
+RAW provider 2019/12/22 16:06:15 Starting up with command line: []string{"/Users/alex/.terraform.d/plugins/terraform-provider-kubedynamic"}
+RAW provider 2019/12/22 16:06:15 [GetSchema][Request]
+(tfplugin5.GetProviderSchema_Request) 
+
+RAW provider 2019/12/22 16:06:15 [Configure][Request]
+(tfplugin5.Configure_Request) terraform_version:"0.12.17" config:<msgpack:"\201\253config_file\331X/Users/alex/workspace/terraform-provider-kubernetes/kubernetes/test-infra/gke/kubeconfig" > 
+
+RAW provider 2019/12/22 16:06:15 [Configure] Successfully created dynamic client.
+RAW provider 2019/12/22 16:06:15 [ValidateResourceTypeConfig][Request]
+(tfplugin5.ValidateResourceTypeConfig_Request) type_name:"kubedynamic_hcl_manifest" config:<msgpack:"\202\250manifest\222\305\001\036[\"object\",{\"apiVersion\":\"string\",\"kind\":\"string\",\"objectMeta\":[\"object\",{\"name\":\"string\"}],\"spec\":[\"object\",{\"group\":\"string\",\"names\":[\"object\",{\"kind\":\"string\",\"plural\":\"string\"}],\"scope\":\"string\",\"versions\":[\"tuple\",[[\"object\",{\"name\":\"string\",\"served\":\"bool\",\"storage\":\"bool\"}]]]}]}]\204\252apiVersion\267apiextensions.k8s.io/v1\244kind\270CustomResourceDefinition\252objectMeta\201\244name\263testcrds.somesan.de\244spec\204\245group\252somesan.de\245names\202\244kind\247TestCrd\246plural\250testcrds\245scope\252Namespaced\250versions\221\203\244name\247v1alpha\246served\303\247storage\303\246object\300" > 
+
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange][Request][ProposedNewState]
+(cty.Value) {
+ ty: (cty.Type) {
+  typeImpl: (cty.typeObject) {
+   typeImplSigil: (cty.typeImplSigil) {
+   },
+   AttrTypes: (map[string]cty.Type) (len=2) {
+    (string) (len=8) "manifest": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=4) {
+       (string) (len=10) "apiVersion": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=4) "kind": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=10) "objectMeta": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=1) {
+          (string) (len=4) "name": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=4) "spec": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=4) {
+          (string) (len=5) "names": (cty.Type) {
+           typeImpl: (cty.typeObject) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            AttrTypes: (map[string]cty.Type) (len=2) {
+             (string) (len=4) "kind": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             },
+             (string) (len=6) "plural": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             }
+            }
+           }
+          },
+          (string) (len=5) "scope": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          },
+          (string) (len=8) "versions": (cty.Type) {
+           typeImpl: (cty.typeTuple) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            ElemTypes: ([]cty.Type) (len=1 cap=1) {
+             (cty.Type) {
+              typeImpl: (cty.typeObject) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               AttrTypes: (map[string]cty.Type) (len=3) {
+                (string) (len=4) "name": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 83
+                 }
+                },
+                (string) (len=6) "served": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                },
+                (string) (len=7) "storage": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                }
+               }
+              }
+             }
+            }
+           }
+          },
+          (string) (len=5) "group": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    (string) (len=6) "object": (cty.Type) {
+     typeImpl: (cty.pseudoTypeDynamic) {
+      typeImplSigil: (cty.typeImplSigil) {
+      }
+     }
+    }
+   }
+  }
+ },
+ v: (map[string]interface {}) (len=2) {
+  (string) (len=8) "manifest": (map[string]interface {}) (len=4) {
+   (string) (len=10) "objectMeta": (map[string]interface {}) (len=1) {
+    (string) (len=4) "name": (string) (len=19) "testcrds.somesan.de"
+   },
+   (string) (len=4) "spec": (map[string]interface {}) (len=4) {
+    (string) (len=8) "versions": ([]interface {}) (len=1 cap=1) {
+     (map[string]interface {}) (len=3) {
+      (string) (len=6) "served": (bool) true,
+      (string) (len=7) "storage": (bool) true,
+      (string) (len=4) "name": (string) (len=7) "v1alpha"
+     }
+    },
+    (string) (len=5) "group": (string) (len=10) "somesan.de",
+    (string) (len=5) "names": (map[string]interface {}) (len=2) {
+     (string) (len=6) "plural": (string) (len=8) "testcrds",
+     (string) (len=4) "kind": (string) (len=7) "TestCrd"
+    },
+    (string) (len=5) "scope": (string) (len=10) "Namespaced"
+   },
+   (string) (len=10) "apiVersion": (string) (len=23) "apiextensions.k8s.io/v1",
+   (string) (len=4) "kind": (string) (len=24) "CustomResourceDefinition"
+  },
+  (string) (len=6) "object": (interface {}) <nil>
+ }
+}
+
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange][Request][PriorState]
+(cty.Value) {
+ ty: (cty.Type) {
+  typeImpl: (cty.typeObject) {
+   typeImplSigil: (cty.typeImplSigil) {
+   },
+   AttrTypes: (map[string]cty.Type) (len=2) {
+    (string) (len=8) "manifest": (cty.Type) {
+     typeImpl: (cty.pseudoTypeDynamic) {
+      typeImplSigil: (cty.typeImplSigil) {
+      }
+     }
+    },
+    (string) (len=6) "object": (cty.Type) {
+     typeImpl: (cty.pseudoTypeDynamic) {
+      typeImplSigil: (cty.typeImplSigil) {
+      }
+     }
+    }
+   }
+  }
+ },
+ v: (interface {}) <nil>
+}
+
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange][Request][Configuration]
+(cty.Value) {
+ ty: (cty.Type) {
+  typeImpl: (cty.typeObject) {
+   typeImplSigil: (cty.typeImplSigil) {
+   },
+   AttrTypes: (map[string]cty.Type) (len=2) {
+    (string) (len=8) "manifest": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=4) {
+       (string) (len=10) "objectMeta": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=1) {
+          (string) (len=4) "name": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=4) "spec": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=4) {
+          (string) (len=5) "names": (cty.Type) {
+           typeImpl: (cty.typeObject) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            AttrTypes: (map[string]cty.Type) (len=2) {
+             (string) (len=4) "kind": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             },
+             (string) (len=6) "plural": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             }
+            }
+           }
+          },
+          (string) (len=5) "scope": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          },
+          (string) (len=8) "versions": (cty.Type) {
+           typeImpl: (cty.typeTuple) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            ElemTypes: ([]cty.Type) (len=1 cap=1) {
+             (cty.Type) {
+              typeImpl: (cty.typeObject) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               AttrTypes: (map[string]cty.Type) (len=3) {
+                (string) (len=4) "name": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 83
+                 }
+                },
+                (string) (len=6) "served": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                },
+                (string) (len=7) "storage": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                }
+               }
+              }
+             }
+            }
+           }
+          },
+          (string) (len=5) "group": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=10) "apiVersion": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=4) "kind": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       }
+      }
+     }
+    },
+    (string) (len=6) "object": (cty.Type) {
+     typeImpl: (cty.pseudoTypeDynamic) {
+      typeImplSigil: (cty.typeImplSigil) {
+      }
+     }
+    }
+   }
+  }
+ },
+ v: (map[string]interface {}) (len=2) {
+  (string) (len=8) "manifest": (map[string]interface {}) (len=4) {
+   (string) (len=4) "kind": (string) (len=24) "CustomResourceDefinition",
+   (string) (len=10) "objectMeta": (map[string]interface {}) (len=1) {
+    (string) (len=4) "name": (string) (len=19) "testcrds.somesan.de"
+   },
+   (string) (len=4) "spec": (map[string]interface {}) (len=4) {
+    (string) (len=5) "scope": (string) (len=10) "Namespaced",
+    (string) (len=8) "versions": ([]interface {}) (len=1 cap=1) {
+     (map[string]interface {}) (len=3) {
+      (string) (len=4) "name": (string) (len=7) "v1alpha",
+      (string) (len=6) "served": (bool) true,
+      (string) (len=7) "storage": (bool) true
+     }
+    },
+    (string) (len=5) "group": (string) (len=10) "somesan.de",
+    (string) (len=5) "names": (map[string]interface {}) (len=2) {
+     (string) (len=4) "kind": (string) (len=7) "TestCrd",
+     (string) (len=6) "plural": (string) (len=8) "testcrds"
+    }
+   },
+   (string) (len=10) "apiVersion": (string) (len=23) "apiextensions.k8s.io/v1"
+  },
+  (string) (len=6) "object": (interface {}) <nil>
+ }
+}
+
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange] Resource to be created.
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange][CREATE] HCL resource (schema.GroupVersionKind) apiextensions.k8s.io/v1, Kind=CustomResourceDefinition
+ to be created:
+(cty.Value) {
+ ty: (cty.Type) {
+  typeImpl: (cty.typeObject) {
+   typeImplSigil: (cty.typeImplSigil) {
+   },
+   AttrTypes: (map[string]cty.Type) (len=4) {
+    (string) (len=4) "spec": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=4) {
+       (string) (len=5) "group": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=5) "names": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=2) {
+          (string) (len=4) "kind": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          },
+          (string) (len=6) "plural": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=5) "scope": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=8) "versions": (cty.Type) {
+        typeImpl: (cty.typeTuple) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         ElemTypes: ([]cty.Type) (len=1 cap=1) {
+          (cty.Type) {
+           typeImpl: (cty.typeObject) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            AttrTypes: (map[string]cty.Type) (len=3) {
+             (string) (len=7) "storage": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 66
+              }
+             },
+             (string) (len=4) "name": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             },
+             (string) (len=6) "served": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 66
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    (string) (len=10) "apiVersion": (cty.Type) {
+     typeImpl: (cty.primitiveType) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      Kind: (cty.primitiveTypeKind) 83
+     }
+    },
+    (string) (len=4) "kind": (cty.Type) {
+     typeImpl: (cty.primitiveType) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      Kind: (cty.primitiveTypeKind) 83
+     }
+    },
+    (string) (len=10) "objectMeta": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=1) {
+       (string) (len=4) "name": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ v: (map[string]interface {}) (len=4) {
+  (string) (len=4) "spec": (map[string]interface {}) (len=4) {
+   (string) (len=5) "scope": (string) (len=10) "Namespaced",
+   (string) (len=8) "versions": ([]interface {}) (len=1 cap=1) {
+    (map[string]interface {}) (len=3) {
+     (string) (len=4) "name": (string) (len=7) "v1alpha",
+     (string) (len=6) "served": (bool) true,
+     (string) (len=7) "storage": (bool) true
+    }
+   },
+   (string) (len=5) "group": (string) (len=10) "somesan.de",
+   (string) (len=5) "names": (map[string]interface {}) (len=2) {
+    (string) (len=4) "kind": (string) (len=7) "TestCrd",
+    (string) (len=6) "plural": (string) (len=8) "testcrds"
+   }
+  },
+  (string) (len=10) "apiVersion": (string) (len=23) "apiextensions.k8s.io/v1",
+  (string) (len=4) "kind": (string) (len=24) "CustomResourceDefinition",
+  (string) (len=10) "objectMeta": (map[string]interface {}) (len=1) {
+   (string) (len=4) "name": (string) (len=19) "testcrds.somesan.de"
+  }
+ }
+}
+
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange][CREATE] cyt.Object
+(*cty.Value)(0xc0005cad20)({
+ ty: (cty.Type) {
+  typeImpl: (cty.typeObject) {
+   typeImplSigil: (cty.typeImplSigil) {
+   },
+   AttrTypes: (map[string]cty.Type) (len=4) {
+    (string) (len=10) "apiVersion": (cty.Type) {
+     typeImpl: (cty.primitiveType) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      Kind: (cty.primitiveTypeKind) 83
+     }
+    },
+    (string) (len=4) "kind": (cty.Type) {
+     typeImpl: (cty.primitiveType) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      Kind: (cty.primitiveTypeKind) 83
+     }
+    },
+    (string) (len=10) "objectMeta": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=1) {
+       (string) (len=4) "name": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       }
+      }
+     }
+    },
+    (string) (len=4) "spec": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=4) {
+       (string) (len=5) "names": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=2) {
+          (string) (len=4) "kind": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          },
+          (string) (len=6) "plural": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=5) "scope": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=8) "versions": (cty.Type) {
+        typeImpl: (cty.typeTuple) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         ElemTypes: ([]cty.Type) (len=1 cap=1) {
+          (cty.Type) {
+           typeImpl: (cty.typeObject) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            AttrTypes: (map[string]cty.Type) (len=3) {
+             (string) (len=4) "name": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             },
+             (string) (len=6) "served": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 66
+              }
+             },
+             (string) (len=7) "storage": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 66
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       },
+       (string) (len=5) "group": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ v: (map[string]interface {}) (len=4) {
+  (string) (len=4) "spec": (map[string]interface {}) (len=4) {
+   (string) (len=5) "group": (string) (len=10) "somesan.de",
+   (string) (len=5) "names": (map[string]interface {}) (len=2) {
+    (string) (len=4) "kind": (string) (len=7) "TestCrd",
+    (string) (len=6) "plural": (string) (len=8) "testcrds"
+   },
+   (string) (len=5) "scope": (string) (len=10) "Namespaced",
+   (string) (len=8) "versions": ([]interface {}) (len=1 cap=1) {
+    (map[string]interface {}) (len=3) {
+     (string) (len=4) "name": (string) (len=7) "v1alpha",
+     (string) (len=6) "served": (bool) true,
+     (string) (len=7) "storage": (bool) true
+    }
+   }
+  },
+  (string) (len=10) "apiVersion": (string) (len=23) "apiextensions.k8s.io/v1",
+  (string) (len=4) "kind": (string) (len=24) "CustomResourceDefinition",
+  (string) (len=10) "objectMeta": (map[string]interface {}) (len=1) {
+   (string) (len=4) "name": (string) (len=19) "testcrds.somesan.de"
+  }
+ }
+})
+
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange][CREATE] Transformed planned state:
+(cty.Value) {
+ ty: (cty.Type) {
+  typeImpl: (cty.typeObject) {
+   typeImplSigil: (cty.typeImplSigil) {
+   },
+   AttrTypes: (map[string]cty.Type) (len=2) {
+    (string) (len=6) "object": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=4) {
+       (string) (len=10) "apiVersion": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=4) "kind": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=10) "objectMeta": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=1) {
+          (string) (len=4) "name": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=4) "spec": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=4) {
+          (string) (len=5) "scope": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          },
+          (string) (len=8) "versions": (cty.Type) {
+           typeImpl: (cty.typeTuple) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            ElemTypes: ([]cty.Type) (len=1 cap=1) {
+             (cty.Type) {
+              typeImpl: (cty.typeObject) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               AttrTypes: (map[string]cty.Type) (len=3) {
+                (string) (len=4) "name": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 83
+                 }
+                },
+                (string) (len=6) "served": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                },
+                (string) (len=7) "storage": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                }
+               }
+              }
+             }
+            }
+           }
+          },
+          (string) (len=5) "group": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          },
+          (string) (len=5) "names": (cty.Type) {
+           typeImpl: (cty.typeObject) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            AttrTypes: (map[string]cty.Type) (len=2) {
+             (string) (len=4) "kind": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             },
+             (string) (len=6) "plural": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    (string) (len=8) "manifest": (cty.Type) {
+     typeImpl: (cty.typeObject) {
+      typeImplSigil: (cty.typeImplSigil) {
+      },
+      AttrTypes: (map[string]cty.Type) (len=4) {
+       (string) (len=10) "objectMeta": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=1) {
+          (string) (len=4) "name": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=4) "spec": (cty.Type) {
+        typeImpl: (cty.typeObject) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         AttrTypes: (map[string]cty.Type) (len=4) {
+          (string) (len=8) "versions": (cty.Type) {
+           typeImpl: (cty.typeTuple) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            ElemTypes: ([]cty.Type) (len=1 cap=1) {
+             (cty.Type) {
+              typeImpl: (cty.typeObject) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               AttrTypes: (map[string]cty.Type) (len=3) {
+                (string) (len=4) "name": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 83
+                 }
+                },
+                (string) (len=6) "served": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                },
+                (string) (len=7) "storage": (cty.Type) {
+                 typeImpl: (cty.primitiveType) {
+                  typeImplSigil: (cty.typeImplSigil) {
+                  },
+                  Kind: (cty.primitiveTypeKind) 66
+                 }
+                }
+               }
+              }
+             }
+            }
+           }
+          },
+          (string) (len=5) "group": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          },
+          (string) (len=5) "names": (cty.Type) {
+           typeImpl: (cty.typeObject) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            AttrTypes: (map[string]cty.Type) (len=2) {
+             (string) (len=4) "kind": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             },
+             (string) (len=6) "plural": (cty.Type) {
+              typeImpl: (cty.primitiveType) {
+               typeImplSigil: (cty.typeImplSigil) {
+               },
+               Kind: (cty.primitiveTypeKind) 83
+              }
+             }
+            }
+           }
+          },
+          (string) (len=5) "scope": (cty.Type) {
+           typeImpl: (cty.primitiveType) {
+            typeImplSigil: (cty.typeImplSigil) {
+            },
+            Kind: (cty.primitiveTypeKind) 83
+           }
+          }
+         }
+        }
+       },
+       (string) (len=10) "apiVersion": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       },
+       (string) (len=4) "kind": (cty.Type) {
+        typeImpl: (cty.primitiveType) {
+         typeImplSigil: (cty.typeImplSigil) {
+         },
+         Kind: (cty.primitiveTypeKind) 83
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ v: (map[string]interface {}) (len=2) {
+  (string) (len=8) "manifest": (map[string]interface {}) (len=4) {
+   (string) (len=4) "spec": (map[string]interface {}) (len=4) {
+    (string) (len=8) "versions": ([]interface {}) (len=1 cap=1) {
+     (map[string]interface {}) (len=3) {
+      (string) (len=4) "name": (string) (len=7) "v1alpha",
+      (string) (len=6) "served": (bool) true,
+      (string) (len=7) "storage": (bool) true
+     }
+    },
+    (string) (len=5) "group": (string) (len=10) "somesan.de",
+    (string) (len=5) "names": (map[string]interface {}) (len=2) {
+     (string) (len=4) "kind": (string) (len=7) "TestCrd",
+     (string) (len=6) "plural": (string) (len=8) "testcrds"
+    },
+    (string) (len=5) "scope": (string) (len=10) "Namespaced"
+   },
+   (string) (len=10) "apiVersion": (string) (len=23) "apiextensions.k8s.io/v1",
+   (string) (len=4) "kind": (string) (len=24) "CustomResourceDefinition",
+   (string) (len=10) "objectMeta": (map[string]interface {}) (len=1) {
+    (string) (len=4) "name": (string) (len=19) "testcrds.somesan.de"
+   }
+  },
+  (string) (len=6) "object": (map[string]interface {}) (len=4) {
+   (string) (len=10) "objectMeta": (map[string]interface {}) (len=1) {
+    (string) (len=4) "name": (string) (len=19) "testcrds.somesan.de"
+   },
+   (string) (len=4) "spec": (map[string]interface {}) (len=4) {
+    (string) (len=5) "group": (string) (len=10) "somesan.de",
+    (string) (len=5) "names": (map[string]interface {}) (len=2) {
+     (string) (len=6) "plural": (string) (len=8) "testcrds",
+     (string) (len=4) "kind": (string) (len=7) "TestCrd"
+    },
+    (string) (len=5) "scope": (string) (len=10) "Namespaced",
+    (string) (len=8) "versions": ([]interface {}) (len=1 cap=1) {
+     (map[string]interface {}) (len=3) {
+      (string) (len=4) "name": (string) (len=7) "v1alpha",
+      (string) (len=6) "served": (bool) true,
+      (string) (len=7) "storage": (bool) true
+     }
+    }
+   },
+   (string) (len=10) "apiVersion": (string) (len=23) "apiextensions.k8s.io/v1",
+   (string) (len=4) "kind": (string) (len=24) "CustomResourceDefinition"
+  }
+ }
+}
+
+RAW provider 2019/12/22 16:06:15 [PlanResourceChange][Request][PlannedState]
+([]uint8) (len=1037 cap=1786) {
+ 00000000  82 a8 6d 61 6e 69 66 65  73 74 92 c5 01 1e 5b 22  |..manifest....["|
+ 00000010  6f 62 6a 65 63 74 22 2c  7b 22 61 70 69 56 65 72  |object",{"apiVer|
+ 00000020  73 69 6f 6e 22 3a 22 73  74 72 69 6e 67 22 2c 22  |sion":"string","|
+ 00000030  6b 69 6e 64 22 3a 22 73  74 72 69 6e 67 22 2c 22  |kind":"string","|
+ 00000040  6f 62 6a 65 63 74 4d 65  74 61 22 3a 5b 22 6f 62  |objectMeta":["ob|
+ 00000050  6a 65 63 74 22 2c 7b 22  6e 61 6d 65 22 3a 22 73  |ject",{"name":"s|
+ 00000060  74 72 69 6e 67 22 7d 5d  2c 22 73 70 65 63 22 3a  |tring"}],"spec":|
+ 00000070  5b 22 6f 62 6a 65 63 74  22 2c 7b 22 67 72 6f 75  |["object",{"grou|
+ 00000080  70 22 3a 22 73 74 72 69  6e 67 22 2c 22 6e 61 6d  |p":"string","nam|
+ 00000090  65 73 22 3a 5b 22 6f 62  6a 65 63 74 22 2c 7b 22  |es":["object",{"|
+ 000000a0  6b 69 6e 64 22 3a 22 73  74 72 69 6e 67 22 2c 22  |kind":"string","|
+ 000000b0  70 6c 75 72 61 6c 22 3a  22 73 74 72 69 6e 67 22  |plural":"string"|
+ 000000c0  7d 5d 2c 22 73 63 6f 70  65 22 3a 22 73 74 72 69  |}],"scope":"stri|
+ 000000d0  6e 67 22 2c 22 76 65 72  73 69 6f 6e 73 22 3a 5b  |ng","versions":[|
+ 000000e0  22 74 75 70 6c 65 22 2c  5b 5b 22 6f 62 6a 65 63  |"tuple",[["objec|
+ 000000f0  74 22 2c 7b 22 6e 61 6d  65 22 3a 22 73 74 72 69  |t",{"name":"stri|
+ 00000100  6e 67 22 2c 22 73 65 72  76 65 64 22 3a 22 62 6f  |ng","served":"bo|
+ 00000110  6f 6c 22 2c 22 73 74 6f  72 61 67 65 22 3a 22 62  |ol","storage":"b|
+ 00000120  6f 6f 6c 22 7d 5d 5d 5d  7d 5d 7d 5d 84 aa 61 70  |ool"}]]]}]}]..ap|
+ 00000130  69 56 65 72 73 69 6f 6e  b7 61 70 69 65 78 74 65  |iVersion.apiexte|
+ 00000140  6e 73 69 6f 6e 73 2e 6b  38 73 2e 69 6f 2f 76 31  |nsions.k8s.io/v1|
+ 00000150  a4 6b 69 6e 64 b8 43 75  73 74 6f 6d 52 65 73 6f  |.kind.CustomReso|
+ 00000160  75 72 63 65 44 65 66 69  6e 69 74 69 6f 6e aa 6f  |urceDefinition.o|
+ 00000170  62 6a 65 63 74 4d 65 74  61 81 a4 6e 61 6d 65 b3  |bjectMeta..name.|
+ 00000180  74 65 73 74 63 72 64 73  2e 73 6f 6d 65 73 61 6e  |testcrds.somesan|
+ 00000190  2e 64 65 a4 73 70 65 63  84 a5 67 72 6f 75 70 aa  |.de.spec..group.|
+ 000001a0  73 6f 6d 65 73 61 6e 2e  64 65 a5 6e 61 6d 65 73  |somesan.de.names|
+ 000001b0  82 a4 6b 69 6e 64 a7 54  65 73 74 43 72 64 a6 70  |..kind.TestCrd.p|
+ 000001c0  6c 75 72 61 6c a8 74 65  73 74 63 72 64 73 a5 73  |lural.testcrds.s|
+ 000001d0  63 6f 70 65 aa 4e 61 6d  65 73 70 61 63 65 64 a8  |cope.Namespaced.|
+ 000001e0  76 65 72 73 69 6f 6e 73  91 83 a4 6e 61 6d 65 a7  |versions...name.|
+ 000001f0  76 31 61 6c 70 68 61 a6  73 65 72 76 65 64 c3 a7  |v1alpha.served..|
+ 00000200  73 74 6f 72 61 67 65 c3  a6 6f 62 6a 65 63 74 92  |storage..object.|
+ 00000210  c5 01 1e 5b 22 6f 62 6a  65 63 74 22 2c 7b 22 61  |...["object",{"a|
+ 00000220  70 69 56 65 72 73 69 6f  6e 22 3a 22 73 74 72 69  |piVersion":"stri|
+ 00000230  6e 67 22 2c 22 6b 69 6e  64 22 3a 22 73 74 72 69  |ng","kind":"stri|
+ 00000240  6e 67 22 2c 22 6f 62 6a  65 63 74 4d 65 74 61 22  |ng","objectMeta"|
+ 00000250  3a 5b 22 6f 62 6a 65 63  74 22 2c 7b 22 6e 61 6d  |:["object",{"nam|
+ 00000260  65 22 3a 22 73 74 72 69  6e 67 22 7d 5d 2c 22 73  |e":"string"}],"s|
+ 00000270  70 65 63 22 3a 5b 22 6f  62 6a 65 63 74 22 2c 7b  |pec":["object",{|
+ 00000280  22 67 72 6f 75 70 22 3a  22 73 74 72 69 6e 67 22  |"group":"string"|
+ 00000290  2c 22 6e 61 6d 65 73 22  3a 5b 22 6f 62 6a 65 63  |,"names":["objec|
+ 000002a0  74 22 2c 7b 22 6b 69 6e  64 22 3a 22 73 74 72 69  |t",{"kind":"stri|
+ 000002b0  6e 67 22 2c 22 70 6c 75  72 61 6c 22 3a 22 73 74  |ng","plural":"st|
+ 000002c0  72 69 6e 67 22 7d 5d 2c  22 73 63 6f 70 65 22 3a  |ring"}],"scope":|
+ 000002d0  22 73 74 72 69 6e 67 22  2c 22 76 65 72 73 69 6f  |"string","versio|
+ 000002e0  6e 73 22 3a 5b 22 74 75  70 6c 65 22 2c 5b 5b 22  |ns":["tuple",[["|
+ 000002f0  6f 62 6a 65 63 74 22 2c  7b 22 6e 61 6d 65 22 3a  |object",{"name":|
+ 00000300  22 73 74 72 69 6e 67 22  2c 22 73 65 72 76 65 64  |"string","served|
+ 00000310  22 3a 22 62 6f 6f 6c 22  2c 22 73 74 6f 72 61 67  |":"bool","storag|
+ 00000320  65 22 3a 22 62 6f 6f 6c  22 7d 5d 5d 5d 7d 5d 7d  |e":"bool"}]]]}]}|
+ 00000330  5d 84 aa 61 70 69 56 65  72 73 69 6f 6e b7 61 70  |]..apiVersion.ap|
+ 00000340  69 65 78 74 65 6e 73 69  6f 6e 73 2e 6b 38 73 2e  |iextensions.k8s.|
+ 00000350  69 6f 2f 76 31 a4 6b 69  6e 64 b8 43 75 73 74 6f  |io/v1.kind.Custo|
+ 00000360  6d 52 65 73 6f 75 72 63  65 44 65 66 69 6e 69 74  |mResourceDefinit|
+ 00000370  69 6f 6e aa 6f 62 6a 65  63 74 4d 65 74 61 81 a4  |ion.objectMeta..|
+ 00000380  6e 61 6d 65 b3 74 65 73  74 63 72 64 73 2e 73 6f  |name.testcrds.so|
+ 00000390  6d 65 73 61 6e 2e 64 65  a4 73 70 65 63 84 a5 67  |mesan.de.spec..g|
+ 000003a0  72 6f 75 70 aa 73 6f 6d  65 73 61 6e 2e 64 65 a5  |roup.somesan.de.|
+ 000003b0  6e 61 6d 65 73 82 a4 6b  69 6e 64 a7 54 65 73 74  |names..kind.Test|
+ 000003c0  43 72 64 a6 70 6c 75 72  61 6c a8 74 65 73 74 63  |Crd.plural.testc|
+ 000003d0  72 64 73 a5 73 63 6f 70  65 aa 4e 61 6d 65 73 70  |rds.scope.Namesp|
+ 000003e0  61 63 65 64 a8 76 65 72  73 69 6f 6e 73 91 83 a4  |aced.versions...|
+ 000003f0  6e 61 6d 65 a7 76 31 61  6c 70 68 61 a6 73 65 72  |name.v1alpha.ser|
+ 00000400  76 65 64 c3 a7 73 74 6f  72 61 67 65 c3           |ved..storage.|
+}
+
+RAW provider 2019/12/22 16:06:15 Finished
