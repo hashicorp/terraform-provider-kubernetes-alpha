@@ -1,15 +1,21 @@
 package provider
 
 import (
+	"fmt"
+
 	"github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 )
 
 var providerState map[string]interface{}
 
 const (
-	DynamicClient string = "DYNCLIENT"
+	DynamicClient   string = "DYNAMICCLIENT"
+	DiscoveryClient string = "DISCOVERYCLIENT"
+	RestMapper      string = "RESTMAPPER"
 )
 
 // GetProviderState provides access to a global state storage structure.
@@ -20,10 +26,34 @@ func GetProviderState() map[string]interface{} {
 	return providerState
 }
 
-func GetDynamicClient() dynamic.Interface {
+// GetDynamicClient returns an unstructured (dynamic) configured client instance
+func GetDynamicClient() (dynamic.Interface, error) {
 	s := GetProviderState()
-	c := s[DynamicClient]
-	return c.(dynamic.Interface)
+	c, ok := s[DynamicClient]
+	if !ok {
+		return nil, fmt.Errorf("no dynamic client configured")
+	}
+	return c.(dynamic.Interface), nil
+}
+
+// GetDiscoveryClient returns an unstructured (dynamic) configured client instance
+func GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
+	s := GetProviderState()
+	c, ok := s[DynamicClient]
+	if !ok {
+		return nil, fmt.Errorf("no dynamic client configured")
+	}
+	return c.(discovery.DiscoveryInterface), nil
+}
+
+// GetRestMapper returns an unstructured (dynamic) configured client instance
+func GetRestMapper() (meta.RESTMapper, error) {
+	s := GetProviderState()
+	c, ok := s[RestMapper]
+	if !ok {
+		return nil, fmt.Errorf("no dynamic client configured")
+	}
+	return c.(meta.RESTMapper), nil
 }
 
 // BlockMap a the basic building block of a configuration or resource object.

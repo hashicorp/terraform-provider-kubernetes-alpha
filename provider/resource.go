@@ -3,6 +3,7 @@ package provider
 import (
 	"encoding/json"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -74,4 +75,25 @@ func CtyToUnstructured(in *cty.Value) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return udata, nil
+}
+
+// GVRFromCtyObject extracts a canonical schema.GroupVersionResource out of the resource's
+// metadata by checking it agaings the discovery API via a RESTMapper
+func GVRFromCtyObject(o *cty.Value) (*schema.GroupVersionResource, error) {
+	m, err := GetRestMapper()
+	if err != nil {
+		return nil, err
+	}
+	apv := o.GetAttr("apiVersion").AsString()
+	kind := o.GetAttr("kind").AsString()
+	gv, err := schema.ParseGroupVersion(apv)
+	if err != nil {
+		return nil, err
+	}
+	gvr, err := m.ResourceFor(gv.WithResource(kind))
+	Dlog.Printf("[GVRFromCtyObject] Discovered GVR: %s", spew.Sdump(gvr))
+	if err != nil {
+		return nil, err
+	}
+	return &gvr, nil
 }

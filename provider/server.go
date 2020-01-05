@@ -3,26 +3,32 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
-	apiextinstall "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 func init() {
-	apiextinstall.Install(scheme.Scheme)
+	install.Install(scheme.Scheme)
 }
 
 // RawProviderServer implements the ProviderServer interface as exported from ProtoBuf.
@@ -110,15 +116,33 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 		Dlog.Printf("[Configure][Kubeconfig] %s.\n", err.Error())
 		return response, err
 	}
+	if logging.IsDebugOrHigher() {
+		clientConfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+			return logging.NewTransport("Kubernetes", rt)
+		}
+	}
 
 	dynClient, errClient := dynamic.NewForConfig(clientConfig)
 	if errClient != nil {
-		Dlog.Printf("[Configure] Error creating client %v", errClient)
+		Dlog.Printf("[Configure] Error creating dynamic client %v", errClient)
 		return response, errClient
 	}
 
-	GetProviderState()[DynamicClient] = dynClient
-	Dlog.Printf("[Configure] Successfully created dynamic client.\n")
+	discoClient, errClient := discovery.NewDiscoveryClientForConfig(clientConfig)
+	if errClient != nil {
+		Dlog.Printf("[Configure] Error creating discovery client %v", errClient)
+		return response, errClient
+	}
+
+	cacher := memory.NewMemCacheClient(discoClient)
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(cacher)
+
+	ps := GetProviderState()
+	ps[DynamicClient] = dynClient
+	ps[DiscoveryClient] = discoClient
+	ps[RestMapper] = mapper
+
+	Dlog.Printf("[Configure] Successfully created dicovery client.\n")
 
 	return response, nil
 }
@@ -176,18 +200,13 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 				if err != nil {
 					return resp, err
 				}
-				Dlog.Printf("[PlanResourceChange][CREATE] YAML resource %s to be created:\n%s\n", spew.Sdump(*gvk), spew.Sdump(cobj))
+				Dlog.Printf("[PlanResourceChange][PlanCreate] YAML resource %s to be created:\n%s\n", spew.Sdump(*gvk), spew.Sdump(cobj))
 			case "kubedynamic_hcl_manifest":
 				cobj = &m
-				ag := m.GetAttr("apiVersion").AsString()
-				gvk := &schema.GroupVersionKind{
-					Group:   strings.Split(ag, "/")[0],
-					Version: strings.Split(ag, "/")[1],
-					Kind:    m.GetAttr("kind").AsString(),
-				}
-				Dlog.Printf("[PlanResourceChange][CREATE] HCL resource %s to be created:\n%s\n", spew.Sdump(*gvk), spew.Sdump(*cobj))
+				gvk := schema.FromAPIVersionAndKind(m.GetAttr("apiVersion").AsString(), m.GetAttr("kind").AsString())
+				Dlog.Printf("[PlanResourceChange][PlanCreate] HCL resource %s to be created:\n%s\n", spew.Sdump(gvk), spew.Sdump(cobj))
 			}
-			Dlog.Printf("[PlanResourceChange][CREATE] cyt.Object\n%s\n", spew.Sdump(cobj))
+			Dlog.Printf("[PlanResourceChange][PlanCreate] cyt.Object\n%s\n", spew.Sdump(cobj))
 			planned, err := cty.Transform(proposedState, func(path cty.Path, v cty.Value) (cty.Value, error) {
 				if path.Equals(cty.GetAttrPath("object")) {
 					return *cobj, nil
@@ -197,10 +216,10 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 			if err != nil {
 				return resp, err
 			}
-			Dlog.Printf("[PlanResourceChange][CREATE] Transformed planned state:\n%s\n", spew.Sdump(planned))
+			Dlog.Printf("[PlanResourceChange][PlanCreate] Transformed planned state:\n%s\n", spew.Sdump(planned))
 			plannedState, err := MarshalResource(req.TypeName, planned)
 			if err != nil {
-				Dlog.Println("[PlanResourceChange][CREATE] Failed to marshall planned state after transform.")
+				Dlog.Println("[PlanResourceChange][PlanCreate] Failed to marshall planned state after transform.")
 				return resp, err
 			}
 			resp.PlannedState = &tfplugin5.DynamicValue{
@@ -247,6 +266,43 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	}
 	Dlog.Printf("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
 	Dlog.Printf("[ApplyResourceChange][Request][PlannedPrivate]\n%s\n", spew.Sdump(req.PlannedPrivate))
+
+	c, err := GetDynamicClient()
+	if err != nil {
+		d := resp.Diagnostics
+		if d == nil {
+			d = make([]*tfplugin5.Diagnostic, 1)
+		}
+		d = append(d, &tfplugin5.Diagnostic{Severity: tfplugin5.Diagnostic_ERROR, Summary: err.Error()})
+		resp.Diagnostics = d
+		return resp, err
+	}
+
+	switch {
+	case applyPriorState.IsNull():
+		{ // Create resource
+			o := applyPlannedState.GetAttr("object")
+			gvr, err := GVRFromCtyObject(&o)
+			if err != nil {
+				Dlog.Printf("[ApplyResourceChange][Create] Failed to discover GVR: %s\n%s", err, spew.Sdump(o))
+			}
+			r := c.Resource(*gvr)
+			mi, err := CtyToUnstructured(&o)
+			if err != nil {
+				Dlog.Printf("[ApplyResourceChange][Create] failed to convert proposed state (%s) :\n%s",
+					err.Error(), spew.Sdump(mi))
+			}
+			uo := unstructured.Unstructured{Object: mi}
+			Dlog.Printf("[ApplyResourceChange][Create] Creating object:\n%s", spew.Sdump(uo))
+			ro, err := r.Create(&uo, v1.CreateOptions{})
+			if err != nil {
+				Dlog.Printf("[ApplyResourceChange][Create] failed to create object: %s\n%s", err, spew.Sdump(ro))
+			}
+		}
+	case applyPlannedState.IsNull():
+		{ // Delete
+		}
+	}
 
 	resp.NewState = req.PlannedState
 	return resp, nil
