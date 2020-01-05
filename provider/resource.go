@@ -49,6 +49,8 @@ func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.
 	return unstruct, gvk, nil
 }
 
+// UnstructuredToCty converts a Kubernetes dynamic client specific unstructured object
+// into a Terraform specific cty.Object type manifest
 func UnstructuredToCty(in map[string]interface{}) (*cty.Value, error) {
 	jsonVal, err := json.Marshal(in)
 	if err != nil {
@@ -63,6 +65,8 @@ func UnstructuredToCty(in map[string]interface{}) (*cty.Value, error) {
 	return &simple.Value, nil
 }
 
+// CtyToUnstructured converts a Terraform specific cty.Object type manifest
+// into a Kubernetes dynamic client specific unstructured object
 func CtyToUnstructured(in *cty.Value) (map[string]interface{}, error) {
 	simple := &ctyjson.SimpleJSONValue{*in}
 	jsonVal, err := simple.MarshalJSON()
