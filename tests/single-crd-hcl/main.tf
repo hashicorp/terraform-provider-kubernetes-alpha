@@ -8,7 +8,7 @@ resource "kubedynamic_hcl_manifest" "test-crd" {
   manifest = {
     apiVersion = "apiextensions.k8s.io/v1"
     kind = "CustomResourceDefinition"
-    objectMeta = {
+    metadata = {
       name = "testcrds.somesan.de"
     }
     spec = {
@@ -18,13 +18,21 @@ resource "kubedynamic_hcl_manifest" "test-crd" {
         plural = "testcrds"
       }
       scope = "Namespaced"
-      versions = [
-        {
-          name = "v1alpha"
-          served = true
-          storage = true
-        },
-      ]
+      versions = [{
+        name = "v1alpha"
+        served = true
+        storage = true
+        schema = {
+          openAPIV3Schema = {
+            type = "object"
+            properties = {
+              data = {
+                type = "string"
+              }
+            }
+          }
+        }
+      }]
     }
   }
 }
