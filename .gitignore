@@ -1,5 +1,5 @@
 /terraform-provider-kubedynamic
 /.vscode/**
 .terraform/
-terraform.tfstate
+*.tfstate
 *.log
