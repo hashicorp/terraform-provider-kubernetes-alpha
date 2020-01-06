@@ -13,6 +13,16 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
+// ResourceUpdateObjectAttr is a cty.Transform callback that sets it's "object" attribute to a new cty.Value
+func ResourceUpdateObjectAttr(newobj *cty.Value) func(path cty.Path, v cty.Value) (cty.Value, error) {
+	return func(path cty.Path, v cty.Value) (cty.Value, error) {
+		if path.Equals(cty.GetAttrPath("object")) {
+			return *newobj, nil
+		}
+		return v, nil
+	}
+}
+
 // UnmarshalResource extracts a msgpack-ed resource into it's corresponding cty.Value
 func UnmarshalResource(resource string, data []byte) (cty.Value, error) {
 	// t, err := msgpack.ImpliedType(data)
@@ -25,19 +35,28 @@ func UnmarshalResource(resource string, data []byte) (cty.Value, error) {
 }
 
 // MarshalResource extracts a msgpack-ed resource into it's corresponding cty.Value
-func MarshalResource(resource string, data cty.Value) ([]byte, error) {
+func MarshalResource(resource string, data *cty.Value) ([]byte, error) {
 	// t, err := msgpack.ImpliedType(data)
 	// if err != nil {
 	// 	return cty.NullVal(cty.DynamicPseudoType), err
 	// }
 	s := GetProviderResourceSchema()
 	t := GetObjectTypeFromSchema(s[resource])
-	return msgpack.Marshal(data, t)
+	return msgpack.Marshal(*data, t)
 }
 
-func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.GroupVersionKind, error) {
+// ResourceFromYAMLManifest parses a YAML Kubernetes manifest into unstructured client-go object plus a GroupVersionResource.
+func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.GroupVersionResource, error) {
+	mapper, err := GetRestMapper()
+	if err != nil {
+		return nil, nil, err
+	}
 	kdecoder := scheme.Codecs.UniversalDecoder()
 	obj, gvk, err := kdecoder.Decode(manifest, nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	m, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -46,7 +65,7 @@ func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.
 	if err != nil {
 		return nil, nil, err
 	}
-	return unstruct, gvk, nil
+	return unstruct, &m.Resource, nil
 }
 
 // UnstructuredToCty converts a Kubernetes dynamic client specific unstructured object
@@ -83,21 +102,22 @@ func CtyToUnstructured(in *cty.Value) (map[string]interface{}, error) {
 
 // GVRFromCtyObject extracts a canonical schema.GroupVersionResource out of the resource's
 // metadata by checking it agaings the discovery API via a RESTMapper
-func GVRFromCtyObject(o *cty.Value) (*schema.GroupVersionResource, error) {
+func GVRFromCtyObject(o *cty.Value) (schema.GroupVersionResource, error) {
+	r := schema.GroupVersionResource{}
 	m, err := GetRestMapper()
 	if err != nil {
-		return nil, err
+		return r, err
 	}
 	apv := o.GetAttr("apiVersion").AsString()
 	kind := o.GetAttr("kind").AsString()
 	gv, err := schema.ParseGroupVersion(apv)
 	if err != nil {
-		return nil, err
+		return r, err
 	}
 	gvr, err := m.ResourceFor(gv.WithResource(kind))
 	Dlog.Printf("[GVRFromCtyObject] Discovered GVR: %s", spew.Sdump(gvr))
 	if err != nil {
-		return nil, err
+		return r, err
 	}
-	return &gvr, nil
+	return gvr, nil
 }
