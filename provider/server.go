@@ -302,12 +302,14 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 
 	c, err := GetDynamicClient()
 	if err != nil {
-		d := resp.Diagnostics
-		if d == nil {
-			d = make([]*tfplugin5.Diagnostic, 1)
+		if resp.Diagnostics == nil {
+			resp.Diagnostics = make([]*tfplugin5.Diagnostic, 1)
 		}
-		d = append(d, &tfplugin5.Diagnostic{Severity: tfplugin5.Diagnostic_ERROR, Summary: err.Error()})
-		resp.Diagnostics = d
+		resp.Diagnostics = append(resp.Diagnostics,
+			&tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_ERROR,
+				Summary:  err.Error(),
+			})
 		return resp, err
 	}
 
@@ -320,7 +322,17 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				Dlog.Printf("[ApplyResourceChange][Create] Failed to discover GVR: %s\n%s", err, spew.Sdump(o))
 				return resp, err
 			}
-			r := c.Resource(gvr)
+			var rnamespace string
+			om := o.GetAttr("metadata")
+			if om.Type().HasAttribute("namespace") {
+				rnamespace = om.GetAttr("namespace").AsString()
+			}
+			var r dynamic.ResourceInterface
+			if len(rnamespace) > 0 {
+				r = c.Resource(gvr).Namespace(rnamespace)
+			} else {
+				r = c.Resource(gvr)
+			}
 			mi, err := CtyToUnstructured(&o)
 			if err != nil {
 				Dlog.Printf("[ApplyResourceChange][Create] failed to convert proposed state (%s) :\n%s",
@@ -360,7 +372,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			resp.NewState = &tfplugin5.DynamicValue{Msgpack: mp}
 		}
 	case applyPlannedState.IsNull():
-		{ // Delete
+		{ // Delete the resource
 			if !applyPriorState.Type().HasAttribute("object") {
 				return resp, fmt.Errorf("existing state of resource %s has no 'object' attribute", req.TypeName)
 			}

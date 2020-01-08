@@ -51,8 +51,8 @@ func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.
 	if err != nil {
 		return nil, nil, err
 	}
-	kdecoder := scheme.Codecs.UniversalDecoder()
-	obj, gvk, err := kdecoder.Decode(manifest, nil, nil)
+	kdec := scheme.Codecs.UniversalDeserializer()
+	obj, gvk, err := kdec.Decode(manifest, nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}
