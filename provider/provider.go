@@ -12,13 +12,14 @@ import (
 
 var providerState map[string]interface{}
 
+// keys into the provider state storage
 const (
 	DynamicClient   string = "DYNAMICCLIENT"
 	DiscoveryClient string = "DISCOVERYCLIENT"
 	RestMapper      string = "RESTMAPPER"
 )
 
-// GetProviderState provides access to a global state storage structure.
+// GetProviderState returns a global state storage structure.
 func GetProviderState() map[string]interface{} {
 	if providerState == nil {
 		providerState = make(map[string]interface{})
@@ -26,7 +27,7 @@ func GetProviderState() map[string]interface{} {
 	return providerState
 }
 
-// GetDynamicClient returns an unstructured (dynamic) configured client instance
+// GetDynamicClient returns a configured unstructured (dynamic) client instance
 func GetDynamicClient() (dynamic.Interface, error) {
 	s := GetProviderState()
 	c, ok := s[DynamicClient]
@@ -36,22 +37,22 @@ func GetDynamicClient() (dynamic.Interface, error) {
 	return c.(dynamic.Interface), nil
 }
 
-// GetDiscoveryClient returns an unstructured (dynamic) configured client instance
+// GetDiscoveryClient returns a configured discyovery client instance
 func GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
 	s := GetProviderState()
 	c, ok := s[DynamicClient]
 	if !ok {
-		return nil, fmt.Errorf("no dynamic client configured")
+		return nil, fmt.Errorf("no discovery client configured")
 	}
 	return c.(discovery.DiscoveryInterface), nil
 }
 
-// GetRestMapper returns an unstructured (dynamic) configured client instance
+// GetRestMapper returns a RESTMapper client instance
 func GetRestMapper() (meta.RESTMapper, error) {
 	s := GetProviderState()
 	c, ok := s[RestMapper]
 	if !ok {
-		return nil, fmt.Errorf("no dynamic client configured")
+		return nil, fmt.Errorf("no restmapper client configured")
 	}
 	return c.(meta.RESTMapper), nil
 }

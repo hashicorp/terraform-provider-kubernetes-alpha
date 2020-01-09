@@ -87,7 +87,7 @@ func UnstructuredToCty(in map[string]interface{}) (*cty.Value, error) {
 // CtyToUnstructured converts a Terraform specific cty.Object type manifest
 // into a Kubernetes dynamic client specific unstructured object
 func CtyToUnstructured(in *cty.Value) (map[string]interface{}, error) {
-	simple := &ctyjson.SimpleJSONValue{*in}
+	simple := &ctyjson.SimpleJSONValue{Value: *in}
 	jsonVal, err := simple.MarshalJSON()
 	if err != nil {
 		return nil, err

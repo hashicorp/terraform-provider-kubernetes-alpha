@@ -162,7 +162,8 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 	}
 
 	cobj := currentState.GetAttr("object")
-	rname := cobj.GetAttr("metadata").GetAttr("name").AsString()
+	md := cobj.GetAttr("metadata")
+	rname := md.GetAttr("name").AsString()
 
 	client, err := GetDynamicClient()
 	if err != nil {
@@ -173,10 +174,18 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 		return resp, err
 	}
 	rcl := client.Resource(objGVR)
-	uobj, err := rcl.Get(rname, v1.GetOptions{})
+	var uobj *unstructured.Unstructured
+	if md.Type().HasAttribute("namespace") {
+		ns := md.GetAttr("namespace").AsString()
+		uobj, err = rcl.Namespace(ns).Get(rname, v1.GetOptions{})
+	} else {
+		uobj, err = rcl.Get(rname, v1.GetOptions{})
+	}
 	if err != nil {
 		return resp, err
 	}
+	// remove status from result, so we don't store it in the state
+	delete(uobj.Object, "status")
 	nobj, err := UnstructuredToCty(uobj.Object)
 	if err != nil {
 		return resp, err
@@ -399,7 +408,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				derr = r.Namespace(rnamespace).Delete(rname, &v1.DeleteOptions{})
 			}
 			if derr != nil {
-				return resp, fmt.Errorf("failed to delete resource %s/%s: %", rnamespace, rname, err)
+				return resp, fmt.Errorf("failed to delete resource %s/%s: %s", rnamespace, rname, err)
 			}
 			Dlog.Printf("[ApplyResourceChange][Delete] successfully deleted %s/%s", rnamespace, rname)
 			resp.NewState = req.PlannedState
