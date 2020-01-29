@@ -57,7 +57,7 @@ func GetRestMapper() (meta.RESTMapper, error) {
 	return c.(meta.RESTMapper), nil
 }
 
-// BlockMap a the basic building block of a configuration or resource object.
+// BlockMap is  a the basic building block of a configuration or resource object.
 type BlockMap map[string]cty.Type
 
 // GetConfigObjectType returns the type scaffolding for the provider config object.
@@ -65,19 +65,18 @@ func GetConfigObjectType() cty.Type {
 	return cty.Object(BlockMap{"config_file": cty.String})
 }
 
-// GetObjectTypeFromSchema returns the type scaffolding for the manifest resource object.
-func GetObjectTypeFromSchema(schema *tfplugin5.Schema) cty.Type {
+// GetObjectTypeFromSchema returns a cty.Type that can wholy represent the schema input
+func GetObjectTypeFromSchema(schema *tfplugin5.Schema) (cty.Type, error) {
 	bm := BlockMap{}
 	for _, att := range schema.Block.Attributes {
 		var t cty.Type
 		err := t.UnmarshalJSON(att.Type)
 		if err != nil {
-			Dlog.Printf("Failed to unmarshall type %s\n", att.Type)
-			return cty.NilType
+			return cty.NilType, fmt.Errorf("failed to unmarshall type %s", string(att.Type))
 		}
 		bm[att.Name] = t
 	}
-	return cty.Object(bm)
+	return cty.Object(bm), nil
 }
 
 // GetProviderResourceSchema contains the definitions of all supported resources
