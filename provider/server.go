@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/json"
+
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -77,24 +78,18 @@ func (s *RawProviderServer) ValidateDataSourceConfig(ctx context.Context, req *t
 func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplugin5.UpgradeResourceState_Request) (*tfplugin5.UpgradeResourceState_Response, error) {
 	resp := &tfplugin5.UpgradeResourceState_Response{}
 	resp.Diagnostics = []*tfplugin5.Diagnostic{}
-	jsonMap := map[string]interface{}{}
 
 	sch := GetProviderResourceSchema()
 	rt, err := GetObjectTypeFromSchema(sch[req.TypeName])
 	if err != nil {
 		return resp, err
 	}
-	err = json.Unmarshal(req.RawState.Json, &jsonMap)
+	rv, err := json.Unmarshal(req.RawState.Json, rt)
 	if err != nil {
 		resp.Diagnostics = AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
-	val, err := UnstructuredToCty(jsonMap)
-	if err != nil {
-		resp.Diagnostics = AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
-	}
-	newStateMP, err := msgpack.Marshal(val, rt)
+	newStateMP, err := msgpack.Marshal(rv, rt)
 	if err != nil {
 		resp.Diagnostics = AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -182,8 +177,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 		return resp, fmt.Errorf("existing state of resource %s has no 'object' attribute", req.TypeName)
 	}
 
-	co := currentState.GetAttr("object").GetAttr("value")
-
+	co := currentState.GetAttr("object")
 	mo, err := CtyObjectToUnstructured(&co)
 	if err != nil {
 		return resp, fmt.Errorf("failed to convert current state to unstructured: %s", err)
@@ -219,7 +213,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 	if err != nil {
 		return resp, err
 	}
-	newstate, err := cty.Transform(currentState, ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object").GetAttr("value"), &nobj))
+	newstate, err := cty.Transform(currentState, ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &nobj))
 	if err != nil {
 		return resp, err
 	}
@@ -284,7 +278,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 				cobj = &m
 				// Dlog.Printf("[PlanResourceChange][PlanCreate] HCL resource to be created:\n%s\n", spew.Sdump(cobj))
 			}
-			// Dlog.Printf("[PlanResourceChange][PlanCreate] cyt.Object\n%s\n", spew.Sdump(cobj))
+			Dlog.Printf("[PlanResourceChange][PlanCreate] cyt.Object\n%s\n", spew.Sdump(cobj))
 			planned, err := cty.Transform(proposedState, ResourceBulkUpdateObjectAttr(cobj))
 			if err != nil {
 				return resp, err
@@ -304,7 +298,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 		}
 	}
 
-	Dlog.Printf("[PlanResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(resp.PlannedState.Msgpack))
+	// Dlog.Printf("[PlanResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(resp.PlannedState.Msgpack))
 	return resp, nil
 }
 
