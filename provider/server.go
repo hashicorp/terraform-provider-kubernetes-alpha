@@ -194,12 +194,12 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 		return resp, fmt.Errorf("failed to convert current state to unstructured: %s", err)
 	}
 
-	cu := unstructured.Unstructured{Object: mo}
+	uo := unstructured.Unstructured{Object: mo}
 	client, err := GetDynamicClient()
 	if err != nil {
 		return resp, err
 	}
-	cGVR, err := GVRFromCtyUnstructured(&cu)
+	cGVR, err := GVRFromCtyUnstructured(&uo)
 	if err != nil {
 		return resp, err
 	}
@@ -209,8 +209,8 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 	}
 	rcl := client.Resource(cGVR)
 
-	rnamespace := cu.GetNamespace()
-	rname := cu.GetName()
+	rnamespace := uo.GetNamespace()
+	rname := uo.GetName()
 
 	var fo *unstructured.Unstructured
 	if ns {
@@ -284,9 +284,6 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 			cobj, err = PlanUpdateResourceHCLManifest(ctx, &m)
 		}
 		if err != nil {
-			if resp.Diagnostics == nil {
-				resp.Diagnostics = make([]*tfplugin5.Diagnostic, 1)
-			}
 			resp.Diagnostics = append(resp.Diagnostics,
 				&tfplugin5.Diagnostic{
 					Severity: tfplugin5.Diagnostic_ERROR,
@@ -297,10 +294,20 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	case "kubedynamic_yaml_manifest":
 		rawRes, _, err := ResourceFromYAMLManifest([]byte(m.AsString()))
 		if err != nil {
+			resp.Diagnostics = append(resp.Diagnostics,
+				&tfplugin5.Diagnostic{
+					Severity: tfplugin5.Diagnostic_ERROR,
+					Summary:  err.Error(),
+				})
 			return resp, err
 		}
 		c, err := UnstructuredToCty(rawRes)
 		if err != nil {
+			resp.Diagnostics = append(resp.Diagnostics,
+				&tfplugin5.Diagnostic{
+					Severity: tfplugin5.Diagnostic_ERROR,
+					Summary:  err.Error(),
+				})
 			return resp, err
 		}
 		cobj = &c
@@ -379,11 +386,16 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			} else {
 				rs = c.Resource(gvr)
 			}
-			// Call the Kubernetes API to create the resource
-			result, err := rs.Create(ctx, &uo, v1.CreateOptions{FieldManager: "Terraform"})
+			jd, err := uo.MarshalJSON()
+			if err != nil {
+				return resp, err
+			}
+			// Call the Kubernetes API to create the new resource
+			result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
 			if err != nil {
 				Dlog.Printf("[ApplyResourceChange][Create] Error: %s\n%s\n", spew.Sdump(err), spew.Sdump(result))
-				return resp, fmt.Errorf("CREATE resource %s failed: %s", types.NamespacedName{rnamespace, rname}.String(), err)
+				n := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
+				return resp, fmt.Errorf("CREATE resource %s failed: %s", n, err)
 			}
 			Dlog.Printf("[ApplyResourceChange][Create] API response:\n%s\n", spew.Sdump(result))
 
@@ -413,8 +425,8 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
-			cu := unstructured.Unstructured{Object: pu}
-			gvr, err := GVRFromCtyUnstructured(&cu)
+			uo := unstructured.Unstructured{Object: pu}
+			gvr, err := GVRFromCtyUnstructured(&uo)
 			if err != nil {
 				return resp, err
 			}
@@ -423,8 +435,8 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, err
 			}
 
-			rnamespace := cu.GetNamespace()
-			rname := cu.GetName()
+			rnamespace := uo.GetNamespace()
+			rname := uo.GetName()
 
 			if ns {
 				rs = c.Resource(gvr).Namespace(rnamespace)
@@ -452,9 +464,9 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
-			cu := unstructured.Unstructured{Object: pu}
-			rnamespace := cu.GetNamespace()
-			rname := cu.GetName()
+			uo := unstructured.Unstructured{Object: pu}
+			rnamespace := uo.GetNamespace()
+			rname := uo.GetName()
 
 			c, err := GetDynamicClient()
 			if err != nil {
@@ -465,10 +477,11 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			} else {
 				rs = c.Resource(gvr)
 			}
-			jd, err := cu.MarshalJSON()
+			jd, err := uo.MarshalJSON()
 			if err != nil {
 				return resp, err
 			}
+			// Call the Kubernetes API to apply the new resource state
 			result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
 			if err != nil {
 				resp.Diagnostics = append(resp.Diagnostics,
