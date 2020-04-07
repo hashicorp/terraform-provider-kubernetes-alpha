@@ -1,15 +1,12 @@
-variable "kubeconfig" {}
-
-provider "kubedynamic" {
-  config_file = var.kubeconfig
-}
-
 resource "kubedynamic_hcl_manifest" "test-crd" {
   manifest = {
     apiVersion = "apiextensions.k8s.io/v1"
     kind = "CustomResourceDefinition"
     metadata = {
       name = "testcrds.somesan.de"
+      labels = {
+        app = "test"
+      }
     }
     spec = {
       group = "somesan.de"
@@ -19,7 +16,7 @@ resource "kubedynamic_hcl_manifest" "test-crd" {
       }
       scope = "Namespaced"
       versions = [{
-        name = "v1alpha"
+        name = "v1"
         served = true
         storage = true
         schema = {
@@ -28,6 +25,9 @@ resource "kubedynamic_hcl_manifest" "test-crd" {
             properties = {
               data = {
                 type = "string"
+              }
+              refs = {
+                type = "number"
               }
             }
           }
