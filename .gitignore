@@ -1,5 +1,8 @@
 /terraform-provider-kubedynamic
+/tests/**/terraform-provider-kubedynamic
 /.vscode/**
 .terraform/
 *.tfstate
 *.log
+/tests/**/terraform.tfstate.backup*
+/tests/**/clean.sh
