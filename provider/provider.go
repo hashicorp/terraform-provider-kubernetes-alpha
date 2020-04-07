@@ -3,7 +3,7 @@ package provider
 import (
 	"fmt"
 
-	"github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
@@ -96,7 +96,7 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 	oType, _ := cty.DynamicPseudoType.MarshalJSON()
 	mType, _ := cty.String.MarshalJSON()
 	return map[string]*tfplugin5.Schema{
-		"kubedynamic_yaml_manifest": &tfplugin5.Schema{
+		"kubernetes_yaml_manifest": &tfplugin5.Schema{
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{
@@ -114,7 +114,7 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 				},
 			},
 		},
-		"kubedynamic_hcl_manifest": &tfplugin5.Schema{
+		"kubernetes_hcl_manifest": &tfplugin5.Schema{
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{

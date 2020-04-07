@@ -1,7 +1,7 @@
 package provider
 
 import (
-	proto "github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
+	proto "github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )

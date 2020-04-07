@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alexsomesan/terraform-provider-kubedynamic/tfplugin5"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/json"
 
@@ -275,7 +275,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	m := proposedState.GetAttr("manifest")
 
 	switch req.TypeName {
-	case "kubedynamic_hcl_manifest":
+	case "kubernetes_hcl_manifest":
 		if priorState.IsNull() {
 			// no prior state -> create new resource
 			cobj, err = PlanUpdateResourceHCLManifest(ctx, &m)
@@ -291,7 +291,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 				})
 			return resp, err
 		}
-	case "kubedynamic_yaml_manifest":
+	case "kubernetes_yaml_manifest":
 		rawRes, _, err := ResourceFromYAMLManifest([]byte(m.AsString()))
 		if err != nil {
 			resp.Diagnostics = append(resp.Diagnostics,
