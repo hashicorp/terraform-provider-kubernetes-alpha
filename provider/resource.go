@@ -3,6 +3,7 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/zclconf/go-cty/cty"
@@ -156,4 +157,24 @@ func UnstructuredToCty(in map[string]interface{}) (cty.Value, error) {
 		return cty.NilVal, errors.Wrapf(err, "unable to unmarshal to simple value")
 	}
 	return simple.Value, nil
+}
+
+// IsResourceNamespaced determines if a resource is namespaced or cluster-level
+// by querying the Kubernetes discovery API
+func IsResourceNamespaced(gvr schema.GroupVersionResource) (bool, error) {
+	d, err := GetDiscoveryClient()
+	if err != nil {
+		return false, err
+	}
+	rl, err := d.ServerResourcesForGroupVersion(gvr.GroupVersion().String())
+	if err != nil {
+		return false, err
+	}
+	for _, r := range rl.APIResources {
+		// Dlog.Printf("[IsResourceNamespaced] Resource:%s Name:%s Namespaced:%s\n", spew.Sdump(gvr.Resource), spew.Sdump(r.Name), spew.Sdump(r.Namespaced))
+		if strings.HasPrefix(r.Name, gvr.Resource) && !strings.Contains(r.Name, "/") {
+			return r.Namespaced, nil
+		}
+	}
+	return false, fmt.Errorf("resource %s not found", gvr.String())
 }

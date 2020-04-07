@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 )
 
 var providerState map[string]interface{}
@@ -16,6 +17,7 @@ var providerState map[string]interface{}
 const (
 	DynamicClient   string = "DYNAMICCLIENT"
 	DiscoveryClient string = "DISCOVERYCLIENT"
+	RestClient      string = "RESTCLIENT"
 	RestMapper      string = "RESTMAPPER"
 )
 
@@ -40,7 +42,7 @@ func GetDynamicClient() (dynamic.Interface, error) {
 // GetDiscoveryClient returns a configured discyovery client instance
 func GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
 	s := GetProviderState()
-	c, ok := s[DynamicClient]
+	c, ok := s[DiscoveryClient]
 	if !ok {
 		return nil, fmt.Errorf("no discovery client configured")
 	}
@@ -52,9 +54,19 @@ func GetRestMapper() (meta.RESTMapper, error) {
 	s := GetProviderState()
 	c, ok := s[RestMapper]
 	if !ok {
-		return nil, fmt.Errorf("no restmapper client configured")
+		return nil, fmt.Errorf("no REST mapper client configured")
 	}
 	return c.(meta.RESTMapper), nil
+}
+
+// GetRestClient returns a raw REST client instance
+func GetRestClient() (rest.Interface, error) {
+	s := GetProviderState()
+	c, ok := s[RestClient]
+	if !ok {
+		return nil, fmt.Errorf("no REST client client configured")
+	}
+	return c.(rest.Interface), nil
 }
 
 // BlockMap is  a the basic building block of a configuration or resource object.
