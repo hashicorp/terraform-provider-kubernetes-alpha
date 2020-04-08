@@ -1,5 +1,5 @@
-/terraform-provider-kubedynamic
-/tests/**/terraform-provider-kubedynamic
+/terraform-provider-kubernetes*
+/tests/**/terraform-provider-kubernetes*
 /.vscode/**
 .terraform/
 *.tfstate

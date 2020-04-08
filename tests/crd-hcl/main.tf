@@ -1,4 +1,8 @@
-resource "kubedynamic_hcl_manifest" "test-crd" {
+provider "kubernetes-alpha" {
+}
+resource "kubernetes_hcl_manifest" "test-crd" {
+  provider = kubernetes-alpha
+
   manifest = {
     apiVersion = "apiextensions.k8s.io/v1"
     kind = "CustomResourceDefinition"

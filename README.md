@@ -1,1 +1,1 @@
-# terraform-provider-kubedynamic
+# terraform-provider-kubernetes-alpha

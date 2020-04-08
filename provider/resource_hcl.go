@@ -47,7 +47,7 @@ func PlanCreateResourceHCLManifest(ctx context.Context, m *cty.Value) (*cty.Valu
 	ro, err := r.Create(ctx,
 		&uo,
 		v1.CreateOptions{
-			DryRun:       []string{"All"},
+			DryRun:       []string{v1.DryRunAll},
 			FieldManager: "Terraform",
 		})
 	if err != nil {
@@ -103,9 +103,9 @@ func PlanUpdateResourceHCLManifest(ctx context.Context, m *cty.Value) (*cty.Valu
 		types.ApplyPatchType,
 		jr,
 		v1.PatchOptions{
-			DryRun:       []string{"All"},
-			FieldManager: "Terraform"},
-	)
+			DryRun:       []string{v1.DryRunAll},
+			FieldManager: "Terraform",
+		})
 	if err != nil {
 		return nil, fmt.Errorf("update dry-run for %s failed: %s",
 			types.NamespacedName{Namespace: rnamespace, Name: rname}, err)

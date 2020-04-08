@@ -1,26 +1,14 @@
-variable "kubeconfig" {}
-
-provider "kubedynamic" {
-  config_file = var.kubeconfig
+provider "kubernetes-alpha" {
 }
 
-# resource "kubedynamic_hcl_manifest" "test-namespace" {
-#   manifest = {
-#     "apiVersion" = "v1"
-#     "kind" = "Namespace"
-#     "metadata" = {
-#       name = "test-ns"
-#     }
-#   }
-# }
-
-resource "kubedynamic_hcl_manifest" "test-crd" {
+resource "kubernetes_hcl_manifest" "test-configmap" {
+  provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"
     "kind" = "ConfigMap"
     "metadata" = {
       "name" = "test-config"
-      "namespace" = "test-ns"
+      "namespace" = "default"
     }
     "data" = {
       "foo" = "bar"
