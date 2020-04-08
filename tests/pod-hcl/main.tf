@@ -1,24 +1,18 @@
-resource "kubedynamic_hcl_manifest" "test-ns" {
-  manifest = {
-    "apiVersion" = "v1"
-    "kind" = "Namespace"
-    "metadata" = {
-        "name" = "test-ns"
-    }
-  }
+provider "kubernetes-alpha" {
 }
 
-resource "kubedynamic_hcl_manifest" "test-pod" {
+resource "kubernetes_hcl_manifest" "test-pod" {
+  provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"
     "kind" = "Pod"
     "metadata" = {
+      "name" = "label-demo"
+      "namespace" = "default"
       "labels" = {
         "app" = "nginx"
         "environment" = "production"
       }
-      "name" = "label-demo"
-      "namespace" = kubedynamic_hcl_manifest.test-ns.object.metadata.name
     }
     "spec" = {
       "containers" = [
@@ -28,6 +22,7 @@ resource "kubedynamic_hcl_manifest" "test-pod" {
           "ports" = [
             {
               "containerPort" = 80
+              "protocol" = "TCP"
             },
           ]
         },
