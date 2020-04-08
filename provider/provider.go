@@ -96,16 +96,16 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 	oType, _ := cty.DynamicPseudoType.MarshalJSON()
 	mType, _ := cty.String.MarshalJSON()
 	return map[string]*tfplugin5.Schema{
-		"kubernetes_yaml_manifest": &tfplugin5.Schema{
+		"kubernetes_yaml_manifest": {
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{
-					&tfplugin5.Schema_Attribute{
+					{
 						Name:     "manifest",
 						Type:     mType,
 						Required: true,
 					},
-					&tfplugin5.Schema_Attribute{
+					{
 						Name:     "object",
 						Type:     oType,
 						Optional: true,
@@ -114,16 +114,16 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 				},
 			},
 		},
-		"kubernetes_hcl_manifest": &tfplugin5.Schema{
+		"kubernetes_hcl_manifest": {
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{
-					&tfplugin5.Schema_Attribute{
+					{
 						Name:     "manifest",
 						Type:     oType,
 						Required: true,
 					},
-					&tfplugin5.Schema_Attribute{
+					{
 						Name:     "object",
 						Type:     oType,
 						Optional: true,
@@ -142,7 +142,7 @@ func GetProviderConfigSchema() *tfplugin5.Schema {
 		Version: 1,
 		Block: &tfplugin5.Schema_Block{
 			Attributes: []*tfplugin5.Schema_Attribute{
-				&tfplugin5.Schema_Attribute{
+				{
 					Name:     "config_file",
 					Type:     cfgFileType,
 					Optional: true,

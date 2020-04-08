@@ -41,7 +41,6 @@ type RawProviderServer struct{}
 
 // GetSchema function
 func (s *RawProviderServer) GetSchema(ctx context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
-	//	Dlog.Printf("[GetSchema][Request]\n%s\n", spew.Sdump(*req))
 
 	resp := &tfplugin5.GetProviderSchema_Response{
 		Provider:        GetProviderConfigSchema(),
@@ -230,7 +229,6 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 		resp.Diagnostics = append(resp.Diagnostics, &d)
 		return resp, err
 	}
-	// Dlog.Printf("[ReadResource][Request][API-GET] %s\n", spew.Sdump(*fo))
 
 	nobj, err := UnstructuredToCty(FilterEphemeralFields(fo.Object))
 	if err != nil {
@@ -325,9 +323,6 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	resp.PlannedState = &tfplugin5.DynamicValue{
 		Msgpack: plannedState,
 	}
-	return resp, nil
-
-	resp.PlannedState = proposedStateRaw
 	return resp, nil
 }
 
@@ -445,7 +440,8 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			}
 			err = rs.Delete(ctx, rname, v1.DeleteOptions{})
 			if err != nil {
-				return resp, fmt.Errorf("DELETE resource %s failed: %s", types.NamespacedName{rnamespace, rname}.String(), err)
+				rn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
+				return resp, fmt.Errorf("DELETE resource %s failed: %s", rn, err)
 			}
 			resp.NewState = req.PlannedState
 		}
@@ -484,13 +480,14 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			// Call the Kubernetes API to apply the new resource state
 			result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
 			if err != nil {
+				rn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
 				resp.Diagnostics = append(resp.Diagnostics,
 					&tfplugin5.Diagnostic{
 						Severity: tfplugin5.Diagnostic_ERROR,
 						Detail:   err.Error(),
-						Summary:  fmt.Sprintf("PATCH resource %s failed: %s", types.NamespacedName{rnamespace, rname}, err),
+						Summary:  fmt.Sprintf("PATCH resource %s failed: %s", rn, err),
 					})
-				return resp, fmt.Errorf("PATCH resource %s failed: %s", types.NamespacedName{rnamespace, rname}, err)
+				return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
 			}
 			Dlog.Printf("[ApplyResourceChange][Update] API response:\n%s\n", spew.Sdump(result))
 			newResObject, err := UnstructuredToCty(FilterEphemeralFields(result.Object))
