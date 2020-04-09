@@ -19,6 +19,7 @@ const (
 	DiscoveryClient string = "DISCOVERYCLIENT"
 	RestClient      string = "RESTCLIENT"
 	RestMapper      string = "RESTMAPPER"
+	SSPlanning      string = "SERVERSIDEPLANNING"
 )
 
 // GetProviderState returns a global state storage structure.
@@ -138,6 +139,7 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 // GetProviderConfigSchema contains the definitions of all configuration attributes
 func GetProviderConfigSchema() *tfplugin5.Schema {
 	cfgFileType, _ := cty.String.MarshalJSON()
+	boolType, _ := cty.Bool.MarshalJSON()
 	return &tfplugin5.Schema{
 		Version: 1,
 		Block: &tfplugin5.Schema_Block{
@@ -145,6 +147,11 @@ func GetProviderConfigSchema() *tfplugin5.Schema {
 				{
 					Name:     "config_file",
 					Type:     cfgFileType,
+					Optional: true,
+				},
+				{
+					Name:     "server_side_planning",
+					Type:     boolType,
 					Optional: true,
 				},
 			},

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -12,8 +11,8 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// PlanUpdateResourceHCLManifest calculates the state for a new resource based on HCL manifest
-func PlanUpdateResourceHCLManifest(ctx context.Context, m *cty.Value) (*cty.Value, error) {
+// PlanUpdateResourceHCLServerSide calculates the state for a new resource based on HCL manifest
+func PlanUpdateResourceHCLServerSide(ctx context.Context, m *cty.Value) (*cty.Value, error) {
 	po, err := CtyObjectToUnstructured(m)
 	if err != nil {
 		return nil, err
@@ -60,7 +59,6 @@ func PlanUpdateResourceHCLManifest(ctx context.Context, m *cty.Value) (*cty.Valu
 		return nil, fmt.Errorf("update dry-run for %s failed: %s",
 			types.NamespacedName{Namespace: rnamespace, Name: rname}, err)
 	}
-	Dlog.Printf("[PlanUpdateResourceHCLManifest] dry-run PATCH:\n%s\n", spew.Sdump(ro))
 
 	nobj, err := UnstructuredToCty(FilterEphemeralFields(ro.Object))
 	if err != nil {
@@ -83,6 +81,8 @@ func FilterEphemeralFields(in map[string]interface{}) map[string]interface{} {
 	delete(meta, "creationTimestamp")
 	delete(meta, "resourceVersion")
 
+	// TODO: we should be filtering API responses based on the contents of 'managedFields'
+	// and only retain the attributes for which the manager is Terraform
 	delete(meta, "managedFields")
 
 	return in

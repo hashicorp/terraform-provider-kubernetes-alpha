@@ -77,7 +77,7 @@ func (s *RawProviderServer) ValidateDataSourceConfig(ctx context.Context, req *t
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateDataSourceConfig not implemented")
 }
 
-// UpgradeResourceState function
+// UpgradeResourceState isn't really useful in this provider, but we have to loop the state back through to keep Terraform happy.
 func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplugin5.UpgradeResourceState_Request) (*tfplugin5.UpgradeResourceState_Response, error) {
 	resp := &tfplugin5.UpgradeResourceState_Response{}
 	resp.Diagnostics = []*tfplugin5.Diagnostic{}
@@ -103,7 +103,6 @@ func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplu
 
 // Configure function
 func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Configure_Request) (*tfplugin5.Configure_Response, error) {
-	//	Dlog.Printf("[Configure][Request]\n%s\n", spew.Sdump(*req))
 	response := &tfplugin5.Configure_Response{}
 
 	providerConfig, err := msgpack.Unmarshal(req.Config.Msgpack, GetConfigObjectType())
@@ -122,7 +121,6 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 		}
 		if h == "" {
 			err := fmt.Errorf("cannot determine HOME path")
-			//			Dlog.Printf("[Configure][Kubeconfig] %v.\n", err)
 			return response, err
 		}
 		kubeconfig = filepath.Join(h, ".kube", "config")
@@ -134,7 +132,6 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	clientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		err = fmt.Errorf("cannot load Kubernetes client config from %s: %s", kubeconfig, err)
-		//		Dlog.Printf("[Configure][Kubeconfig] %s.\n", err.Error())
 		return response, err
 	}
 	if logging.IsDebugOrHigher() {
@@ -145,13 +142,11 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 
 	dynClient, errClient := dynamic.NewForConfig(clientConfig)
 	if errClient != nil {
-		//		Dlog.Printf("[Configure] Error creating dynamic client %v", errClient)
 		return response, errClient
 	}
 
 	discoClient, errClient := discovery.NewDiscoveryClientForConfig(clientConfig)
 	if errClient != nil {
-		//		Dlog.Printf("[Configure] Error creating discovery client %v", errClient)
 		return response, errClient
 	}
 
@@ -172,6 +167,8 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	ps[RestMapper] = mapper
 	ps[RestClient] = restClient
 
+	ssp := providerConfig.GetAttr("server_side_planning").True()
+	ps[SSPlanning] = ssp
 	return response, nil
 }
 
@@ -250,8 +247,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugin5.PlanResourceChange_Request) (*tfplugin5.PlanResourceChange_Response, error) {
 	resp := &tfplugin5.PlanResourceChange_Response{}
 
-	proposedStateRaw := req.GetProposedNewState()
-	proposedState, err := UnmarshalResource(req.TypeName, proposedStateRaw.GetMsgpack())
+	proposedState, err := UnmarshalResource(req.TypeName, req.GetProposedNewState().GetMsgpack())
 	if err != nil {
 		return resp, fmt.Errorf("Failed to extract resource from proposed plan: %#v", err)
 	}
@@ -261,14 +257,14 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	}
 
 	if proposedState.IsNull() {
-		// this is a delete
+		// we plan to delete the resource
 		if !priorState.Type().HasAttribute("object") {
 			return resp, fmt.Errorf("cannot find existing object state before delete")
 		}
-		Dlog.Printf("[PlanResourceChange] Resource to be deleted:\n%s", spew.Sdump(priorState.GetAttr("object")))
 		resp.PlannedState = req.ProposedNewState
 		return resp, nil
 	}
+
 	var cobj *cty.Value
 	m := proposedState.GetAttr("manifest")
 
@@ -276,10 +272,10 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	case "kubernetes_hcl_manifest":
 		if priorState.IsNull() {
 			// no prior state -> create new resource
-			cobj, err = PlanUpdateResourceHCLManifest(ctx, &m)
+			cobj, err = PlanUpdateResourceHCLServerSide(ctx, &m)
 		} else {
 			// resource needs an update
-			cobj, err = PlanUpdateResourceHCLManifest(ctx, &m)
+			cobj, err = PlanUpdateResourceHCLServerSide(ctx, &m)
 		}
 		if err != nil {
 			resp.Diagnostics = append(resp.Diagnostics,
@@ -311,7 +307,6 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 		cobj = &c
 	}
 
-	Dlog.Printf("[PlanResourceChange][PlannedObject] %s\n", spew.Sdump(cobj))
 	planned, err := cty.Transform(proposedState, ResourceBulkUpdateObjectAttr(cobj))
 	if err != nil {
 		return resp, err
