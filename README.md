@@ -91,7 +91,7 @@ resource "kubernetes_manifest_hcl" "test-crd" {
 
 ## Building and installing
 
-Because this provider is not yet publishing releases to the provider registry, you have to install it manualy.
+As we do not yet publish releases for this provider to the registry, you have to install it manualy.
 
 Make sure you have a supported version of Go installed and working.
 
@@ -99,7 +99,7 @@ Checkout or download this repository, then open a terminal and change to its dir
 
 Build just as any other Go project:
 ```
-~/terraform-provider-kubernetes-alpha(dev*) » go install
+~/terraform-provider-kubernetes-alpha » go install
 ```
 This will place the provider binary in the GOBIN directory. You can determine this location using the `go env GOBIN` command.
 
