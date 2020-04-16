@@ -1,8 +1,7 @@
-/terraform-provider-kubernetes*
-/tests/**/terraform-provider-kubernetes*
 /.vscode/**
 .terraform/
 *.tfstate
+*.tfstate.backup
 *.log
-/tests/**/terraform.tfstate.backup*
-/tests/**/clean.sh
+**/terraform-provider-kubernetes*
+/terraform-provider-kubernetes*
