@@ -75,7 +75,10 @@ type BlockMap map[string]cty.Type
 
 // GetConfigObjectType returns the type scaffolding for the provider config object.
 func GetConfigObjectType() cty.Type {
-	return cty.Object(BlockMap{"config_file": cty.String})
+	return cty.Object(BlockMap{
+		"config_file":          cty.String,
+		"server_side_planning": cty.Bool,
+	})
 }
 
 // GetObjectTypeFromSchema returns a cty.Type that can wholy represent the schema input

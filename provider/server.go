@@ -265,18 +265,11 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 		return resp, nil
 	}
 
-	var cobj *cty.Value
-	m := proposedState.GetAttr("manifest")
+	var planned cty.Value
 
 	switch req.TypeName {
 	case "kubernetes_hcl_manifest":
-		if priorState.IsNull() {
-			// no prior state -> create new resource
-			cobj, err = PlanUpdateResourceHCLServerSide(ctx, &m)
-		} else {
-			// resource needs an update
-			cobj, err = PlanUpdateResourceHCLServerSide(ctx, &m)
-		}
+		planned, err = PlanUpdateResourceHCL(ctx, &proposedState)
 		if err != nil {
 			resp.Diagnostics = append(resp.Diagnostics,
 				&tfplugin5.Diagnostic{
@@ -286,6 +279,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 			return resp, err
 		}
 	case "kubernetes_yaml_manifest":
+		m := proposedState.GetAttr("manifest")
 		rawRes, _, err := ResourceFromYAMLManifest([]byte(m.AsString()))
 		if err != nil {
 			resp.Diagnostics = append(resp.Diagnostics,
@@ -304,13 +298,12 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 				})
 			return resp, err
 		}
-		cobj = &c
+		planned, err = cty.Transform(proposedState, ResourceBulkUpdateObjectAttr(&c))
+		if err != nil {
+			return resp, err
+		}
 	}
 
-	planned, err := cty.Transform(proposedState, ResourceBulkUpdateObjectAttr(cobj))
-	if err != nil {
-		return resp, err
-	}
 	plannedState, err := MarshalResource(req.TypeName, &planned)
 	if err != nil {
 		return resp, err
@@ -334,7 +327,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	if err != nil {
 		return resp, err
 	}
-	// Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
+	Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
 	// Dlog.Printf("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
 	// Dlog.Printf("[ApplyResourceChange][Request][PlannedPrivate]\n%s\n", spew.Sdump(req.PlannedPrivate))
 
@@ -399,6 +392,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
+			Dlog.Printf("[ApplyResourceChange][Create] Transformed new state:\n%s", spew.Sdump(newResState))
 			mp, err := MarshalResource(req.TypeName, &newResState)
 			if err != nil {
 				return resp, err
@@ -495,7 +489,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
-			Dlog.Printf("[ApplyResourceChange][Create] Transformed new state:\n%s", spew.Sdump(newResState))
+			Dlog.Printf("[ApplyResourceChange][Update] Transformed new state:\n%s", spew.Sdump(newResState))
 			mp, err := MarshalResource(req.TypeName, &newResState)
 			if err != nil {
 				return resp, err
