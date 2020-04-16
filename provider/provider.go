@@ -100,7 +100,7 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 	oType, _ := cty.DynamicPseudoType.MarshalJSON()
 	mType, _ := cty.String.MarshalJSON()
 	return map[string]*tfplugin5.Schema{
-		"kubernetes_yaml_manifest": {
+		"kubernetes_manifest_yaml": {
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{
@@ -118,7 +118,7 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 				},
 			},
 		},
-		"kubernetes_hcl_manifest": {
+		"kubernetes_manifest_hcl": {
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{

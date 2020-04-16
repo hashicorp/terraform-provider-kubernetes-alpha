@@ -268,7 +268,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	var planned cty.Value
 
 	switch req.TypeName {
-	case "kubernetes_hcl_manifest":
+	case "kubernetes_manifest_hcl":
 		planned, err = PlanUpdateResourceHCL(ctx, &proposedState)
 		if err != nil {
 			resp.Diagnostics = append(resp.Diagnostics,
@@ -278,7 +278,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 				})
 			return resp, err
 		}
-	case "kubernetes_yaml_manifest":
+	case "kubernetes_manifest_yaml":
 		m := proposedState.GetAttr("manifest")
 		rawRes, _, err := ResourceFromYAMLManifest([]byte(m.AsString()))
 		if err != nil {
