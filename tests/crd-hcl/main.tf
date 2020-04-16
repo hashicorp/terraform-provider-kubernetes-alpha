@@ -1,5 +1,7 @@
 provider "kubernetes-alpha" {
+  server_side_planning = true
 }
+
 resource "kubernetes_hcl_manifest" "test-crd" {
   provider = kubernetes-alpha
 
