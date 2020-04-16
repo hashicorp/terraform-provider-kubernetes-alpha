@@ -2,13 +2,13 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: testcrds.somesan.de
+  name: testcrds.hashicorp.com
   labels:
     app: test
 spec:
   conversion:
     strategy: None
-  group: somesan.de
+  group: hashicorp.com
   names:
     kind: TestCrd
     listKind: TestCrdList

@@ -2,20 +2,20 @@ provider "kubernetes-alpha" {
   server_side_planning = true
 }
 
-resource "kubernetes_hcl_manifest" "test-crd" {
+resource "kubernetes_manifest_hcl" "test-crd" {
   provider = kubernetes-alpha
 
   manifest = {
     apiVersion = "apiextensions.k8s.io/v1"
     kind = "CustomResourceDefinition"
     metadata = {
-      name = "testcrds.somesan.de"
+      name = "testcrds.hashicorp.com"
       labels = {
         app = "test"
       }
     }
     spec = {
-      group = "somesan.de"
+      group = "hashicorp.com"
       names = {
         kind = "TestCrd"
         plural = "testcrds"
