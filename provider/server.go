@@ -505,7 +505,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 func (*RawProviderServer) ImportResourceState(ctx context.Context, req *tfplugin5.ImportResourceState_Request) (*tfplugin5.ImportResourceState_Response, error) {
 	// Terraform only gives us the schema name of the resource and an ID string, as passed by the user on the command line.
 	// The ID should be a combination of a Kubernetes GRV and a namespace/name type of resource identifier.
-	// Without the user supplying the GRV there is no way to fully indentify the resource when making the Get API call to K8s.
+	// Without the user supplying the GRV there is no way to fully identify the resource when making the Get API call to K8s.
 	// Presumably the Kubernetes API machinery already has a standard for expressing such a group. We should look there first.
 	return nil, status.Errorf(codes.Unimplemented, "method ImportResourceState not implemented")
 }

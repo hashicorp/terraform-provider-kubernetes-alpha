@@ -24,7 +24,7 @@ func InitDevLog() func() {
 	}
 }
 
-// DumpCtyPath creates log-friendly represation of a cty.Path value
+// DumpCtyPath creates log-friendly representation of a cty.Path value
 func DumpCtyPath(in cty.Path) string {
 	b := strings.Builder{}
 	for i, p := range in {
