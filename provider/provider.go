@@ -40,7 +40,7 @@ func GetDynamicClient() (dynamic.Interface, error) {
 	return c.(dynamic.Interface), nil
 }
 
-// GetDiscoveryClient returns a configured discyovery client instance
+// GetDiscoveryClient returns a configured discovery client instance
 func GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
 	s := GetProviderState()
 	c, ok := s[DiscoveryClient]

@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-// ResourceBulkUpdateObjectAttr is a cty.Transform callback that sets it's "object" attribute to a new cty.Value
+// ResourceBulkUpdateObjectAttr is a cty.Transform callback that sets its "object" attribute to a new cty.Value
 func ResourceBulkUpdateObjectAttr(newobj *cty.Value) func(path cty.Path, v cty.Value) (cty.Value, error) {
 	return func(path cty.Path, v cty.Value) (cty.Value, error) {
 		if path.Equals(cty.GetAttrPath("object")) {
@@ -43,7 +43,7 @@ func ResourceDeepUpdateObjectAttr(prefix cty.Path, newobj *cty.Value) func(path 
 	}
 }
 
-// UnmarshalResource extracts a msgpack-ed resource into it's corresponding cty.Value
+// UnmarshalResource extracts a msgpack-ed resource into its corresponding cty.Value
 func UnmarshalResource(resource string, data []byte) (cty.Value, error) {
 	s := GetProviderResourceSchema()
 	t, err := GetObjectTypeFromSchema(s[resource])
@@ -53,7 +53,7 @@ func UnmarshalResource(resource string, data []byte) (cty.Value, error) {
 	return msgpack.Unmarshal(data, t)
 }
 
-// MarshalResource extracts a msgpack-ed resource into it's corresponding cty.Value
+// MarshalResource extracts a msgpack-ed resource into its corresponding cty.Value
 func MarshalResource(resource string, data *cty.Value) ([]byte, error) {
 	s := GetProviderResourceSchema()
 	t, err := GetObjectTypeFromSchema(s[resource])
@@ -87,7 +87,7 @@ func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.
 }
 
 // GVRFromCtyObject extracts a canonical schema.GroupVersionResource out of the resource's
-// metadata by checking it agaings the discovery API via a RESTMapper
+// metadata by checking it against the discovery API via a RESTMapper
 func GVRFromCtyObject(o *cty.Value) (schema.GroupVersionResource, error) {
 	r := schema.GroupVersionResource{}
 	m, err := GetRestMapper()
@@ -108,7 +108,7 @@ func GVRFromCtyObject(o *cty.Value) (schema.GroupVersionResource, error) {
 }
 
 // GVRFromCtyUnstructured extracts a canonical schema.GroupVersionResource out of the resource's
-// metadata by checking it agaings the discovery API via a RESTMapper
+// metadata by checking it against the discovery API via a RESTMapper
 func GVRFromCtyUnstructured(o *unstructured.Unstructured) (schema.GroupVersionResource, error) {
 	r := schema.GroupVersionResource{}
 	m, err := GetRestMapper()

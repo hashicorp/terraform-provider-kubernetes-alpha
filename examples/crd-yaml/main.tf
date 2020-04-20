@@ -1,9 +1,9 @@
 variable "kubeconfig" {}
 
-provider "kubedynamic" {
+provider "kubernetes-alpha" {
     config_file = var.kubeconfig
 }
 
-resource "kubedynamic_yaml_manifest" "test-crd" {
+resource "kubernetes_yaml_manifest" "test-crd" {
   manifest = file("${path.module}/test-crd.yaml")
 }
