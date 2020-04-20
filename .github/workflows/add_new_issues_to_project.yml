@@ -1,0 +1,25 @@
+name: Automate labeled issues
+on:
+  issues:
+    types: [labeled]
+jobs:
+  Move_Bug_To_Triage_Board:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: aareet/move-labeled-or-milestoned-issue@v2.1
+      with:
+        action-token: "${{ secrets.k8s_github_actions }}"
+        project-url: "https://github.com/orgs/terraform-providers/projects/19"
+        column-name: "Needs triage"
+        label-name: "bug"
+        add-as-note: "true"
+  Move_Feature_Request_To_Triage_Board:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: aareet/move-labeled-or-milestoned-issue@v2.1
+      with:
+        action-token: "${{ secrets.k8s_github_actions }}"
+        project-url: "https://github.com/orgs/terraform-providers/projects/19"
+        column-name: "Needs triage"
+        label-name: "enhancement"
+        add-as-note: "true"
