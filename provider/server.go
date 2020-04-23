@@ -386,13 +386,15 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
+			Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
+
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
 			)
 			if err != nil {
 				return resp, err
 			}
-			Dlog.Printf("[ApplyResourceChange][Create] Transformed new state:\n%s", spew.Sdump(newResState))
+			// Dlog.Printf("[ApplyResourceChange][Create] transformed new state:\n%s", spew.Sdump(newResState))
 			mp, err := MarshalResource(req.TypeName, &newResState)
 			if err != nil {
 				return resp, err
@@ -483,13 +485,14 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
+			Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
 			)
 			if err != nil {
 				return resp, err
 			}
-			Dlog.Printf("[ApplyResourceChange][Update] Transformed new state:\n%s", spew.Sdump(newResState))
+			// Dlog.Printf("[ApplyResourceChange][Update] transformed new state:\n%s", spew.Sdump(newResState))
 			mp, err := MarshalResource(req.TypeName, &newResState)
 			if err != nil {
 				return resp, err

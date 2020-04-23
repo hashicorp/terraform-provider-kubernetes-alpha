@@ -124,13 +124,13 @@ func FilterEphemeralFields(in map[string]interface{}) map[string]interface{} {
 	// they change with most resource operations
 	delete(meta, "uid")
 	delete(meta, "creationTimestamp")
-	delete(meta, "resourceVersion")
-	delete(meta, "generation")
-	delete(meta, "selfLink")
+	// delete(meta, "resourceVersion")
+	// delete(meta, "generation")
+	// delete(meta, "selfLink")
 
 	// TODO: we should be filtering API responses based on the contents of 'managedFields'
 	// and only retain the attributes for which the manager is Terraform
-	delete(meta, "managedFields")
+	// delete(meta, "managedFields")
 
 	return in
 }
