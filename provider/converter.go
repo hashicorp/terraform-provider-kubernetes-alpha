@@ -7,7 +7,7 @@ import (
 	"math/bits"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty"
 )
 
 // UnstructuredToCty converts a Kubernetes dynamic client specific unstructured object

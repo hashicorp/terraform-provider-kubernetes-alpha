@@ -1,8 +1,8 @@
 package provider
 
 import (
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // BlockMap is  a the basic building block of a configuration or resource object.

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
+	ctyjson "github.com/hashicorp/go-cty/cty/json"
+	"github.com/hashicorp/go-cty/cty/msgpack"
 	"github.com/pkg/errors"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-	"github.com/zclconf/go-cty/cty/msgpack"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -128,6 +128,27 @@ func GVRFromCtyUnstructured(o *unstructured.Unstructured) (schema.GroupVersionRe
 	return gvr, nil
 }
 
+// GVKFromCtyObject extracts a canonical schema.GroupVersionKind out of the resource's
+// metadata by checking it agaings the discovery API via a RESTMapper
+func GVKFromCtyObject(o *cty.Value) (schema.GroupVersionKind, error) {
+	r := schema.GroupVersionKind{}
+	m, err := GetRestMapper()
+	if err != nil {
+		return r, err
+	}
+	apv := o.GetAttr("apiVersion").AsString()
+	kind := o.GetAttr("kind").AsString()
+	gv, err := schema.ParseGroupVersion(apv)
+	if err != nil {
+		return r, err
+	}
+	gvk, err := m.KindFor(gv.WithResource(kind))
+	if err != nil {
+		return r, err
+	}
+	return gvk, nil
+}
+
 // CtyObjectToUnstructured converts a Terraform specific cty.Object type manifest
 // into a Kubernetes dynamic client specific unstructured object
 func CtyObjectToUnstructured(in *cty.Value) (map[string]interface{}, error) {
@@ -177,4 +198,24 @@ func IsResourceNamespaced(gvr schema.GroupVersionResource) (bool, error) {
 		}
 	}
 	return false, fmt.Errorf("resource %s not found", gvr.String())
+}
+
+// OpenAPIPathFromGVK returns the ID used to retrieve that resource type definition from the OpenAPI spec document
+func OpenAPIPathFromGVK(gvk schema.GroupVersionKind) (string, error) {
+	var repo string = "api"
+	g := gvk.Group
+	if g == "" {
+		g = "core"
+	}
+	switch g {
+	case "meta":
+		repo = "apimachinery.pkg.apis"
+	case "apiextensions":
+		repo = "apiextensions-apiserver.pkg.apis"
+	case "apiregistration":
+		repo = "kube-aggregator.pkg.apis"
+	}
+	// the ID string that Swagger / OpenAPI uses to identify the resource
+	// e.g. "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+	return strings.Join([]string{"io", "k8s", repo, g, gvk.Version, gvk.Kind}, "."), nil
 }

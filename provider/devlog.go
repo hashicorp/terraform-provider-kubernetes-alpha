@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty"
 )
 
 // Dlog is the development logger

@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty/json"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/json"
 
-	"github.com/zclconf/go-cty/cty/msgpack"
+	"github.com/hashicorp/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"

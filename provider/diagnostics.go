@@ -1,9 +1,8 @@
 package provider
 
 import (
+	"github.com/hashicorp/go-cty/cty"
 	proto "github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
-	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // WarnsAndErrsToProto converts the warnings and errors returned by the legacy
@@ -46,35 +45,6 @@ func AppendProtoDiag(diags []*proto.Diagnostic, d interface{}) []*proto.Diagnost
 	case []*proto.Diagnostic:
 		diags = append(diags, d...)
 	}
-	return diags
-}
-
-// ProtoToDiagnostics converts a list of proto.Diagnostics to a tf.Diagnostics.
-func ProtoToDiagnostics(ds []*proto.Diagnostic) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	for _, d := range ds {
-		var severity tfdiags.Severity
-
-		switch d.Severity {
-		case proto.Diagnostic_ERROR:
-			severity = tfdiags.Error
-		case proto.Diagnostic_WARNING:
-			severity = tfdiags.Warning
-		}
-
-		var newDiag tfdiags.Diagnostic
-
-		// if there's an attribute path, we need to create a AttributeValue diagnostic
-		if d.Attribute != nil {
-			path := AttributePathToPath(d.Attribute)
-			newDiag = tfdiags.AttributeValue(severity, d.Summary, d.Detail, path)
-		} else {
-			newDiag = tfdiags.WholeContainingBody(severity, d.Summary, d.Detail)
-		}
-
-		diags = diags.Append(newDiag)
-	}
-
 	return diags
 }
 

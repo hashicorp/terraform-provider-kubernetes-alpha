@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,13 +28,35 @@ func PlanUpdateResourceHCLLocal(ctx context.Context, plan *cty.Value) (cty.Value
 
 	if plan.GetAttr("object").IsNull() {
 		Dlog.Printf("[PlanUpdateResourceHCLLocal] New resource")
+
+		oapi, err := GetOAPIFoundry()
+		if err != nil {
+			return cty.NilVal, err
+		}
+
+		gvk, err := GVKFromCtyObject(&m)
+		if err != nil {
+			return cty.NilVal, fmt.Errorf("failed to determine resource GVR: %s", err)
+		}
+
+		id, err := OpenAPIPathFromGVK(gvk)
+		if err != nil {
+			return cty.NilVal, fmt.Errorf("failed to determine resource type ID: %s", err)
+		}
+
+		tsch, err := oapi.GetTypeByID(id)
+		if err != nil {
+			return cty.NilVal, fmt.Errorf("failed to get resource type from OpenAPI: %s\nID = %s", err, id)
+		}
+
+		Dlog.Printf("[PlanUpdateResourceHCLLocal] OpenAPI type:\n%s", spew.Sdump(tsch))
+
 		nc, err := cty.Transform(*plan, ResourceBulkUpdateObjectAttr(&m))
 		if err != nil {
 			return cty.NilVal, err
 		}
 		return nc, nil
 	}
-
 	Dlog.Printf("[PlanUpdateResourceHCLLocal] Update resource")
 	Dlog.Printf("[PlanUpdateResourceHCLLocal] ProposedState\n%s\n", spew.Sdump(*plan))
 	nc, err := cty.Transform(*plan,
@@ -124,13 +146,13 @@ func FilterEphemeralFields(in map[string]interface{}) map[string]interface{} {
 	// they change with most resource operations
 	delete(meta, "uid")
 	delete(meta, "creationTimestamp")
-	// delete(meta, "resourceVersion")
-	// delete(meta, "generation")
-	// delete(meta, "selfLink")
+	delete(meta, "resourceVersion")
+	delete(meta, "generation")
+	delete(meta, "selfLink")
 
 	// TODO: we should be filtering API responses based on the contents of 'managedFields'
 	// and only retain the attributes for which the manager is Terraform
-	// delete(meta, "managedFields")
+	delete(meta, "managedFields")
 
 	return in
 }
