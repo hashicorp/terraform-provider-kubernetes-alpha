@@ -19,7 +19,7 @@ Please file issues generously and detail your experience while using the provide
 ## Requirements
 
 * [Terraform](https://www.terraform.io/downloads.html) version 0.12.x +
-* [Kubernetes](https://kubernetes.io/docs/reference) version 1.16.x +
+* [Kubernetes](https://kubernetes.io/docs/reference) version 1.17.x +
 * [Go](https://golang.org/doc/install) version 1.14.x
 
 ## Usage Example
