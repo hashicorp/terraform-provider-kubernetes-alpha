@@ -48,8 +48,10 @@ func PlanUpdateResourceHCLLocal(ctx context.Context, plan *cty.Value) (cty.Value
 		if err != nil {
 			return cty.NilVal, fmt.Errorf("failed to get resource type from OpenAPI: %s\nID = %s", err, id)
 		}
-
 		Dlog.Printf("[PlanUpdateResourceHCLLocal] OpenAPI type:\n%s", spew.Sdump(tsch))
+
+		nobj := cty.NullVal(tsch)
+		Dlog.Printf("[PlanUpdateResourceHCLLocal] OpenAPI object:\n%s", spew.Sdump(nobj))
 
 		nc, err := cty.Transform(*plan, ResourceBulkUpdateObjectAttr(&m))
 		if err != nil {

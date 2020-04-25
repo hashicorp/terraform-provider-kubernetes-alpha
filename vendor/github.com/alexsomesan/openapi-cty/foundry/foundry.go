@@ -8,7 +8,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi2"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/go-cty/cty"
 )
 
 // NewFoundryFromSpecV2 creates a new cty.Type foundry from an OpenAPI v2 spec document
