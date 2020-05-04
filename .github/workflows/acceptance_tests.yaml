@@ -1,0 +1,12 @@
+name: "Acceptance tests"
+on: [pull_request]
+
+jobs:
+  kind:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: engineerd/setup-kind@v0.3.0
+    - name: Acceptance Tests
+      run: |
+        make testacc 
