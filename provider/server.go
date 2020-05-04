@@ -268,7 +268,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	var planned cty.Value
 
 	switch req.TypeName {
-	case "kubernetes_manifest_hcl":
+	case "kubernetes_manifest":
 		planned, err = PlanUpdateResourceHCL(ctx, &proposedState)
 		if err != nil {
 			resp.Diagnostics = append(resp.Diagnostics,
@@ -276,30 +276,6 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 					Severity: tfplugin5.Diagnostic_ERROR,
 					Summary:  err.Error(),
 				})
-			return resp, err
-		}
-	case "kubernetes_manifest_yaml":
-		m := proposedState.GetAttr("manifest")
-		rawRes, _, err := ResourceFromYAMLManifest([]byte(m.AsString()))
-		if err != nil {
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfplugin5.Diagnostic{
-					Severity: tfplugin5.Diagnostic_ERROR,
-					Summary:  err.Error(),
-				})
-			return resp, err
-		}
-		c, err := UnstructuredToCty(rawRes)
-		if err != nil {
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfplugin5.Diagnostic{
-					Severity: tfplugin5.Diagnostic_ERROR,
-					Summary:  err.Error(),
-				})
-			return resp, err
-		}
-		planned, err = cty.Transform(proposedState, ResourceBulkUpdateObjectAttr(&c))
-		if err != nil {
 			return resp, err
 		}
 	}

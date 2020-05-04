@@ -1,7 +1,7 @@
 provider "kubernetes-alpha" {
 }
 
-resource "kubernetes_manifest_hcl" "test-deployment" {
+resource "kubernetes_manifest" "test-deployment" {
   provider = kubernetes-alpha
 
   manifest = {

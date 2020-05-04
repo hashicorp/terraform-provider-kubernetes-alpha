@@ -10,9 +10,7 @@ import (
 	"github.com/hashicorp/go-cty/cty/msgpack"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // ResourceBulkUpdateObjectAttr is a cty.Transform callback that sets its "object" attribute to a new cty.Value
@@ -60,29 +58,6 @@ func MarshalResource(resource string, data *cty.Value) ([]byte, error) {
 		return nil, err
 	}
 	return msgpack.Marshal(*data, t)
-}
-
-// ResourceFromYAMLManifest parses a YAML Kubernetes manifest into unstructured client-go object plus a GroupVersionResource.
-func ResourceFromYAMLManifest(manifest []byte) (map[string]interface{}, *schema.GroupVersionResource, error) {
-	mapper, err := GetRestMapper()
-	if err != nil {
-		return nil, nil, err
-	}
-	kdec := scheme.Codecs.UniversalDeserializer()
-	obj, gvk, err := kdec.Decode(manifest, nil, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	m, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		return nil, nil, err
-	}
-	// convert the runtime.Object to unstructured.Unstructured
-	unstruct, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		return nil, nil, err
-	}
-	return unstruct, &m.Resource, nil
 }
 
 // GVRFromCtyObject extracts a canonical schema.GroupVersionResource out of the resource's

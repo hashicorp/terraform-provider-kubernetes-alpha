@@ -1,7 +1,7 @@
 provider "kubernetes-alpha" {
 }
 
-resource "kubernetes_manifest_hcl" "test-pod" {
+resource "kubernetes_manifest" "test-pod" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"

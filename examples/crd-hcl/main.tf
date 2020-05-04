@@ -2,7 +2,7 @@ provider "kubernetes-alpha" {
   server_side_planning = true
 }
 
-resource "kubernetes_manifest_hcl" "test-crd" {
+resource "kubernetes_manifest" "test-crd" {
   provider = kubernetes-alpha
 
   manifest = {

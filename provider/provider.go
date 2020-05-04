@@ -44,7 +44,7 @@ func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 				},
 			},
 		},
-		"kubernetes_manifest_hcl": {
+		"kubernetes_manifest": {
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{
