@@ -14,11 +14,11 @@ func TestOpenAPIPathFromGVR(t *testing.T) {
 	}{
 		{
 			gvk: schema.GroupVersionKind{
-				Group:   "apiextensions",
+				Group:   "apiextensions.k8s.io",
 				Version: "v1beta1",
-				Kind:    "CustomResourceColumnDefinition",
+				Kind:    "CustomResourceDefinition",
 			},
-			id: "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceColumnDefinition",
+			id: "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinition",
 		},
 		{
 			gvk: schema.GroupVersionKind{
@@ -30,7 +30,7 @@ func TestOpenAPIPathFromGVR(t *testing.T) {
 		},
 		{
 			gvk: schema.GroupVersionKind{
-				Group:   "apiregistration",
+				Group:   "apiregistration.k8s.io",
 				Version: "v1",
 				Kind:    "APIService",
 			},
@@ -60,7 +60,7 @@ func TestOpenAPIPathFromGVR(t *testing.T) {
 			t.Fatal(err)
 		}
 		if strings.Compare(i, s.id) != 0 {
-			t.Fatalf("IDs don't match\n\tExpected: %s\n\tGot: %s", s.id, i)
+			t.Fatalf("IDs don't match\n\tWant:\t%s\n\tGot:\t%s", s.id, i)
 		}
 	}
 }

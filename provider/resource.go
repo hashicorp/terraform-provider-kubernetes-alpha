@@ -210,12 +210,12 @@ func OpenAPIPathFromGVK(gvk schema.GroupVersionKind) (string, error) {
 	switch g {
 	case "meta":
 		repo = "apimachinery.pkg.apis"
-	case "apiextensions":
+	case "apiextensions.k8s.io":
 		repo = "apiextensions-apiserver.pkg.apis"
-	case "apiregistration":
+	case "apiregistration.k8s.io":
 		repo = "kube-aggregator.pkg.apis"
 	}
 	// the ID string that Swagger / OpenAPI uses to identify the resource
 	// e.g. "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-	return strings.Join([]string{"io", "k8s", repo, g, gvk.Version, gvk.Kind}, "."), nil
+	return strings.Join([]string{"io", "k8s", repo, strings.Split(g, ".")[0], gvk.Version, gvk.Kind}, "."), nil
 }
