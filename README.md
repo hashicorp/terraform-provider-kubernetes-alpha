@@ -2,17 +2,17 @@
 
 A Terraform provider for Kubernetes which supports all API resources in a generic fashion.
 
-Resources for this provider are described in HCL. It also experimentally supports native Kubernetes YAML manifests with limited functionality.
+This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
 
-## Experimental status (please read)
+## ⚠️ Experimental status (please read)
 
-This new provider represents a significant departure from the established practice of developing Terraform providers. It does not make use of the [provider SDK](https://github.com/hashicorp/terraform-plugin-sdk) as all other providers currently do. This shift was necesary in order to leverege certain low-level features introduced in Terraform with version 0.12 which are currently not reflected in the SDK. Such features include a rich type system which allows for dynamically typed resource attributes. It was needed in order to implement variable-schema Kubrenetes resources like Custom Resource Definitions.
+This new provider represents a significant departure from the established practice of developing Terraform providers. It does not make use of the [Terraform Provider SDK](https://github.com/hashicorp/terraform-plugin-sdk) as all other providers currently do. This shift was necesary in order to leverege certain low-level features introduced in Terraform with version 0.12 which are currently not reflected in the SDK. Such features include a rich type system which allows for dynamically typed resource attributes. It was needed in order to implement variable-schema Kubrenetes resources like Custom Resource Definitions.
 
 As a consequence of not using the provider SDK, certain "typical" features of Terraform such as planning changes have had to be partially reimplemented in the provider. The state of this implemtations is still evolving and as such may not yeld as smooth of an experince as other more mature providers. Particularly resource updating has rough edges that are being actively worked on.
 
 Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality.
 
-DO NOT USE IN PRODCUTION!
+**DO NOT USE IN PRODUCTION!**
 
 Please file issues generously and detail your experience while using the provider. We encourage all types of feedback.
 
@@ -28,7 +28,7 @@ Please file issues generously and detail your experience while using the provide
 ```hcl
 provider "kubernetes-alpha" {}
 
-resource "kubernetes_manifest_hcl" "test-configmap" {
+resource "kubernetes_manifest" "test-configmap" {
   provider = kubernetes-alpha
 
   manifest = {
@@ -50,7 +50,7 @@ resource "kubernetes_manifest_hcl" "test-configmap" {
 ```hcl
 provider "kubernetes-alpha" {}
 
-resource "kubernetes_manifest_hcl" "test-crd" {
+resource "kubernetes_manifest" "test-crd" {
   provider = kubernetes-alpha
 
   manifest = {
@@ -88,6 +88,18 @@ resource "kubernetes_manifest_hcl" "test-crd" {
   }
 }
 ```
+
+## Moving from YAML to HCL
+
+The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step, rather than using `yamdecode` inside the resource block. 
+
+You can quickly convert a single YAML file to an HCL map using this one liner:
+
+```
+echo 'yamldecode(file("test.yaml"))' | terraform console
+```
+
+There is also an experimental command line tool [tfk8s](https://github.com/jrhouston/tfk8s) which you can use to convert Kubernetes YAML manifests to complete Terraform configurations.
 
 ## Building and installing
 
