@@ -32,10 +32,17 @@ func DumpCtyPath(in cty.Path) string {
 		case cty.GetAttrStep:
 			b.WriteString(t.Name)
 		case cty.IndexStep:
-			b.WriteString(t.Key.GoString())
+			var v string
+			switch t.Key.Type() {
+			case cty.Number:
+				v = t.Key.AsBigFloat().String()
+			case cty.String:
+				v = t.Key.AsString()
+			}
+			b.WriteString(v)
 		}
 		if i < len(in)-1 {
-			b.WriteString("/")
+			b.WriteString(".")
 		}
 	}
 	return b.String()
