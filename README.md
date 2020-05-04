@@ -97,9 +97,9 @@ Make sure you have a supported version of Go installed and working.
 
 Checkout or download this repository, then open a terminal and change to its directory.
 
-Build just as any other Go project:
+### Using `GOBIN` and `terraform.d/plugins`
 ```
-~/terraform-provider-kubernetes-alpha » go install
+make install
 ```
 This will place the provider binary in the GOBIN directory. You can determine this location using the `go env GOBIN` command.
 
@@ -114,3 +114,17 @@ ln -s $(go env GOBIN)/terraform-provider-kubernetes-alpha $HOME/.terraform.d/plu
 You are now ready to use the provider. You can find example TF configurations in this repository under the `./examples`.
 
 Don't forget to run `terraform init` in the TF configuration directory to allow Terraform to detect the provider binary.
+
+### Using `-plugin-dir` 
+
+Alternative, you can run:
+
+```
+make build
+```
+
+This will place the provider binary in the top level of the provider directory. You can then use it with terraform by specifying the `-plugin-dir` option when running `terraform init`
+
+```
+terraform init -plugin-dir /path/to/terraform-provider-alpha
+```
