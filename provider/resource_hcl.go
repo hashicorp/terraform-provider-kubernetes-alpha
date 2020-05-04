@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-cty/cty"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -26,45 +25,53 @@ func PlanUpdateResourceHCL(ctx context.Context, in *cty.Value) (cty.Value, error
 func PlanUpdateResourceHCLLocal(ctx context.Context, plan *cty.Value) (cty.Value, error) {
 	m := plan.GetAttr("manifest")
 
-	if plan.GetAttr("object").IsNull() {
-		Dlog.Printf("[PlanUpdateResourceHCLLocal] New resource")
+	oapi, err := GetOAPIFoundry()
+	if err != nil {
+		return cty.NilVal, err
+	}
 
-		oapi, err := GetOAPIFoundry()
+	gvk, err := GVKFromCtyObject(&m)
+	if err != nil {
+		return cty.NilVal, fmt.Errorf("failed to determine resource GVR: %s", err)
+	}
+
+	id, err := OpenAPIPathFromGVK(gvk)
+	if err != nil {
+		return cty.NilVal, fmt.Errorf("failed to determine resource type ID: %s", err)
+	}
+
+	tsch, err := oapi.GetTypeByID(id)
+	if err != nil {
+		return cty.NilVal, fmt.Errorf("failed to get resource type from OpenAPI (ID %s): %s", id, err)
+	}
+
+	// Generate the scaffold resource value with all attributes set to cty.UnknownVal
+	tobj := DeepUnknownVal(tsch)
+
+	// Fill in the attributes provided in HCL configuration into the scaffold
+	nobj, err := cty.Transform(tobj, func(p cty.Path, v cty.Value) (cty.Value, error) {
+		nv, err := p.Apply(m)
 		if err != nil {
-			return cty.NilVal, err
+			return v, nil
 		}
+		return nv, nil
+	})
 
-		gvk, err := GVKFromCtyObject(&m)
-		if err != nil {
-			return cty.NilVal, fmt.Errorf("failed to determine resource GVR: %s", err)
-		}
+	if err != nil {
+		return cty.NilVal, fmt.Errorf("failed to transform object based on OpenAPI: %s", err)
+	}
 
-		id, err := OpenAPIPathFromGVK(gvk)
-		if err != nil {
-			return cty.NilVal, fmt.Errorf("failed to determine resource type ID: %s", err)
-		}
-
-		tsch, err := oapi.GetTypeByID(id)
-		if err != nil {
-			return cty.NilVal, fmt.Errorf("failed to get resource type from OpenAPI: %s\nID = %s", err, id)
-		}
-		Dlog.Printf("[PlanUpdateResourceHCLLocal] OpenAPI type:\n%s", spew.Sdump(tsch))
-
-		nobj := cty.NullVal(tsch)
-		Dlog.Printf("[PlanUpdateResourceHCLLocal] OpenAPI object:\n%s", spew.Sdump(nobj))
-
-		nc, err := cty.Transform(*plan, ResourceBulkUpdateObjectAttr(&m))
+	if plan.GetAttr("object").IsNull() { // plan for Create
+		nc, err := cty.Transform(*plan, ResourceBulkUpdateObjectAttr(&nobj))
 		if err != nil {
 			return cty.NilVal, err
 		}
 		return nc, nil
 	}
-	Dlog.Printf("[PlanUpdateResourceHCLLocal] Update resource")
-	Dlog.Printf("[PlanUpdateResourceHCLLocal] ProposedState\n%s\n", spew.Sdump(*plan))
+
 	nc, err := cty.Transform(*plan,
-		ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &m),
+		ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &nobj),
 	)
-	Dlog.Printf("[PlanUpdateResourceHCLLocal] PlannedState\n%s\n", spew.Sdump(nc))
 
 	if err != nil {
 		return cty.NilVal, err

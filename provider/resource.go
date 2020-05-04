@@ -32,14 +32,13 @@ func ResourceDeepUpdateObjectAttr(prefix cty.Path, newobj *cty.Value) func(path 
 			return v, nil
 		}
 		var objpath cty.Path = path[len(prefix):]
+
 		newValForPath, err := objpath.Apply(*newobj)
 		if err != nil {
-			return cty.NilVal, fmt.Errorf("failed to transform state at path: %#v", path)
+			return v, nil
 		}
-		if newValForPath.Type().IsPrimitiveType() {
-			return newValForPath, nil
-		}
-		return v, nil
+
+		return newValForPath, nil
 	}
 }
 
@@ -200,7 +199,8 @@ func IsResourceNamespaced(gvr schema.GroupVersionResource) (bool, error) {
 	return false, fmt.Errorf("resource %s not found", gvr.String())
 }
 
-// OpenAPIPathFromGVK returns the ID used to retrieve that resource type definition from the OpenAPI spec document
+// OpenAPIPathFromGVK returns the ID used to retrieve a resource type definition
+// from the OpenAPI spec document
 func OpenAPIPathFromGVK(gvk schema.GroupVersionKind) (string, error) {
 	var repo string = "api"
 	g := gvk.Group
@@ -218,4 +218,27 @@ func OpenAPIPathFromGVK(gvk schema.GroupVersionKind) (string, error) {
 	// the ID string that Swagger / OpenAPI uses to identify the resource
 	// e.g. "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
 	return strings.Join([]string{"io", "k8s", repo, strings.Split(g, ".")[0], gvk.Version, gvk.Kind}, "."), nil
+}
+
+// DeepUnknownVal creates a value given an arbitrary type
+// with a default value of UnknownVal for all it's primitives.
+func DeepUnknownVal(ty cty.Type) cty.Value {
+	switch {
+	case ty.IsObjectType():
+		atts := ty.AttributeTypes()
+		vals := make(map[string]cty.Value, len(atts))
+		for name, att := range atts {
+			vals[name] = DeepUnknownVal(att)
+		}
+		return cty.ObjectVal(vals)
+	case ty.IsTupleType():
+		atts := ty.TupleElementTypes()
+		elems := make([]cty.Value, len(atts))
+		for i, att := range atts {
+			elems[i] = DeepUnknownVal(att)
+		}
+		return cty.TupleVal(elems)
+	default:
+		return cty.UnknownVal(ty)
+	}
 }
