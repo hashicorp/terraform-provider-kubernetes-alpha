@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Build binaries
         run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
           bash scripts/build_release_binaries.sh ${{ github.ref }}
       - name: Release binaries
         run: |
