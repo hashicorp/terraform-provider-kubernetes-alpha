@@ -12,6 +12,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Build project 
         run: |
+          go get -u github.com/mitchellh/gox
           bash scripts/build_release_binaries.sh ${{ github.ref }}
       - name: Create release
         run: |
