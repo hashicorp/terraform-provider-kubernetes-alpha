@@ -95,7 +95,7 @@ resource "kubernetes_manifest" "test-crd" {
 
 ## Moving from YAML to HCL
 
-The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step, rather than using `yamdecode` inside the resource block. 
+The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step, rather than using `yamldecode()` inside the resource block. 
 
 You can quickly convert a single YAML file to an HCL map using this one liner:
 
