@@ -8,13 +8,18 @@ jobs:
     name: Upload Release Binaries
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Build project 
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.x
+      - name: Install gox
         run: |
           go get -u github.com/mitchellh/gox
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build binaries
+        run: |
           bash scripts/build_release_binaries.sh ${{ github.ref }}
-      - name: Create release
+      - name: Release binaries
         run: |
           set -x
           assets=()
