@@ -2,7 +2,7 @@ name: Upload Release Binaries
 on:
   push:
     tags:
-    - [0-9]+.[0-9]+.[0-9]+
+    - '[0-9]+.[0-9]+.[0-9]+'
 jobs:
   build:
     name: Upload Release Binaries
