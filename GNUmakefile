@@ -1,4 +1,5 @@
 TEST?="./provider"
+ACCTEST?="./acctest"
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=provider
@@ -17,7 +18,7 @@ test: fmtcheck
 		xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 testacc: fmtcheck
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+	go test $(ACCTEST) -v $(TESTARGS) -timeout 120m
 
 vet:
 	@echo "go vet ."

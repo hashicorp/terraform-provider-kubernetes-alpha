@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	provider "github.com/hashicorp/terraform-provider-kubernetes-alpha/provider"
 
 	tfjson "github.com/hashicorp/terraform-json"
 	tftest "github.com/hashicorp/terraform-plugin-test"
@@ -29,7 +32,7 @@ var kubernetesClient dynamic.Interface
 
 func TestMain(m *testing.M) {
 	if tftest.RunningAsPlugin() {
-		Serve()
+		provider.Serve()
 		os.Exit(0)
 		return
 	}
@@ -73,21 +76,8 @@ func configureKubernetesClient() (dynamic.Interface, error) {
 }
 
 func createGroupVersionResource(gv, resource string) schema.GroupVersionResource {
-	var group, groupVersion string
-	gvparts := strings.Split(gv, "/")
-	if len(gvparts) < 2 {
-		group = ""
-		groupVersion = gv
-	} else {
-		group = gvparts[0]
-		groupVersion = gvparts[1]
-	}
-
-	return schema.GroupVersionResource{
-		Group:    group,
-		Version:  groupVersion,
-		Resource: resource,
-	}
+	gvr, _ := schema.ParseGroupVersion(gv)
+	return gvr.WithResource(resource)
 }
 
 func assertKubernetesNamespacedResourceExists(t *testing.T, gv, resource, namespace, name string) {
@@ -153,14 +143,14 @@ func randName() string {
 	return fmt.Sprintf("tf-acc-test-%s", string(b))
 }
 
-// getObjectFromResourceState will pull out the value of the `object` attribute of the resource and return it
+// getAttributeFromResourceState will pull out the value of the specified attribute of the resource and return it
 // as a map[string]interface{}.
-func getObjectFromResourceState(t *testing.T, state *tfjson.State, resourceAddr string) map[string]interface{} {
+func getAttributeFromResourceState(t *testing.T, state *tfjson.State, resourceAddr string, attributeName string) interface{} {
 	for _, r := range state.Values.RootModule.Resources {
 		if r.Address == resourceAddr {
-			value, ok := r.AttributeValues["object"].(map[string]interface{})
+			value, ok := r.AttributeValues[attributeName]
 			if !ok {
-				t.Fatalf("Could not find get `object` attribute from %q", resourceAddr)
+				t.Fatalf("Could not find get %q attribute from %q", attributeName, resourceAddr)
 			}
 			return value
 		}
@@ -170,28 +160,46 @@ func getObjectFromResourceState(t *testing.T, state *tfjson.State, resourceAddr 
 	return nil
 }
 
-// findFieldValue will return the value of a field in the object using dot notation
-func findFieldValue(object map[string]interface{}, fieldPath string) (interface{}, error) {
-	pathKeys := strings.Split(fieldPath, ".")
-	fieldKey := pathKeys[len(pathKeys)-1]
-	parentFieldPathKeys := pathKeys[:len(pathKeys)-1]
-
-	m := object
-	for _, key := range parentFieldPathKeys {
-		// FIXME need to handle arrays like: spec.containers.0.name
-		v, ok := m[key].(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("Field %q does not exist", fieldPath)
-		}
-		m = v
-	}
-
-	value, ok := m[fieldKey].(interface{})
+func getObjectAttributeFromResourceState(t *testing.T, state *tfjson.State, resourceAddr string) map[string]interface{} {
+	value := getAttributeFromResourceState(t, state, resourceAddr, "object")
+	obj, ok := value.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Field %q does not exist", fieldPath)
+		t.Fatalf(`"object" doesn't seem to be a map: %v`, value)
+	}
+	return obj
+}
+
+var errFieldNotFound = fmt.Errorf("Field not found")
+
+// findFieldValue will return the value of a field in the object using dot notation
+func findFieldValue(object interface{}, fieldPath string) (interface{}, error) {
+	keys := strings.Split(fieldPath, ".")
+	key := keys[0]
+
+	var value interface{}
+	if index, err := strconv.Atoi(key); err == nil {
+		s, ok := object.([]interface{})
+		if !ok || index >= len(s) {
+			return nil, errFieldNotFound
+		}
+		value = s[index]
+	} else {
+		m, ok := object.(map[string]interface{})
+		if !ok {
+			return nil, errFieldNotFound
+		}
+		v, ok := m[key]
+		if !ok {
+			return nil, errFieldNotFound
+		}
+		value = v
 	}
 
-	return value, nil
+	if len(keys) == 1 {
+		return value, nil
+	}
+
+	return findFieldValue(value, strings.Join(keys[1:], "."))
 }
 
 func assertObjectFieldEqual(t *testing.T, object map[string]interface{}, fieldPath string, expectedValue interface{}) {

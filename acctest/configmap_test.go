@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestAccKubernetesManifest_ConfigMap(t *testing.T) {
+func TestKubernetesManifest_ConfigMap(t *testing.T) {
 	wd := helper.RequireNewWorkingDir(t)
 	defer func() {
 		wd.RequireDestroy(t)
@@ -17,27 +17,25 @@ func TestAccKubernetesManifest_ConfigMap(t *testing.T) {
 	defer deleteKubernetesNamespace(t, namespace)
 
 	name := randName()
-	tfconfig := testAccKubernetesManifestConfig_ConfigMap(namespace, name)
+	tfconfig := testKubernetesManifestConfig_ConfigMap(namespace, name)
 	wd.RequireSetConfig(t, tfconfig)
-
 	wd.RequireInit(t)
 	wd.RequireApply(t)
 
 	assertKubernetesNamespacedResourceExists(t, "v1", "configmaps", namespace, name)
 
 	state := wd.RequireState(t)
-	object := getObjectFromResourceState(t, state, "kubernetes_manifest.test")
+	object := getObjectAttributeFromResourceState(t, state, "kubernetes_manifest.test")
 	assertObjectFieldEqual(t, object, "metadata.namespace", namespace)
 	assertObjectFieldEqual(t, object, "metadata.name", name)
 	assertObjectFieldEqual(t, object, "data.foo", "bar")
 
-	tfconfigModified := testAccKubernetesManifestConfig_ConfigMapModified(namespace, name)
+	tfconfigModified := testKubernetesManifestConfig_ConfigMapModified(namespace, name)
 	wd.RequireSetConfig(t, tfconfigModified)
-
 	wd.RequireApply(t)
-	state = wd.RequireState(t)
-	object = getObjectFromResourceState(t, state, "kubernetes_manifest.test")
 
+	state = wd.RequireState(t)
+	object = getObjectAttributeFromResourceState(t, state, "kubernetes_manifest.test")
 	assertObjectFieldEqual(t, object, "metadata.namespace", namespace)
 	assertObjectFieldEqual(t, object, "metadata.name", name)
 	assertObjectFieldEqual(t, object, "metadata.annotations.test", "1")
@@ -46,7 +44,7 @@ func TestAccKubernetesManifest_ConfigMap(t *testing.T) {
 	assertObjectFieldEqual(t, object, "data.fizz", "buzz")
 }
 
-func testAccKubernetesManifestConfig_ConfigMap(namespace, name string) string {
+func testKubernetesManifestConfig_ConfigMap(namespace, name string) string {
 	return fmt.Sprintf(`	
 resource "kubernetes_manifest" "test" {
   provider = kubernetes-alpha
@@ -65,7 +63,7 @@ resource "kubernetes_manifest" "test" {
 }`, name, namespace)
 }
 
-func testAccKubernetesManifestConfig_ConfigMapModified(namespace, name string) string {
+func testKubernetesManifestConfig_ConfigMapModified(namespace, name string) string {
 	return fmt.Sprintf(`	
 resource "kubernetes_manifest" "test" {
   provider = kubernetes-alpha
