@@ -94,12 +94,12 @@ func assertKubernetesNamespacedResourceExists(t *testing.T, gv, resource, namesp
 	gvr := createGroupVersionResource(gv, resource)
 	_, err := kubernetesClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		t.Errorf("Resource %s/%s does not exist", namespace, name)
+		t.Fatalf("Resource %s/%s does not exist", namespace, name)
 		return
 	}
 
 	if err != nil {
-		t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
+		t.Fatalf("Error when trying to get resource %s/%s: %v", namespace, name, err)
 	}
 }
 
@@ -111,11 +111,11 @@ func assertKubernetesNamespacedResourceNotExists(t *testing.T, gv, resource, nam
 	}
 
 	if err != nil {
-		t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
+		t.Fatalf("Error when trying to get resource %s/%s: %v", namespace, name, err)
 		return
 	}
 
-	t.Errorf("Resource %s/%s still exists", namespace, name)
+	t.Fatalf("Resource %s/%s still exists", namespace, name)
 }
 
 func createKubernetesNamespace(t *testing.T, name string) {
@@ -131,7 +131,7 @@ func createKubernetesNamespace(t *testing.T, name string) {
 	gvr := createGroupVersionResource("v1", "namespaces")
 	_, err := kubernetesClient.Resource(gvr).Create(context.TODO(), namespace, metav1.CreateOptions{})
 	if err != nil {
-		t.Errorf("Failed to create namespace %q: %v", name, err)
+		t.Fatalf("Failed to create namespace %q: %v", name, err)
 	}
 }
 
@@ -139,7 +139,7 @@ func deleteKubernetesNamespace(t *testing.T, name string) {
 	gvr := createGroupVersionResource("v1", "namespaces")
 	err := kubernetesClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
-		t.Errorf("Failed to delete namespace %q: %v", name, err)
+		t.Fatalf("Failed to delete namespace %q: %v", name, err)
 	}
 }
 
@@ -160,13 +160,13 @@ func getObjectFromResourceState(t *testing.T, state *tfjson.State, resourceAddr 
 		if r.Address == resourceAddr {
 			value, ok := r.AttributeValues["object"].(map[string]interface{})
 			if !ok {
-				t.Errorf("Could not find get `object` attribute from %q", resourceAddr)
+				t.Fatalf("Could not find get `object` attribute from %q", resourceAddr)
 			}
 			return value
 		}
 	}
 
-	t.Errorf("Could not find resource %q in state", resourceAddr)
+	t.Fatalf("Could not find resource %q in state", resourceAddr)
 	return nil
 }
 
@@ -197,7 +197,7 @@ func findFieldValue(object map[string]interface{}, fieldPath string) (interface{
 func assertObjectFieldEqual(t *testing.T, object map[string]interface{}, fieldPath string, expectedValue interface{}) {
 	actualValue, err := findFieldValue(object, fieldPath)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Fatalf(err.Error())
 	}
 
 	assert.Equal(t, expectedValue, actualValue)

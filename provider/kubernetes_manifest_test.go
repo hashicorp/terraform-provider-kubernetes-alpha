@@ -5,14 +5,19 @@ import (
 	"testing"
 )
 
-func TestAccKubernetesManifestBasicConfigMap(t *testing.T) {
+func TestAccKubernetesManifest_ConfigMap(t *testing.T) {
 	wd := helper.RequireNewWorkingDir(t)
+	defer func() {
+		wd.RequireDestroy(t)
+		wd.Close()
+	}()
 
 	namespace := randName()
 	createKubernetesNamespace(t, namespace)
+	defer deleteKubernetesNamespace(t, namespace)
 
 	name := randName()
-	tfconfig := testAccManifestBasicConfigMap(namespace, name)
+	tfconfig := testAccKubernetesManifestConfig_ConfigMap(namespace, name)
 	wd.RequireSetConfig(t, tfconfig)
 
 	wd.RequireInit(t)
@@ -26,14 +31,22 @@ func TestAccKubernetesManifestBasicConfigMap(t *testing.T) {
 	assertObjectFieldEqual(t, object, "metadata.name", name)
 	assertObjectFieldEqual(t, object, "data.foo", "bar")
 
-	wd.Destroy()
-	assertKubernetesNamespacedResourceNotExists(t, "v1", "configmaps", namespace, name)
-	deleteKubernetesNamespace(t, namespace)
+	tfconfigModified := testAccKubernetesManifestConfig_ConfigMapModified(namespace, name)
+	wd.RequireSetConfig(t, tfconfigModified)
 
-	wd.Close()
+	wd.RequireApply(t)
+	state = wd.RequireState(t)
+	object = getObjectFromResourceState(t, state, "kubernetes_manifest.test")
+
+	assertObjectFieldEqual(t, object, "metadata.namespace", namespace)
+	assertObjectFieldEqual(t, object, "metadata.name", name)
+	assertObjectFieldEqual(t, object, "metadata.annotations.test", "1")
+	assertObjectFieldEqual(t, object, "metadata.labels.test", "2")
+	assertObjectFieldEqual(t, object, "data.foo", "bar")
+	assertObjectFieldEqual(t, object, "data.fizz", "buzz")
 }
 
-func testAccManifestBasicConfigMap(namespace, name string) string {
+func testAccKubernetesManifestConfig_ConfigMap(namespace, name string) string {
 	return fmt.Sprintf(`	
 resource "kubernetes_manifest" "test" {
   provider = kubernetes-alpha
@@ -47,6 +60,32 @@ resource "kubernetes_manifest" "test" {
     }
     "data" = {
       "foo" = "bar"
+    }
+  }
+}`, name, namespace)
+}
+
+func testAccKubernetesManifestConfig_ConfigMapModified(namespace, name string) string {
+	return fmt.Sprintf(`	
+resource "kubernetes_manifest" "test" {
+  provider = kubernetes-alpha
+
+  manifest = {
+    "apiVersion" = "v1"
+    "kind" = "ConfigMap"
+    "metadata" = {
+	  "name" = %q
+	  "namespace" = %q
+	  "annotations" = {
+		"test" = "1"
+	  }
+	  "labels" = {
+	    "test" = "2"
+	  }
+    }
+    "data" = {
+	  "foo" = "bar"
+	  "fizz" = "buzz"
     }
   }
 }`, name, namespace)
