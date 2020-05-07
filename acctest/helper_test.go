@@ -93,6 +93,19 @@ func assertKubernetesNamespacedResourceExists(t *testing.T, gv, resource, namesp
 	}
 }
 
+func assertKubernetesResourceExists(t *testing.T, gv, resource, name string) {
+	gvr := createGroupVersionResource(gv, resource)
+	_, err := kubernetesClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		t.Fatalf("Resource %s does not exist", name)
+		return
+	}
+
+	if err != nil {
+		t.Fatalf("Error when trying to get resource %s: %v", name, err)
+	}
+}
+
 func assertKubernetesNamespacedResourceNotExists(t *testing.T, gv, resource, namespace, name string) {
 	gvr := createGroupVersionResource(gv, resource)
 	_, err := kubernetesClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
@@ -205,7 +218,7 @@ func findFieldValue(object interface{}, fieldPath string) (interface{}, error) {
 func assertObjectFieldEqual(t *testing.T, object map[string]interface{}, fieldPath string, expectedValue interface{}) {
 	actualValue, err := findFieldValue(object, fieldPath)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("Field not found %q", fieldPath)
 	}
 
 	assert.Equal(t, expectedValue, actualValue)
