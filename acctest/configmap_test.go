@@ -3,45 +3,56 @@ package provider
 import (
 	"fmt"
 	"testing"
+
+	statehelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/acctest/helper/state"
 )
 
+// This test case tests a ConfigMap but also is a demonstration of some the assert functions
+// available in the test helper
 func TestKubernetesManifest_ConfigMap(t *testing.T) {
-	wd := helper.RequireNewWorkingDir(t)
+	name := randName()
+	namespace := randName()
+
+	tf := binhelper.RequireNewWorkingDir(t)
 	defer func() {
-		wd.RequireDestroy(t)
-		wd.Close()
+		tf.RequireDestroy(t)
+		tf.Close()
+		kubernetesHelper.AssertNamespacedResourceDoesNotExist(t, "v1", "configmaps", namespace, name)
 	}()
 
-	namespace := randName()
-	createKubernetesNamespace(t, namespace)
-	defer deleteKubernetesNamespace(t, namespace)
+	kubernetesHelper.CreateNamespace(t, namespace)
+	defer kubernetesHelper.DeleteNamespace(t, namespace)
 
-	name := randName()
 	tfconfig := testKubernetesManifestConfig_ConfigMap(namespace, name)
-	wd.RequireSetConfig(t, tfconfig)
-	wd.RequireInit(t)
-	wd.RequireApply(t)
+	tf.RequireSetConfig(t, tfconfig)
+	tf.RequireInit(t)
+	tf.RequireApply(t)
 
-	assertKubernetesNamespacedResourceExists(t, "v1", "configmaps", namespace, name)
+	kubernetesHelper.AssertNamespacedResourceExists(t, "v1", "configmaps", namespace, name)
 
-	state := wd.RequireState(t)
-	object := getObjectAttributeFromResourceState(t, state, "kubernetes_manifest.test")
-	assertObjectFieldEqual(t, object, "metadata.namespace", namespace)
-	assertObjectFieldEqual(t, object, "metadata.name", name)
-	assertObjectFieldEqual(t, object, "data.foo", "bar")
+	tfstate := statehelper.Wrap(t, tf.RequireState(t))
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.metadata.namespace", namespace)
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.metadata.name", name)
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.data.foo", "bar")
 
 	tfconfigModified := testKubernetesManifestConfig_ConfigMapModified(namespace, name)
-	wd.RequireSetConfig(t, tfconfigModified)
-	wd.RequireApply(t)
+	tf.RequireSetConfig(t, tfconfigModified)
+	tf.RequireApply(t)
 
-	state = wd.RequireState(t)
-	object = getObjectAttributeFromResourceState(t, state, "kubernetes_manifest.test")
-	assertObjectFieldEqual(t, object, "metadata.namespace", namespace)
-	assertObjectFieldEqual(t, object, "metadata.name", name)
-	assertObjectFieldEqual(t, object, "metadata.annotations.test", "1")
-	assertObjectFieldEqual(t, object, "metadata.labels.test", "2")
-	assertObjectFieldEqual(t, object, "data.foo", "bar")
-	assertObjectFieldEqual(t, object, "data.fizz", "buzz")
+	tfstate = statehelper.Wrap(t, tf.RequireState(t))
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.metadata.namespace", namespace)
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.metadata.name", name)
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.metadata.annotations.test", "1")
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.metadata.labels.test", "2")
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.data.foo", "bar")
+	tfstate.AssertAttributeEqual("kubernetes_manifest.test.object.data.fizz", "buzz")
+
+	tfstate.AssertAttributeLen("kubernetes_manifest.test.object.metadata.labels", 1)
+	tfstate.AssertAttributeLen("kubernetes_manifest.test.object.metadata.annotations", 1)
+
+	tfstate.AssertAttributeNotEmpty("kubernetes_manifest.test.object.metadata.labels.test")
+
+	tfstate.AssertAttributeDoesNotExist("kubernetes_manifest.test.spec")
 }
 
 func testKubernetesManifestConfig_ConfigMap(namespace, name string) string {
