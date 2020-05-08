@@ -29,20 +29,20 @@ func getAttributesFromState(state *tfjson.State, resourceAddr string) (interface
 
 var errFieldNotFound = fmt.Errorf("Field not found")
 
-// findAttributeValue will return the value of a attribute in the map using dot notation
-func findAttributeValue(object interface{}, attributeAddress string) (interface{}, error) {
-	keys := strings.Split(attributeAddress, ".")
+// findAttributeValue will return the value of the attribute at the given address in a tree of arrays and maps
+func findAttributeValue(in interface{}, address string) (interface{}, error) {
+	keys := strings.Split(address, ".")
 	key := keys[0]
 
 	var value interface{}
 	if index, err := strconv.Atoi(key); err == nil {
-		s, ok := object.([]interface{})
+		s, ok := in.([]interface{})
 		if !ok || index >= len(s) {
 			return nil, errFieldNotFound
 		}
 		value = s[index]
 	} else {
-		m, ok := object.(map[string]interface{})
+		m, ok := in.(map[string]interface{})
 		if !ok {
 			return nil, errFieldNotFound
 		}
@@ -68,6 +68,8 @@ func Wrap(t *testing.T, state *tfjson.State) *Helper {
 	}
 }
 
+// parseStateAddress will parse an address using the same format as `terraform state show`
+// and return the resource address (resource_type.name) and attribute address (attribute.subattribute)
 func parseStateAddress(address string) (string, string) {
 	parts := strings.Split(address, ".")
 
@@ -84,6 +86,8 @@ func parseStateAddress(address string) (string, string) {
 	return resourceAddress, attributeAddress
 }
 
+// getAttributeValue will get the value at the given address from the state
+// using the same format as `terraform state show`
 func (s *Helper) getAttributeValue(address string) interface{} {
 	resourceAddress, attributeAddress := parseStateAddress(address)
 	attrs, err := getAttributesFromState(s.state, resourceAddress)
