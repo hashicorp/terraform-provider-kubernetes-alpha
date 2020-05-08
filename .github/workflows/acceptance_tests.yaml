@@ -1,11 +1,13 @@
-name: "Acceptance tests"
+name: "acceptance tests"
 on:
   push:
     branches:
     - master
+    - dev
   pull_request:
     branches:
     - master
+    - dev
 jobs:
   kind:
     runs-on: ubuntu-latest
