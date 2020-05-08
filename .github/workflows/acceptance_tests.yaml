@@ -9,11 +9,11 @@ on:
     - master
     - dev
 jobs:
-  kind:
+  acceptance_tests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
     - uses: engineerd/setup-kind@v0.3.0
-    - name: Acceptance Tests
+    - name: Run acceptance tests
       run: |
         make testacc 
