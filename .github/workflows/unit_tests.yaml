@@ -1,0 +1,19 @@
+name: "unit tests"
+on:
+  push:
+    branches:
+    - master
+    - dev
+  pull_request:
+    branches:
+    - master
+    - dev
+jobs:
+  kind:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-go@master
+    - name: Acceptance Tests
+      run: |
+        make test
