@@ -54,7 +54,7 @@ func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfpl
 	resp := &tfplugin5.PrepareProviderConfig_Response{}
 
 	// config, err := msgpack.Unmarshal(req.Config.Msgpack, GetConfigObjectType())
-	//// Dlog.Printf("[PrepareProviderConfig][Request][Config]\n%s\n", spew.Sdump(config))
+	//Dlog.Printf("[PrepareProviderConfig][Request][Config]\n%s\n", spew.Sdump(config))
 	// if err != nil {
 	// 	return resp, err
 	// }
@@ -303,9 +303,9 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	if err != nil {
 		return resp, err
 	}
-	// Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
-	// Dlog.Printf("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
-	// Dlog.Printf("[ApplyResourceChange][Request][PlannedPrivate]\n%s\n", spew.Sdump(req.PlannedPrivate))
+	Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
+	Dlog.Printf("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
+	Dlog.Printf("[ApplyResourceChange][Request][PlannedPrivate]\n%s\n", spew.Sdump(req.PlannedPrivate))
 
 	c, err := GetDynamicClient()
 	if err != nil {
@@ -352,17 +352,17 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			// Call the Kubernetes API to create the new resource
 			result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
 			if err != nil {
-				// Dlog.Printf("[ApplyResourceChange][Create] Error: %s\n%s\n", spew.Sdump(err), spew.Sdump(result))
+				Dlog.Printf("[ApplyResourceChange][Create] Error: %s\n%s\n", spew.Sdump(err), spew.Sdump(result))
 				n := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
 				return resp, fmt.Errorf("CREATE resource %s failed: %s", n, err)
 			}
-			// Dlog.Printf("[ApplyResourceChange][Create] API response:\n%s\n", spew.Sdump(result))
+			Dlog.Printf("[ApplyResourceChange][Create] API response:\n%s\n", spew.Sdump(result))
 
 			newResObject, err := UnstructuredToCty(FilterEphemeralFields(result.Object))
 			if err != nil {
 				return resp, err
 			}
-			// Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
+			Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
 
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
@@ -370,7 +370,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
-			// Dlog.Printf("[ApplyResourceChange][Create] transformed new state:\n%s", spew.Sdump(newResState))
+			Dlog.Printf("[ApplyResourceChange][Create] transformed new state:\n%s", spew.Sdump(newResState))
 			mp, err := MarshalResource(req.TypeName, &newResState)
 			if err != nil {
 				return resp, err
@@ -456,19 +456,19 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 					})
 				return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
 			}
-			// Dlog.Printf("[ApplyResourceChange][Update] API response:\n%s\n", spew.Sdump(result))
+			Dlog.Printf("[ApplyResourceChange][Update] API response:\n%s\n", spew.Sdump(result))
 			newResObject, err := UnstructuredToCty(FilterEphemeralFields(result.Object))
 			if err != nil {
 				return resp, err
 			}
-			// Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
+			Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
 			)
 			if err != nil {
 				return resp, err
 			}
-			// Dlog.Printf("[ApplyResourceChange][Update] transformed new state:\n%s", spew.Sdump(newResState))
+			Dlog.Printf("[ApplyResourceChange][Update] transformed new state:\n%s", spew.Sdump(newResState))
 			mp, err := MarshalResource(req.TypeName, &newResState)
 			if err != nil {
 				return resp, err
