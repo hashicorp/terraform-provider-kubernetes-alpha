@@ -11,20 +11,24 @@ import (
 	tfjson "github.com/hashicorp/terraform-json"
 )
 
-// Helper wraps a tfjson.State object with some helper functions that use
-// github.com/stretchr/testify/assert to reduce boilerplate in test code
+// Helper wraps tfjson.State in helper functions for doing assertions in tests
 type Helper struct {
-	t     *testing.T
-	state *tfjson.State
+	*tfjson.State
 }
 
-func getAttributesFromState(state *tfjson.State, resourceAddr string) (interface{}, error) {
+// NewHelper creates a new state helper
+func NewHelper(tfstate *tfjson.State) *Helper {
+	return &Helper{tfstate}
+}
+
+// getAttributesValuesFromResource pulls out the AttributeValues field from the resource at the given address
+func getAttributesValuesFromResource(state *Helper, address string) (interface{}, error) {
 	for _, r := range state.Values.RootModule.Resources {
-		if r.Address == resourceAddr {
+		if r.Address == address {
 			return r.AttributeValues, nil
 		}
 	}
-	return nil, fmt.Errorf("Could not find resource %q in state", resourceAddr)
+	return nil, fmt.Errorf("Could not find resource %q in state", address)
 }
 
 var errFieldNotFound = fmt.Errorf("Field not found")
@@ -60,14 +64,6 @@ func findAttributeValue(in interface{}, address string) (interface{}, error) {
 	return findAttributeValue(value, strings.Join(keys[1:], "."))
 }
 
-// Wrap will wrap a *tfjson.State object with helper functions
-func Wrap(t *testing.T, state *tfjson.State) *Helper {
-	return &Helper{
-		t:     t,
-		state: state,
-	}
-}
-
 // parseStateAddress will parse an address using the same format as `terraform state show`
 // and return the resource address (resource_type.name) and attribute address (attribute.subattribute)
 func parseStateAddress(address string) (string, string) {
@@ -86,98 +82,108 @@ func parseStateAddress(address string) (string, string) {
 	return resourceAddress, attributeAddress
 }
 
-// getAttributeValue will get the value at the given address from the state
+// GetAttributeValue will get the value at the given address from the state
 // using the same format as `terraform state show`
-func (s *Helper) getAttributeValue(address string) interface{} {
+func (s *Helper) GetAttributeValue(t *testing.T, address string) interface{} {
+	t.Helper()
+
 	resourceAddress, attributeAddress := parseStateAddress(address)
-	attrs, err := getAttributesFromState(s.state, resourceAddress)
+	attrs, err := getAttributesValuesFromResource(s, resourceAddress)
 	if err != nil {
-		s.t.Fatal(err)
+		t.Fatal(err)
 	}
 
 	value, err := findAttributeValue(attrs, attributeAddress)
 	if err != nil {
-		s.t.Fatalf("%q does not exist", address)
+		t.Fatalf("%q does not exist", address)
 	}
 
 	return value
 }
 
 // AssertAttributeEqual will fail the test if the attribute does not equal expectedValue
-func (s *Helper) AssertAttributeEqual(address string, expectedValue interface{}) {
-	s.t.Helper()
-	assert.Equal(s.t, expectedValue, s.getAttributeValue(address),
+func (s *Helper) AssertAttributeEqual(t *testing.T, address string, expectedValue interface{}) {
+	t.Helper()
+
+	assert.Equal(t, expectedValue, s.GetAttributeValue(t, address),
 		fmt.Sprintf("Address: %q", address))
 }
 
 // AssertAttributeNotEqual will fail the test if the attribute is equal to expectedValue
-func (s *Helper) AssertAttributeNotEqual(address string, expectedValue interface{}) {
-	s.t.Helper()
-	assert.NotEqual(s.t, expectedValue, s.getAttributeValue(address),
+func (s *Helper) AssertAttributeNotEqual(t *testing.T, address string, expectedValue interface{}) {
+	t.Helper()
+
+	assert.NotEqual(t, expectedValue, s.GetAttributeValue(t, address),
 		fmt.Sprintf("Address: %q", address))
 }
 
 // AssertAttributeExists will fail the test if the attribute does not exist
-func (s *Helper) AssertAttributeExists(address string) {
-	s.t.Helper()
-	s.getAttributeValue(address)
+func (s *Helper) AssertAttributeExists(t *testing.T, address string) {
+	t.Helper()
+
+	s.GetAttributeValue(t, address)
 }
 
 // AssertAttributeDoesNotExist will fail the test if the attribute exists
-func (s *Helper) AssertAttributeDoesNotExist(address string) {
-	s.t.Helper()
+func (s *Helper) AssertAttributeDoesNotExist(t *testing.T, address string) {
+	t.Helper()
 
 	resourceAddress, attributeAddress := parseStateAddress(address)
-	attrs, err := getAttributesFromState(s.state, resourceAddress)
+	attrs, err := getAttributesValuesFromResource(s, resourceAddress)
 	if err != nil {
-		s.t.Fatal(err)
+		t.Fatal(err)
 	}
 
 	_, err = findAttributeValue(attrs, attributeAddress)
 	if err == nil {
-		s.t.Fatalf("%q exists", address)
+		t.Fatalf("%q exists", address)
 	}
 }
 
 // AssertAttributeNotEmpty will fail the test if the attribute is not empty
-func (s *Helper) AssertAttributeNotEmpty(address string) {
-	s.t.Helper()
-	assert.NotEmpty(s.t, s.getAttributeValue(address),
+func (s *Helper) AssertAttributeNotEmpty(t *testing.T, address string) {
+	t.Helper()
+
+	assert.NotEmpty(t, s.GetAttributeValue(t, address),
 		fmt.Sprintf("Address: %q", address))
 }
 
 // AssertAttributeEmpty will fail the test if the attribute is empty
-func (s *Helper) AssertAttributeEmpty(address string) {
-	s.t.Helper()
-	assert.NotEmpty(s.t, s.getAttributeValue(address),
+func (s *Helper) AssertAttributeEmpty(t *testing.T, address string) {
+	t.Helper()
+
+	assert.NotEmpty(t, s.GetAttributeValue(t, address),
 		fmt.Sprintf("Address: %q", address))
 }
 
 // AssertAttributeLen will fail the test if the length of the attribute is not exactly length
-func (s *Helper) AssertAttributeLen(address string, length int) {
-	s.t.Helper()
-	assert.Len(s.t, s.getAttributeValue(address), length,
+func (s *Helper) AssertAttributeLen(t *testing.T, address string, length int) {
+	t.Helper()
+
+	assert.Len(t, s.GetAttributeValue(t, address), length,
 		fmt.Sprintf("Address: %q", address))
 }
 
 // AssertAttributeTrue will fail the test if the attribute is not true
-func (s *Helper) AssertAttributeTrue(address string) {
-	s.t.Helper()
-	v, ok := s.getAttributeValue(address).(bool)
+func (s *Helper) AssertAttributeTrue(t *testing.T, address string) {
+	t.Helper()
+
+	v, ok := s.GetAttributeValue(t, address).(bool)
 	if !ok {
-		s.t.Errorf("%q is not a bool", address)
+		t.Errorf("%q is not a bool", address)
 	} else {
-		assert.True(s.t, v, fmt.Sprintf("Address: %q", address))
+		assert.True(t, v, fmt.Sprintf("Address: %q", address))
 	}
 }
 
 // AssertAttributeFalse will fail the test if the attribute is not false
-func (s *Helper) AssertAttributeFalse(address string) {
-	s.t.Helper()
-	v, ok := s.getAttributeValue(address).(bool)
+func (s *Helper) AssertAttributeFalse(t *testing.T, address string) {
+	t.Helper()
+
+	v, ok := s.GetAttributeValue(t, address).(bool)
 	if !ok {
-		s.t.Errorf("%q is not a bool", address)
+		t.Errorf("%q is not a bool", address)
 	} else {
-		assert.False(s.t, v, fmt.Sprintf("Address: %q", address))
+		assert.False(t, v, fmt.Sprintf("Address: %q", address))
 	}
 }

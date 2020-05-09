@@ -14,13 +14,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Helper is a set of helper functions for testing against a Kubernetes cluster
+// Helper is a Kubernetes dynamic client wrapped with a set of helper functions
+// for making assertions about API resources
 type Helper struct {
 	client dynamic.Interface
 }
 
-// InitHelper initializes a new Kubernetes client
-func InitHelper() *Helper {
+// NewHelper initializes a new Kubernetes client
+func NewHelper() *Helper {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	overrides := &clientcmd.ConfigOverrides{}
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).ClientConfig()

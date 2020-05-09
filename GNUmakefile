@@ -1,5 +1,5 @@
 TEST?="./provider"
-ACCTEST?="./acctest"
+ACCTEST?="./test/acceptance"
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=provider
