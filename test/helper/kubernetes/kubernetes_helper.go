@@ -59,7 +59,7 @@ func (k *Helper) CreateNamespace(t *testing.T, name string) {
 	gvr := createGroupVersionResource("v1", "namespaces")
 	_, err := k.client.Resource(gvr).Create(context.TODO(), namespace, metav1.CreateOptions{})
 	if err != nil {
-		t.Errorf("Failed to create namespace %q: %v", name, err)
+		t.Fatalf("Failed to create namespace %q: %v", name, err)
 	}
 }
 
@@ -70,7 +70,7 @@ func (k *Helper) DeleteNamespace(t *testing.T, name string) {
 	gvr := createGroupVersionResource("v1", "namespaces")
 	err := k.client.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
-		t.Errorf("Failed to delete namespace %q: %v", name, err)
+		t.Fatalf("Failed to delete namespace %q: %v", name, err)
 	}
 }
 
