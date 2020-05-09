@@ -23,6 +23,7 @@ var k8shelper *kuberneteshelper.Helper
 
 func TestMain(m *testing.M) {
 	if tftest.RunningAsPlugin() {
+		provider.InitDevLog()
 		provider.Serve()
 		os.Exit(0)
 		return
