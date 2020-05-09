@@ -76,6 +76,9 @@ func loadTerraformConfig(t *testing.T, filename string, tfvars TFVARS) string {
 	// and it can supply the -var flag instead of doing this
 	vars := ""
 	for name, value := range tfvars {
+		// FIXME the %#v directive will only work for primitive types
+		// if we want to supply maps and lists from the tests we need
+		// to format them correctly here
 		vars += fmt.Sprintf(`
 variable %q {
 	default = %#v
