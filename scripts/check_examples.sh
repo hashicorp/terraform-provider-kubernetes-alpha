@@ -1,4 +1,5 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
+
 set -e
 
 export TF_IN_AUTOMATION=true
