@@ -101,6 +101,20 @@ func (s *Helper) GetAttributeValue(t *testing.T, address string) interface{} {
 	return value
 }
 
+// AttributeValues is a convenience type for supplying maps of attributes and values
+// to AssertAttributeValues
+type AttributeValues map[string]interface{}
+
+// AssertAttributeValues will fail the test if the attributes do not have their expected values
+func (s *Helper) AssertAttributeValues(t *testing.T, values AttributeValues) {
+	t.Helper()
+
+	for address, expectedValue := range values {
+		assert.Equal(t, expectedValue, s.GetAttributeValue(t, address),
+			fmt.Sprintf("Address: %q", address))
+	}
+}
+
 // AssertAttributeEqual will fail the test if the attribute does not equal expectedValue
 func (s *Helper) AssertAttributeEqual(t *testing.T, address string, expectedValue interface{}) {
 	t.Helper()

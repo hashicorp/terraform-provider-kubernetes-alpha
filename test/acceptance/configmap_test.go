@@ -34,20 +34,25 @@ func TestKubernetesManifest_ConfigMap(t *testing.T) {
 	k8shelper.AssertNamespacedResourceExists(t, "v1", "configmaps", namespace, name)
 
 	tfstate := tfstatehelper.NewHelper(tf.RequireState(t))
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.metadata.namespace", namespace)
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.metadata.name", name)
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.data.foo", "bar")
+	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{
+		"kubernetes_manifest.test.object.metadata.namespace": namespace,
+		"kubernetes_manifest.test.object.metadata.name":      name,
+		"kubernetes_manifest.test.object.data.foo":           "bar",
+	})
 
 	tfconfigModified := loadTerraformConfig(t, "configmap_modified.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfigModified)
 	tf.RequireApply(t)
 
 	tfstate = tfstatehelper.NewHelper(tf.RequireState(t))
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.metadata.namespace", namespace)
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.metadata.name", name)
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.metadata.annotations.test", "1")
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.metadata.labels.test", "2")
-	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.data.foo", "bar")
+	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{
+		"kubernetes_manifest.test.object.metadata.namespace":        namespace,
+		"kubernetes_manifest.test.object.metadata.name":             name,
+		"kubernetes_manifest.test.object.metadata.annotations.test": "1",
+		"kubernetes_manifest.test.object.metadata.labels.test":      "2",
+		"kubernetes_manifest.test.object.data.foo":                  "bar",
+	})
+
 	tfstate.AssertAttributeEqual(t, "kubernetes_manifest.test.object.data.fizz", "buzz")
 
 	tfstate.AssertAttributeLen(t, "kubernetes_manifest.test.object.metadata.labels", 1)
