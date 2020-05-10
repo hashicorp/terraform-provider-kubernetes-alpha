@@ -2,7 +2,9 @@ package kubernetes
 
 import (
 	"context"
+	"math"
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -117,14 +119,21 @@ func (k *Helper) AssertNamespacedResourceDoesNotExist(t *testing.T, gv, resource
 	t.Helper()
 
 	gvr := createGroupVersionResource(gv, resource)
-	_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		return
-	}
 
-	if err != nil {
-		t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
-		return
+	for i := 1; i <= 3; i++ {
+		_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return
+		}
+
+		if err != nil {
+			t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
+			return
+		}
+
+		// NOTE some resources take a few seconds to delete so here we wait and retry so
+		// we don't polute the tests with retry logic
+		time.Sleep(time.Duration(math.Exp2(float64(i))) * time.Second)
 	}
 
 	t.Errorf("Resource %s/%s still exists", namespace, name)
@@ -135,14 +144,21 @@ func (k *Helper) AssertResourceDoesNotExist(t *testing.T, gv, resource, name str
 	t.Helper()
 
 	gvr := createGroupVersionResource(gv, resource)
-	_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		return
-	}
 
-	if err != nil {
-		t.Errorf("Error when trying to get resource %s: %v", name, err)
-		return
+	for i := 1; i <= 3; i++ {
+		_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return
+		}
+
+		if err != nil {
+			t.Errorf("Error when trying to get resource %s: %v", name, err)
+			return
+		}
+
+		// NOTE some resources take a second to delete so here we wait and retry so
+		// we don't polute the tests with retry logic
+		time.Sleep(time.Duration(math.Exp2(float64(i))) * time.Second)
 	}
 
 	t.Errorf("Resource %s still exists", name)

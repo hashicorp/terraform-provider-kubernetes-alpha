@@ -56,6 +56,15 @@ func randName() string {
 	return fmt.Sprintf("tf-acc-test-%s", string(b))
 }
 
+// randString does exactly what it sounds like it should do
+func randString(length int) string {
+	b := make([]rune, length)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 // TFVARS is a convenience type for supplying vars to the loadTerraformConfig func
 type TFVARS map[string]interface{}
 
