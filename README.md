@@ -6,17 +6,7 @@ A Terraform provider for Kubernetes which supports all API resources in a generi
 
 This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
 
-## ⚠️ Experimental status (please read)
-
-This new provider represents a significant departure from the established practice of developing Terraform providers. It does not make use of the [Terraform Provider SDK](https://github.com/hashicorp/terraform-plugin-sdk) as all other providers currently do. This shift was necesary in order to leverage certain low-level features introduced in Terraform with version 0.12 which are currently not reflected in the SDK such as a rich type system which allows for dynamically typed resource attributes. It was needed in order to implement variable-schema Kubernetes resources like Custom Resource Definitions. Once the new version of the SDK is available, this provider will need to be refactored significantly to bring it in line with the practices set by the SDK.
-
-As a consequence of not using the provider SDK, certain "typical" features of Terraform such as planning changes have had to be partially reimplemented in the provider. The state of this implementation is still evolving and as such may not yield as smooth of an experince as other more mature providers. Particularly resource updates have rough edges that are being actively worked on.
-
-Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality.
-
-**DO NOT USE IN PRODUCTION!**
-
-Please file issues generously and detail your experience while using the provider. We encourage all types of feedback.
+Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. Please file issues generously and detail your experience while using the provider. We encourage all types of feedback.
 
 ## Requirements
 
@@ -142,3 +132,7 @@ This will place the provider binary in the top level of the provider directory. 
 ```
 terraform init -plugin-dir /path/to/terraform-provider-alpha
 ```
+
+## Experimental Status
+
+By using the software in this repository (the "Software), you acknowledge that: (1) the Software is still in development, may change, and has not been released as a commercial product by HashiCorp and is not currently supported in any way by HashiCorp; (2) the Software is provided on an "as-is" basis, and may include bugs, errors, or other issues;  (3) the Software is NOT INTENDED FOR PRODUCTION USE, use of the Software may result in unexpected results, loss of data, or other unexpected results, and HashiCorp disclaims any and all liability resulting from use of the Software; and (4) HashiCorp reserves all rights to make all decisions about the features, functionality and commercial release (or non-release) of the Software, at any time and without any obligation or liability whatsoever.
