@@ -1,4 +1,4 @@
-resource "kubernetes_manifest_hcl" "webhook-injector" {
+resource "kubernetes_manifest" "webhook-injector" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "admissionregistration.k8s.io/v1beta1"

@@ -6,7 +6,7 @@ provider "kubernetes-alpha" {
 }
 
 # PodSecurityPolicy only works on Kubernetes 1.17+
-resource "kubernetes_manifest_hcl" "psp" {
+resource "kubernetes_manifest" "psp" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "policy/v1beta1"

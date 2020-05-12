@@ -6,7 +6,7 @@ sed -Ei "s/POD_IP/$${POD_IP?}/g" /tmp/storageconfig.hcl;
 EOT
 }
 
-resource "kubernetes_manifest_hcl" "service-account-vault" {
+resource "kubernetes_manifest" "service-account-vault" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"
@@ -23,7 +23,7 @@ resource "kubernetes_manifest_hcl" "service-account-vault" {
   }
 }
 
-resource "kubernetes_manifest_hcl" "cluster-role-binding-server" {
+resource "kubernetes_manifest" "cluster-role-binding-server" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "rbac.authorization.k8s.io/v1beta1"
@@ -52,7 +52,7 @@ resource "kubernetes_manifest_hcl" "cluster-role-binding-server" {
   }
 }
 
-resource "kubernetes_manifest_hcl" "service-server" {
+resource "kubernetes_manifest" "service-server" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"
@@ -94,7 +94,7 @@ resource "kubernetes_manifest_hcl" "service-server" {
   }
 }
 
-resource "kubernetes_manifest_hcl" "statefulset-server" {
+resource "kubernetes_manifest" "statefulset-server" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "apps/v1"

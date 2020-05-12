@@ -1,4 +1,4 @@
-resource "kubernetes_manifest_hcl" "configmap" {
+resource "kubernetes_manifest" "configmap" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"

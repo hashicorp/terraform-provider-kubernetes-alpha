@@ -1,4 +1,4 @@
-resource "kubernetes_manifest_hcl" "service-headless" {
+resource "kubernetes_manifest" "service-headless" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"

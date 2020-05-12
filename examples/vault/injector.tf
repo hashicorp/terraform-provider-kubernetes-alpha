@@ -1,4 +1,4 @@
-resource "kubernetes_manifest_hcl" "service-account-injector" {
+resource "kubernetes_manifest" "service-account-injector" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"
@@ -15,7 +15,7 @@ resource "kubernetes_manifest_hcl" "service-account-injector" {
   }
 }
 
-resource "kubernetes_manifest_hcl" "cluster-role-injector" {
+resource "kubernetes_manifest" "cluster-role-injector" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "rbac.authorization.k8s.io/v1"
@@ -47,7 +47,7 @@ resource "kubernetes_manifest_hcl" "cluster-role-injector" {
   }
 }
 
-resource "kubernetes_manifest_hcl" "cluster-role-binding-injector" {
+resource "kubernetes_manifest" "cluster-role-binding-injector" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "rbac.authorization.k8s.io/v1"
@@ -76,7 +76,7 @@ resource "kubernetes_manifest_hcl" "cluster-role-binding-injector" {
   }
 }
 
-resource "kubernetes_manifest_hcl" "service-injector" {
+resource "kubernetes_manifest" "service-injector" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"
@@ -107,7 +107,7 @@ resource "kubernetes_manifest_hcl" "service-injector" {
   }
 }
 
-resource "kubernetes_manifest_hcl" "deployment-injector" {
+resource "kubernetes_manifest" "deployment-injector" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "apps/v1"
