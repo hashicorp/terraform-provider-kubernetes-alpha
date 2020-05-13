@@ -92,26 +92,23 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
 	case "object":
 
 		switch {
-
 		case elem.Properties != nil && elem.AdditionalProperties == nil:
-
 			// this is a standard OpenAPI object
 			atts := make(map[string]cty.Type, len(elem.Properties))
 			for p, v := range elem.Properties {
-				s, err := f.resolveSchemaRef(v)
+				schema, err := f.resolveSchemaRef(v)
 				if err != nil {
 					return cty.NilType, fmt.Errorf("failed to resolve schema: %s", err)
 				}
-				pt, err := f.getTypeFromSchema(s)
+				pType, err := f.getTypeFromSchema(schema)
 				if err != nil {
 					return cty.NilType, err
 				}
-				atts[p] = pt
+				atts[p] = pType
 			}
 			return cty.Object(atts), nil
 
 		case elem.Properties == nil && elem.AdditionalProperties != nil:
-
 			// this is how OpenAPI defines associative arrays
 			s, err := f.resolveSchemaRef(elem.AdditionalProperties)
 			if err != nil {
@@ -121,7 +118,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
 			if err != nil {
 				return cty.NilType, err
 			}
-			return cty.Tuple([]cty.Type{pt}), nil
+			return cty.Map(pt), nil
 
 		case elem.Properties == nil && elem.AdditionalProperties == nil:
 			// this is a strange case, encountered with io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1
@@ -130,7 +127,6 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
 		}
 
 	case "array":
-
 		it, err := f.resolveSchemaRef(elem.Items)
 		if err != nil {
 			return cty.NilType, fmt.Errorf("failed to resolve schema for items: %s", err)
@@ -139,23 +135,22 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
 		if err != nil {
 			return cty.NilType, err
 		}
-		return cty.Tuple([]cty.Type{t}), nil
+		return cty.List(t), nil
 
 	case "string":
-
 		return cty.String, nil
 
 	case "boolean":
-
 		return cty.Bool, nil
 
 	case "number":
-
 		return cty.Number, nil
 
 	case "integer":
-
 		return cty.Number, nil
+
+	case "":
+		return cty.DynamicPseudoType, nil
 
 	}
 	return cty.NilType, fmt.Errorf("unknown type: %s", elem.Type)

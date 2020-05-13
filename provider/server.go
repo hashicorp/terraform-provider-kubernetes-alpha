@@ -445,6 +445,10 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 
 	ps[ClientConfig] = clientConfig
 
+	ssp := providerConfig.GetAttr("server_side_planning")
+
+	ps[SSPlanning] = ssp.True()
+	Dlog.Printf("[Configure] SSP %s\n", spew.Sdump(ssp))
 	return response, nil
 }
 
@@ -484,11 +488,11 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 	rnamespace := uo.GetNamespace()
 	rname := uo.GetName()
 
-	var fo *unstructured.Unstructured
+	var ro *unstructured.Unstructured
 	if ns {
-		fo, err = rcl.Namespace(rnamespace).Get(ctx, rname, v1.GetOptions{})
+		ro, err = rcl.Namespace(rnamespace).Get(ctx, rname, v1.GetOptions{})
 	} else {
-		fo, err = rcl.Get(ctx, rname, v1.GetOptions{})
+		ro, err = rcl.Get(ctx, rname, v1.GetOptions{})
 	}
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -503,10 +507,22 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfplugin5.Rea
 		return resp, err
 	}
 
-	nobj, err := UnstructuredToCty(FilterEphemeralFields(fo.Object))
+	gvk, err := GVKFromCtyObject(&co)
+	if err != nil {
+		return resp, fmt.Errorf("failed to determine resource GVR: %s", err)
+	}
+
+	tsch, err := resourceTypeFromOpenAPI(gvk)
+	if err != nil {
+		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
+	}
+
+	fo := FilterEphemeralFields(ro.Object)
+	nobj, err := UnstructuredToCty(fo, tsch)
 	if err != nil {
 		return resp, err
 	}
+
 	newstate, err := cty.Transform(currentState, ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &nobj))
 	if err != nil {
 		return resp, err
@@ -527,6 +543,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	if err != nil {
 		return resp, fmt.Errorf("Failed to extract resource from proposed plan: %#v", err)
 	}
+
 	priorState, err := UnmarshalResource(req.TypeName, req.GetPriorState().GetMsgpack())
 	if err != nil {
 		return resp, fmt.Errorf("Failed to extract resource from prior state: %#v", err)
@@ -541,25 +558,29 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 		return resp, nil
 	}
 
+	ps := GetProviderState()
 	var planned cty.Value
 
-	switch req.TypeName {
-	case "kubernetes_manifest":
-		planned, err = PlanUpdateResourceHCL(ctx, &proposedState)
-		if err != nil {
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfplugin5.Diagnostic{
-					Severity: tfplugin5.Diagnostic_ERROR,
-					Summary:  err.Error(),
-				})
-			return resp, err
-		}
+	if ps[SSPlanning].(bool) {
+		planned, err = PlanUpdateResourceServerSide(ctx, &proposedState)
+	} else {
+		planned, err = PlanUpdateResourceLocal(ctx, &proposedState)
+	}
+
+	if err != nil {
+		resp.Diagnostics = append(resp.Diagnostics,
+			&tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_ERROR,
+				Summary:  err.Error(),
+			})
+		return resp, err
 	}
 
 	plannedState, err := MarshalResource(req.TypeName, &planned)
 	if err != nil {
 		return resp, err
 	}
+
 	resp.PlannedState = &tfplugin5.DynamicValue{
 		Msgpack: plannedState,
 	}
@@ -587,14 +608,16 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	if err != nil {
 		return resp, err
 	}
+	Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
+
+	sanitizedPlannedState := cty.UnknownAsNull(applyPlannedState)
+
+	Dlog.Printf("[ApplyResourceChange][Request][SanitizedPlannedState]\n%s\n", spew.Sdump(sanitizedPlannedState))
 
 	applyPriorState, err := UnmarshalResource(req.TypeName, (*req.PriorState).Msgpack)
 	if err != nil {
 		return resp, err
 	}
-	Dlog.Printf("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
-	Dlog.Printf("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
-	Dlog.Printf("[ApplyResourceChange][Request][PlannedPrivate]\n%s\n", spew.Sdump(req.PlannedPrivate))
 
 	c, err := GetDynamicClient()
 	if err != nil {
@@ -613,15 +636,35 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	switch {
 	case applyPriorState.IsNull():
 		{ // Create resource
-			o := applyPlannedState.GetAttr("object")
+			o := sanitizedPlannedState.GetAttr("object")
+
 			gvr, err := GVRFromCtyObject(&o)
 			if err != nil {
 				return resp, err
 			}
-			mi, err := CtyObjectToUnstructured(&o)
+
+			gvk, err := GVKFromCtyObject(&o)
+			if err != nil {
+				return resp, fmt.Errorf("failed to determine resource GVR: %s", err)
+			}
+
+			tsch, err := resourceTypeFromOpenAPI(gvk)
+			if err != nil {
+				return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
+			}
+
+			// remove null or empty attributes  - the API doesn't appreciate requests that include them
+			so, err := cty.Transform(o, transformRemoveNulls)
+
 			if err != nil {
 				return resp, err
 			}
+
+			mi, err := CtyObjectToUnstructured(&so)
+			if err != nil {
+				return resp, err
+			}
+
 			uo := unstructured.Unstructured{Object: mi}
 			ns, err := IsResourceNamespaced(gvr)
 			if err != nil {
@@ -638,6 +681,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
+
 			// Call the Kubernetes API to create the new resource
 			result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
 			if err != nil {
@@ -647,24 +691,26 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			}
 			Dlog.Printf("[ApplyResourceChange][Create] API response:\n%s\n", spew.Sdump(result))
 
-			newResObject, err := UnstructuredToCty(FilterEphemeralFields(result.Object))
+			fo := FilterEphemeralFields(result.Object)
+			newResObject, err := UnstructuredToCty(fo, tsch)
 			if err != nil {
 				return resp, err
 			}
-			Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
+			Dlog.Printf("[ApplyResourceChange][Request][CtyResponse]\n%s\n", spew.Sdump(newResObject))
 
 			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
 			if err != nil {
 				return resp, err
 			}
 
-			newResState, err := cty.Transform(applyPlannedState,
+			newResState, err := cty.Transform(sanitizedPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
 			)
 			if err != nil {
 				return resp, err
 			}
 			Dlog.Printf("[ApplyResourceChange][Create] transformed new state:\n%s", spew.Sdump(newResState))
+
 			mp, err := MarshalResource(req.TypeName, &newResState)
 			if err != nil {
 				return resp, err
@@ -686,6 +732,17 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
+
+			gvk, err := GVKFromCtyObject(&o)
+			if err != nil {
+				return resp, fmt.Errorf("failed to determine resource GVR: %s", err)
+			}
+
+			tsch, err := resourceTypeFromOpenAPI(gvk)
+			if err != nil {
+				return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
+			}
+
 			ns, err := IsResourceNamespaced(gvr)
 			if err != nil {
 				return resp, err
@@ -708,7 +765,8 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 		}
 	case !applyPlannedState.IsNull() && !applyPriorState.IsNull():
 		{ // Update existing resource
-			o := applyPlannedState.GetAttr("object")
+			o := sanitizedPlannedState.GetAttr("object")
+
 			gvr, err := GVRFromCtyObject(&o)
 			if err != nil {
 				return resp, err
@@ -751,7 +809,9 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
 			}
 			Dlog.Printf("[ApplyResourceChange][Update] API response:\n%s\n", spew.Sdump(result))
-			newResObject, err := UnstructuredToCty(FilterEphemeralFields(result.Object))
+
+			fo := FilterEphemeralFields(result.Object)
+			newResObject, err := UnstructuredToCty(fo, tsch)
 			if err != nil {
 				return resp, err
 			}
@@ -762,6 +822,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			}
 
 			Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
+
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
 			)
