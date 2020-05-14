@@ -1,0 +1,22 @@
+name: "check examples"
+on:
+  push:
+    branches:
+    - master
+    - dev
+  pull_request:
+    branches:
+    - master
+    - dev
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-go@master
+    - uses: engineerd/setup-kind@v0.3.0
+    - name: Check examples run
+      run: ./scripts/check_examples.sh
+      env:
+        TERM: xterm-256color
+      shell: bash 
