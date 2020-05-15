@@ -61,3 +61,46 @@ func TestKubernetesManifest_CustomResourceDefinition(t *testing.T) {
 		},
 	})
 }
+
+func TestKubernetesManifest_CustomResource(t *testing.T) {
+	t.Skip()
+
+	kind := strings.Title(randString(8))
+	plural := strings.ToLower(kind) + "s"
+	group := "terraform.io"
+	version := "v1"
+	groupVersion := group + "/" + version
+
+	name := randName()
+	namespace := randName()
+
+	tf := tfhelper.RequireNewWorkingDir(t)
+	defer func() {
+		tf.RequireDestroy(t)
+		tf.Close()
+		k8shelper.AssertResourceDoesNotExist(t, groupVersion, kind, name)
+	}()
+
+	tfvars := TFVARS{
+		"server_side_planning": useServerSidePlanning,
+		"name":                 name,
+		"namespace":            namespace,
+		"kind":                 kind,
+		"plural":               plural,
+		"group":                group,
+		"group_version":        version,
+	}
+	tfconfig := loadTerraformConfig(t, "custom_resource.tf", tfvars)
+	tf.RequireSetConfig(t, tfconfig)
+	tf.RequireInit(t)
+	tf.RequireApply(t)
+
+	k8shelper.AssertResourceExists(t, groupVersion, kind, name)
+
+	tfstate := tfstatehelper.NewHelper(tf.RequireState(t))
+	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{
+		"kubernetes_manifest.test.object.metadata.name":      name,
+		"kubernetes_manifest.test.object.metadata.namespace": namespace,
+		"kubernetes_manifest.test.object.data":               "this is a test",
+	})
+}
