@@ -110,7 +110,7 @@ func (s *Helper) AssertAttributeValues(t *testing.T, values AttributeValues) {
 	t.Helper()
 
 	for address, expectedValue := range values {
-		assert.Equal(t, expectedValue, s.GetAttributeValue(t, address),
+		assert.EqualValues(t, expectedValue, s.GetAttributeValue(t, address),
 			fmt.Sprintf("Address: %q", address))
 	}
 }
@@ -119,7 +119,7 @@ func (s *Helper) AssertAttributeValues(t *testing.T, values AttributeValues) {
 func (s *Helper) AssertAttributeEqual(t *testing.T, address string, expectedValue interface{}) {
 	t.Helper()
 
-	assert.Equal(t, expectedValue, s.GetAttributeValue(t, address),
+	assert.EqualValues(t, expectedValue, s.GetAttributeValue(t, address),
 		fmt.Sprintf("Address: %q", address))
 }
 

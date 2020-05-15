@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -15,6 +16,8 @@ import (
 	provider "github.com/hashicorp/terraform-provider-kubernetes-alpha/provider"
 	kuberneteshelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/kubernetes"
 )
+
+var useServerSidePlanning bool
 
 var providerName = "kubernetes-alpha"
 
@@ -38,6 +41,9 @@ func TestMain(m *testing.M) {
 	defer tfhelper.Close()
 
 	k8shelper = kuberneteshelper.NewHelper()
+
+	useServerSidePlanning = *flag.Bool("server-side-plan", true, "Run the tests with server_side_planning set to true")
+	flag.Parse()
 
 	rand.Seed(time.Now().UTC().UnixNano())
 

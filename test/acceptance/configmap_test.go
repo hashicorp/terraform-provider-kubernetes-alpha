@@ -23,8 +23,9 @@ func TestKubernetesManifest_ConfigMap(t *testing.T) {
 	defer k8shelper.DeleteNamespace(t, namespace)
 
 	tfvars := TFVARS{
-		"namespace": namespace,
-		"name":      name,
+		"server_side_planning": useServerSidePlanning,
+		"namespace":            namespace,
+		"name":                 name,
 	}
 	tfconfig := loadTerraformConfig(t, "configmap.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
