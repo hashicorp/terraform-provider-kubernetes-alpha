@@ -16,7 +16,7 @@ rm -rf $ASSETS_DIR/*
 gox -osarch "$OS_ARCH" -output "$ASSETS_DIR/{{.Dir}}_${VERSION}_{{.OS}}_{{.Arch}}"
 
 for f in $ASSETS_DIR/*; do
-    zip -q "$f.zip" $f
+    zip -q -j "$f.zip" $f
     rm -f $f
 done
 
