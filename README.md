@@ -1,5 +1,10 @@
-# Terraform provider for Kubernetes (ALPHA)
-![Terraform](https://img.shields.io/badge/-Terraform-623CE4?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00LjU0NDc0IDIuMDEzNzZMNy4zOTk2NyAzLjY2MTczVjYuOTU3NjdMNC41NDQ3NCA1LjMwOTdWMi4wMTM3NloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNNy43MTE5OCAzLjY2MTcyVjYuOTU3NjZMMTAuNTY2OSA1LjMwOTY5VjIuMDEyM0w3LjcxMTk4IDMuNjYxNzJaIiBmaWxsPSIjRjJGMkYyIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMS4zNzY0IDAuMTcyODUyVjMuNDY4NzlMNC4yMzEzNCA1LjExODIxVjEuODIwODJMMS4zNzY0IDAuMTcyODUyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00LjU0NDc0IDguOTY2ODFMNy4zOTgyMiAxMC42MTYyVjcuMzQwNlY3LjMxODg0TDQuNTQ0NzQgNS42NzA4N1Y4Ljk2NjgxWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==) ![Status: Experimental](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha/all.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
+# Terraform provider for Kubernetes (ALPHA) 
+<a href="https://terraform.io">
+    <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" alt="Terraform logo" align="right" height="50" />
+</a>
+
+
+![Status: Experimental](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha/all.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
 [![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-kubernetes-alpha.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/LICENSE)
 
 A Terraform provider for Kubernetes which supports all API resources in a generic fashion.
