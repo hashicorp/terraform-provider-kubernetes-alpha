@@ -3,6 +3,7 @@ on:
   push:
     tags:
     - '[0-9]+.[0-9]+.[0-9]+'
+    - nightly
 jobs:
   build:
     name: Upload Release Binaries
@@ -16,7 +17,23 @@ jobs:
           go get -u github.com/mitchellh/gox
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Install hc-codesign
+        run: |
+          DOWNLOAD_URL=$(curl -SsL \
+            -H "Authorization: token ${{ secrets.CODESIGN_GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/hashicorp/hc-codesign/releases/latest \
+            | jq -r '.assets[] | select(.name | contains("linux_amd64.zip")) | .url')
+          curl -SsL -o /tmp/hc-codesign.zip \
+            -H "Authorization: token ${{ secrets.CODESIGN_GITHUB_TOKEN }}" \
+            -H "Accept: application/octet-stream" ${DOWNLOAD_URL}
+          unzip /tmp/hc-codesign.zip
+          sudo mv hc-codesign /usr/bin/hc-codesign
       - name: Build binaries
+        env:
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
           bash scripts/build_release_binaries.sh ${GITHUB_REF/refs\/tags\//}

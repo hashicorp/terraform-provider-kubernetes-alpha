@@ -1,0 +1,15 @@
+on:
+  schedule:
+  - cron: 0 0 * * *
+
+jobs:
+  tag_nightly:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: | 
+        git tag nightly${date +"%Y%m%d"}
+    - uses: ad-m/github-push-action@master
+      with: 
+        tags: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
