@@ -8,13 +8,13 @@ if [ ! -f ./terraform-provider-kubernetes-alpha ]; then
     make build
 fi
 
-FILE=.check_validate_only
+SKIP_CHECKS=.check_validate_only
 for example in $PWD/examples/*; do
     cd $example
     echo 🔍 $(tput bold)$(tput setaf 3)Checking $(basename $example)...
         
-    if [ -f "$FILE" ]; then
-        echo "$FILE exists. Only running `terraform validate`"
+    if [ -f "$SKIP_CHECKS" ]; then
+        echo "$SKIP_CHECKS specified. Only running `terraform validate`"
         terraform init -plugin-dir ../..
         terraform validate
         echo
