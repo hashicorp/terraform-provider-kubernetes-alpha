@@ -12,20 +12,16 @@ SKIP_CHECKS=.check_validate_only
 for example in $PWD/examples/*; do
     cd $example
     echo 🔍 $(tput bold)$(tput setaf 3)Checking $(basename $example)...
-        
+    terraform init -plugin-dir ../..
+    terraform validate
     if [ -f "$SKIP_CHECKS" ]; then
         echo "$SKIP_CHECKS specified. Only running `terraform validate`"
-        terraform init -plugin-dir ../..
-        terraform validate
-        echo
-    else 
-        terraform init -plugin-dir ../..
-        terraform validate
-        terraform plan -out tfplan > /dev/null
-        terraform apply tfplan
-        terraform refresh
-        terraform destroy -auto-approve
-        echo
+        continue
     fi
+    terraform plan -out tfplan > /dev/null
+    terraform apply tfplan
+    terraform refresh
+    terraform destroy -auto-approve
+    echo
     
 done
