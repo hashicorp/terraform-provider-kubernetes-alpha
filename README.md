@@ -7,11 +7,13 @@
 ![Status: Experimental](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha/all.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
 [![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-kubernetes-alpha.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/LICENSE)
 
-A Terraform provider for Kubernetes which supports all API resources in a generic fashion.
+This Terraform provider for Kubernetes supports all API resources in a generic fashion.
 
 This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
 
-Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. Please file issues generously and detail your experience while using the provider. We encourage all types of feedback.
+Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) generously and detail your experience while using the provider. We welcome your feedback.
+
+Our eventual goal is for this generic resource to become a part of our production capable Kubernetes provider, however, this work is subject to signficant changes as we iterate towards that level of quality.
 
 ## Requirements
 
@@ -19,9 +21,11 @@ Please regard this project as experimental. It still requires extensive testing 
 * [Kubernetes](https://kubernetes.io/docs/reference) version 1.17.x +
 * [Go](https://golang.org/doc/install) version 1.14.x
 
-## Usage Example
+## Usage Examples
 
-* Create a Kubernetes ConfigMap
+You can find the following examples and more in [our examples folder](examples/). Don't forget to run `terraform init` in the TF configuration directory to allow Terraform to detect the provider binary.
+
+### Create a Kubernetes ConfigMap
 ```hcl
 provider "kubernetes-alpha" {}
 
@@ -42,7 +46,7 @@ resource "kubernetes_manifest" "test-configmap" {
 }
 ```
 
-* Create a Kubernetes Custom Resource Definition
+### Create a Kubernetes Custom Resource Definition
 
 ```hcl
 provider "kubernetes-alpha" {}
@@ -88,7 +92,7 @@ resource "kubernetes_manifest" "test-crd" {
 
 ## Moving from YAML to HCL
 
-The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step, rather than using `yamldecode()` inside the resource block. 
+The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step and then manage that resource in Terraform, rather than using `yamldecode()` inside the resource block. 
 
 You can quickly convert a single YAML file to an HCL map using this one liner:
 
@@ -96,47 +100,13 @@ You can quickly convert a single YAML file to an HCL map using this one liner:
 echo 'yamldecode(file("test.yaml"))' | terraform console
 ```
 
-There is also an experimental command line tool [tfk8s](https://github.com/jrhouston/tfk8s) which you can use to convert Kubernetes YAML manifests to complete Terraform configurations.
+Alternatively, there is also an experimental command line tool [tfk8s](https://github.com/jrhouston/tfk8s) you could use to convert Kubernetes YAML manifests into complete Terraform configurations.
 
-## Building and installing
+## Contributing
 
-As we do not yet publish releases for this provider to the registry, you have to install it manualy.
+We welcome your contribution. Please understand that the experimental nature of this repository means that contributing code may be a bit of a moving target. If you have an idea for an enhancement or bug fix, and want to take on the work yourself, please first [create an issue](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) so that we can discuss the implementation with you before you proceed with the work.
 
-Make sure you have a supported version of Go installed and working.
-
-Checkout or download this repository, then open a terminal and change to its directory.
-
-### Using `GOBIN` and `terraform.d/plugins`
-```
-make install
-```
-This will place the provider binary in the GOBIN directory. You can determine this location using the `go env GOBIN` command.
-
-You then need to link this binary file into a filesystem location where Terraform can find it. One such location is `$HOME/.terraform.d/plugins/`. More on this topic [here](https://www.terraform.io/docs/extend/how-terraform-works.html#discovery)
-
-Create the link with following commands:
-```
-mkdir -p $HOME/.terraform.d/plugins
-ln -s $(go env GOBIN)/terraform-provider-kubernetes-alpha $HOME/.terraform.d/plugins/terraform-provider-kubernetes-alpha
-```
-
-You are now ready to use the provider. You can find example TF configurations in this repository under the `./examples`.
-
-Don't forget to run `terraform init` in the TF configuration directory to allow Terraform to detect the provider binary.
-
-### Using `-plugin-dir` 
-
-Alternative, you can run:
-
-```
-make build
-```
-
-This will place the provider binary in the top level of the provider directory. You can then use it with terraform by specifying the `-plugin-dir` option when running `terraform init`
-
-```
-terraform init -plugin-dir /path/to/terraform-provider-alpha
-```
+You can review our [contribution guide](_about/CONTRIBUTING.md) to begin.
 
 ## Experimental Status
 
