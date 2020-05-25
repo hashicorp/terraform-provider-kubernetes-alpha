@@ -167,8 +167,11 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	ps[RestMapper] = mapper
 	ps[RestClient] = restClient
 
-	ssp := providerConfig.GetAttr("server_side_planning").True()
-	ps[SSPlanning] = ssp
+	ssp := providerConfig.GetAttr("server_side_planning")
+	if !ssp.IsKnown() || ssp.IsNull() {
+		ssp = cty.True // default to true
+	}
+	ps[SSPlanning] = ssp.True()
 	return response, nil
 }
 
