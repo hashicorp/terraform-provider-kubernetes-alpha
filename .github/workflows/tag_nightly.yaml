@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: | 
-        git tag nightly${date +"%Y%m%d"}
+        git tag -p nightly${date +"%Y%m%d"}
     - uses: ad-m/github-push-action@master
       with: 
         tags: true
