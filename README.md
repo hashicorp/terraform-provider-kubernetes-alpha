@@ -19,6 +19,7 @@ Our eventual goal is for this generic resource to become a part of our productio
 
 * [Terraform](https://www.terraform.io/downloads.html) version 0.12.x +
 * [Kubernetes](https://kubernetes.io/docs/reference) version 1.17.x +
+  * This provider does not support [discrete credentials](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/4) yet. We currently only support [file based configuration](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) from a given or default file location.
 * [Go](https://golang.org/doc/install) version 1.14.x
 
 ## Usage Examples
