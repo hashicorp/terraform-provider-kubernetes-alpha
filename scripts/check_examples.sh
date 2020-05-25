@@ -8,16 +8,16 @@ if [ ! -f ./terraform-provider-kubernetes-alpha ]; then
     make build
 fi
 
-SKIP_CHECKS=.check_validate_only
+SKIP_CHECKS=.skip_checks
 for example in $PWD/examples/*; do
     cd $example
     echo 🔍 $(tput bold)$(tput setaf 3)Checking $(basename $example)...
-    terraform init -plugin-dir ../..
-    terraform validate
     if [ -f "$SKIP_CHECKS" ]; then
-        echo "$SKIP_CHECKS specified. Only running `terraform validate`"
+        echo "$SKIP_CHECKS specified. Skipping this example."
         continue
     fi
+    terraform init -plugin-dir ../..
+    terraform validate
     terraform plan -out tfplan > /dev/null
     terraform apply tfplan
     terraform refresh
