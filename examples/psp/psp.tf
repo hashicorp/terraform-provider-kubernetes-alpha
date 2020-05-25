@@ -1,8 +1,4 @@
-variable "kubeconfig" {}
-
 provider "kubernetes-alpha" {
-  config_file          = var.kubeconfig
-  server_side_planning = true
 }
 
 # PodSecurityPolicy only works on Kubernetes 1.17+
