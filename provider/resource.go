@@ -31,6 +31,10 @@ func ResourceDeepUpdateObjectAttr(prefix cty.Path, newobj *cty.Value) func(path 
 		}
 		var objpath cty.Path = path[len(prefix):]
 
+		if v.Type().IsObjectType() {
+			return v, nil
+		}
+
 		newValForPath, err := objpath.Apply(*newobj)
 		if err != nil {
 			return v, nil
