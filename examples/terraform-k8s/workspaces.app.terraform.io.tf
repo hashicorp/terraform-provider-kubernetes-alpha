@@ -1,7 +1,7 @@
 
 provider "kubernetes-alpha" {}
 
-resource "kubernetes_manifest_hcl" "workspaces_app_terraform_io_crd" {
+resource "kubernetes_manifest" "workspaces_app_terraform_io_crd" {
   provider = kubernetes-alpha
 
   manifest = {
