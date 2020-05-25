@@ -24,26 +24,7 @@ func GetObjectTypeFromSchema(schema *tfplugin5.Schema) (cty.Type, error) {
 // GetProviderResourceSchema contains the definitions of all supported resources
 func GetProviderResourceSchema() map[string]*tfplugin5.Schema {
 	oType, _ := cty.DynamicPseudoType.MarshalJSON()
-	mType, _ := cty.String.MarshalJSON()
 	return map[string]*tfplugin5.Schema{
-		"kubernetes_manifest_yaml": {
-			Version: 1,
-			Block: &tfplugin5.Schema_Block{
-				Attributes: []*tfplugin5.Schema_Attribute{
-					{
-						Name:     "manifest",
-						Type:     mType,
-						Required: true,
-					},
-					{
-						Name:     "object",
-						Type:     oType,
-						Optional: true,
-						Computed: true,
-					},
-				},
-			},
-		},
 		"kubernetes_manifest": {
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
