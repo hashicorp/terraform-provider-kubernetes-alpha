@@ -1,6 +1,6 @@
 ## Building and installing
 
-As we do not yet publish releases for this provider to the registry, you have to install it manualy.
+As we do not yet publish releases for this provider to registry.terraform.io, you have to either [download a release from Github](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases) or build and install it manually as indicated below.
 
 Make sure you have a supported version of Go installed and working.
 
