@@ -6,6 +6,8 @@
 
 ![Status: Experimental](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha/all.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
 [![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-kubernetes-alpha.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/LICENSE)
+![unit tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/unit%20tests/badge.svg)
+![acceptance tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/acceptance%20tests/badge.svg)
 
 A Terraform provider for Kubernetes which supports all API resources in a generic fashion.
 
