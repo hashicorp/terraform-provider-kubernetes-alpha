@@ -1,3 +1,5 @@
+name: "tag nightly"
+
 on:
   schedule:
   - cron: 0 0 * * *
