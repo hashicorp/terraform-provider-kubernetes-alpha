@@ -1,6 +1,6 @@
 resource "kubernetes_deployment" "tfc-deployment" {
   metadata {
-    name = "${var.namespace}-sync-workspace"
+    name      = "${var.namespace}-sync-workspace"
     namespace = var.namespace
     labels = {
       app = var.namespace
@@ -12,20 +12,20 @@ resource "kubernetes_deployment" "tfc-deployment" {
 
     selector {
       match_labels = {
-        app = var.namespace
+        app       = var.namespace
         component = "sync-workspace"
       }
     }
     template {
       metadata {
         labels = {
-          app = var.namespace
+          app       = var.namespace
           component = "sync-workspace"
         }
       }
 
       spec {
-        service_account_name = kubernetes_service_account.tfc-service-account.metadata[0].name
+        service_account_name            = kubernetes_service_account.tfc-service-account.metadata[0].name
         automount_service_account_token = true
 
         volume {

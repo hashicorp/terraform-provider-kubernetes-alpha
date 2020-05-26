@@ -1,6 +1,6 @@
 resource "kubernetes_role" "tfc-role" {
   metadata {
-    name = "${var.namespace}-sync-workspace"
+    name      = "${var.namespace}-sync-workspace"
     namespace = var.namespace
     labels = {
       app = var.namespace
