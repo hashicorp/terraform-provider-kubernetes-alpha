@@ -448,7 +448,6 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	ssp := providerConfig.GetAttr("server_side_planning")
 
 	ps[SSPlanning] = ssp.True()
-	Dlog.Printf("[Configure] SSP %s\n", spew.Sdump(ssp))
 	return response, nil
 }
 
@@ -653,19 +652,13 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 			}
 
-			// remove null or empty attributes  - the API doesn't appreciate requests that include them
-			so, err := cty.Transform(o, transformRemoveNulls)
-
+			mi, err := CtyObjectToUnstructured(&o)
 			if err != nil {
 				return resp, err
 			}
 
-			mi, err := CtyObjectToUnstructured(&so)
-			if err != nil {
-				return resp, err
-			}
-
-			uo := unstructured.Unstructured{Object: mi}
+			// remove null attributes - the API doesn't appreciate requests that include them
+			uo := unstructured.Unstructured{Object: mapRemoveNulls(mi)}
 			ns, err := IsResourceNamespaced(gvr)
 			if err != nil {
 				return resp, err

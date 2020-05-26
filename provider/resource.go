@@ -267,38 +267,37 @@ func DeepUnknownVal(ty cty.Type) cty.Value {
 	}
 }
 
-func transformRemoveNulls(p cty.Path, v cty.Value) (cty.Value, error) {
-	if v.IsNull() {
-		return v, nil
-	}
-	t := v.Type()
-	switch {
-	case t.IsObjectType():
-		nvals := make(map[string]cty.Value, len(v.Type().AttributeTypes()))
-		for it := v.ElementIterator(); it.Next(); {
-			kv, ev := it.Element()
-			if !ev.IsNull() {
-				nvals[kv.AsString()] = ev
+func mapRemoveNulls(in map[string]interface{}) map[string]interface{} {
+	for k, v := range in {
+		switch tv := v.(type) {
+		case []interface{}:
+			in[k] = sliceRemoveNulls(tv)
+		case map[string]interface{}:
+			in[k] = mapRemoveNulls(tv)
+		default:
+			if v == nil {
+				delete(in, k)
 			}
 		}
-		if len(nvals) == 0 {
-			return cty.NullVal(t), nil
-		}
-		return cty.ObjectVal(nvals), nil
-	case t.IsListType():
-		nvals := []cty.Value{}
-		for et := v.ElementIterator(); et.Next(); {
-			_, val := et.Element()
-			if !val.IsNull() {
-				nvals = append(nvals, val)
+	}
+	return in
+}
+
+func sliceRemoveNulls(in []interface{}) []interface{} {
+	s := []interface{}{}
+	for _, v := range in {
+		switch tv := v.(type) {
+		case []interface{}:
+			s = append(s, sliceRemoveNulls(tv))
+		case map[string]interface{}:
+			s = append(s, mapRemoveNulls(tv))
+		default:
+			if v != nil {
+				s = append(s, v)
 			}
 		}
-		if len(nvals) == 0 {
-			return cty.NullVal(t), nil
-		}
-		return cty.ListVal(nvals), nil
 	}
-	return v, nil
+	return s
 }
 
 func resourceTypeFromOpenAPI(gvk schema.GroupVersionKind) (cty.Type, error) {
