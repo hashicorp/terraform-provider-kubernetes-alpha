@@ -77,8 +77,8 @@ func TestMorphManifestToOAPI(t *testing.T) {
 	}{
 		{
 			in: cty.ObjectVal(map[string]cty.Value{
-				"kind":       cty.StringVal("ConfigMap"),
 				"apiVersion": cty.StringVal("v1"),
+				"kind":       cty.StringVal("ConfigMap"),
 				"metadata": cty.ObjectVal(map[string]cty.Value{
 					"name":      cty.StringVal("test-config"),
 					"namespace": cty.StringVal("default"),
@@ -92,19 +92,48 @@ func TestMorphManifestToOAPI(t *testing.T) {
 				}),
 			}),
 			out: cty.ObjectVal(map[string]cty.Value{
-				"kind":       cty.StringVal("ConfigMap"),
 				"apiVersion": cty.StringVal("v1"),
+				"kind":       cty.StringVal("ConfigMap"),
 				"metadata": cty.ObjectVal(map[string]cty.Value{
-					"name":      cty.StringVal("test-config"),
-					"namespace": cty.StringVal("default"),
+					"uid":               cty.NullVal(cty.String),
+					"selfLink":          cty.NullVal(cty.String),
+					"clusterName":       cty.NullVal(cty.String),
+					"annotations":       cty.NullVal(cty.Map(cty.String)),
+					"name":              cty.StringVal("test-config"),
+					"resourceVersion":   cty.NullVal(cty.String),
+					"creationTimestamp": cty.NullVal(cty.String),
+					"generation":        cty.NullVal(cty.String),
+					"ownerReferences": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+						"uid":                cty.String,
+						"apiVersion":         cty.String,
+						"blockOwnerDeletion": cty.Bool,
+						"controller":         cty.Bool,
+						"kind":               cty.String,
+						"name":               cty.String,
+					}))),
 					"labels": cty.MapVal(map[string]cty.Value{
 						"app":         cty.StringVal("test-app"),
 						"environment": cty.StringVal("production"),
 					}),
+					"deletionGracePeriodSeconds": cty.NullVal(cty.Number),
+					"generateName":               cty.NullVal(cty.String),
+					"managedFields": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+						"apiVersion": cty.String,
+						"fieldsType": cty.String,
+						"fieldsV1":   cty.DynamicPseudoType,
+						"manager":    cty.String,
+						"operation":  cty.String,
+						"time":       cty.String,
+					}))),
+					"finalizers":        cty.NullVal(cty.List(cty.String)),
+					"deletionTimestamp": cty.NullVal(cty.String),
+
+					"namespace": cty.StringVal("default"),
 				}),
 				"data": cty.MapVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
+				"binaryData": cty.NullVal(cty.Map(cty.String)),
 			}),
 			ty: cty.Object(map[string]cty.Type{
 				"apiVersion": cty.String,
@@ -147,8 +176,8 @@ func TestMorphManifestToOAPI(t *testing.T) {
 		},
 		{
 			in: cty.ObjectVal(map[string]cty.Value{
-				"kind":       cty.StringVal("Role"),
 				"apiVersion": cty.StringVal("rbac.authorization.k8s.io/v1"),
+				"kind":       cty.StringVal("Role"),
 				"metadata": cty.ObjectVal(map[string]cty.Value{
 					"name":      cty.StringVal("test-role"),
 					"namespace": cty.StringVal("default"),
@@ -174,15 +203,42 @@ func TestMorphManifestToOAPI(t *testing.T) {
 				}),
 			}),
 			out: cty.ObjectVal(map[string]cty.Value{
-				"kind":       cty.StringVal("Role"),
 				"apiVersion": cty.StringVal("rbac.authorization.k8s.io/v1"),
+				"kind":       cty.StringVal("Role"),
 				"metadata": cty.ObjectVal(map[string]cty.Value{
-					"name":      cty.StringVal("test-role"),
-					"namespace": cty.StringVal("default"),
+					"uid":               cty.NullVal(cty.String),
+					"selfLink":          cty.NullVal(cty.String),
+					"clusterName":       cty.NullVal(cty.String),
+					"annotations":       cty.NullVal(cty.Map(cty.String)),
+					"resourceVersion":   cty.NullVal(cty.String),
+					"creationTimestamp": cty.NullVal(cty.String),
+					"generation":        cty.NullVal(cty.String),
+					"ownerReferences": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+						"uid":                cty.String,
+						"apiVersion":         cty.String,
+						"blockOwnerDeletion": cty.Bool,
+						"controller":         cty.Bool,
+						"kind":               cty.String,
+						"name":               cty.String,
+					}))),
+					"deletionGracePeriodSeconds": cty.NullVal(cty.Number),
+					"generateName":               cty.NullVal(cty.String),
+					"managedFields": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+						"apiVersion": cty.String,
+						"fieldsType": cty.String,
+						"fieldsV1":   cty.DynamicPseudoType,
+						"manager":    cty.String,
+						"operation":  cty.String,
+						"time":       cty.String,
+					}))),
+					"finalizers":        cty.NullVal(cty.List(cty.String)),
+					"deletionTimestamp": cty.NullVal(cty.String),
 					"labels": cty.MapVal(map[string]cty.Value{
 						"app":         cty.StringVal("test-app"),
 						"environment": cty.StringVal("production"),
 					}),
+					"name":      cty.StringVal("test-role"),
+					"namespace": cty.StringVal("default"),
 				}),
 				"rules": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -251,10 +307,11 @@ func TestMorphManifestToOAPI(t *testing.T) {
 		)
 		t.Run(tt, func(t *testing.T) {
 			o, err := morphManifestToOAPI(s.in, s.ty)
+			no := cty.UnknownAsNull(o)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if o.Equals(s.out).False() {
+			if no.Equals(s.out).False() {
 				t.Errorf("Morphed object does not match expectation.\nGOT: %s\nWANT: %s\n", spew.Sdump(o), spew.Sdump(s.out))
 			}
 		})

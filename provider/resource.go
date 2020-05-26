@@ -48,8 +48,6 @@ func ResourceDeepUpdateObjectAttr(prefix cty.Path, newobj *cty.Value) func(path 
 				if err != nil {
 					return cty.NilVal, fmt.Errorf("failed to convert primitive type %s to %s", nv.Type().FriendlyName(), v.Type().FriendlyName())
 				}
-				Dlog.Printf("[ResourceDeepUpdateObjectAttr] %s converted from %s to %s",
-					DumpCtyPath(objpath), nv.Type().FriendlyName(), v.Type().FriendlyName())
 				return ncv, nil
 			}
 			return nv, nil
