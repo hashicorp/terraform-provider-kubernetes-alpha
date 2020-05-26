@@ -1,6 +1,6 @@
-# terraform-k8s-module
+# terraform-operator-module
 
-A Terraform module for managing the HashiCorp Terraform-k8s operator with the Kubernetes and Kubernetes-alpha providers. 
+A Terraform module for managing the HashiCorp [terraform-k8s operator](https://github.com/hashicorp/terraform-k8s) with the Kubernetes and Kubernetes-alpha providers. 
 
 ## Usage
 ```
@@ -13,8 +13,8 @@ resource "kubernetes_namespace" "example" {
   }
 }
 
-module "terraform-k8s" {
-  source = "github.com/hashicorp/terraform-provider-kubernetes-alpha/tree/dev/examples/terraform-k8s"
+module "terraform-operator" {
+  source = "github.com/hashicorp/terraform-provider-kubernetes-alpha/tree/master/examples/terraform-operator"
 
 namespace       = var.namespace
 tfc_credentials = file(var.tfc_credentials)
