@@ -37,7 +37,7 @@ resource "kubernetes_manifest" "service-injector" {
         "app.kubernetes.io/name"     = "vault-agent-injector"
         "component"                  = "webhook"
       }
-      clusterIP = "10.111.133.169"
+      clusterIP = "10.96.1.1"
     }
   }
 }
