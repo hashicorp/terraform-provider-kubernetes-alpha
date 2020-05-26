@@ -1,4 +1,5 @@
 provider "kubernetes-alpha" {
+  server_side_planning = true
 }
 
 variable "name" {
@@ -36,6 +37,7 @@ resource "kubernetes_manifest" "service-injector" {
         "app.kubernetes.io/name"     = "vault-agent-injector"
         "component"                  = "webhook"
       }
+      clusterIP = "10.111.133.169"
     }
   }
 }
