@@ -6,12 +6,12 @@ resource "kubernetes_manifest" "test-deployment" {
 
   manifest = {
     "apiVersion" = "apps/v1"
-    "kind" = "Deployment"
+    "kind"       = "Deployment"
     "metadata" = {
       "labels" = {
         "app" = "nginx"
       }
-      "name" = "nginx-deployment"
+      "name"      = "nginx-deployment"
       "namespace" = "default"
     }
     "spec" = {
@@ -31,11 +31,11 @@ resource "kubernetes_manifest" "test-deployment" {
           "containers" = [
             {
               "image" = "nginx:1.14.2"
-              "name" = "nginx"
+              "name"  = "nginx"
               "ports" = [
                 {
                   "containerPort" = 80
-                  "protocol" = "TCP"
+                  "protocol"      = "TCP"
                 },
               ]
             },

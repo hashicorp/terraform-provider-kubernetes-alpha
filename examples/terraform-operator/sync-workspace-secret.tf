@@ -5,7 +5,7 @@ resource "kubernetes_secret" "workspace-secret" {
   }
 
   data = {
-    access_key_id     = var.access_key_id
+    access_key_id    = var.access_key_id
     secret_acess_key = var.secret_acess_key
   }
 }

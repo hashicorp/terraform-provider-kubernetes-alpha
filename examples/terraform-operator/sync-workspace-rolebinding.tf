@@ -1,6 +1,6 @@
 resource "kubernetes_role_binding" "tfc-role-binding" {
   metadata {
-    name = "${var.namespace}-sync-workspace"
+    name      = "${var.namespace}-sync-workspace"
     namespace = var.namespace
     labels = {
       app = var.namespace
@@ -13,7 +13,7 @@ resource "kubernetes_role_binding" "tfc-role-binding" {
   }
   subject {
     kind      = "ServiceAccount"
-    name = kubernetes_service_account.tfc-service-account.metadata[0].name
+    name      = kubernetes_service_account.tfc-service-account.metadata[0].name
     namespace = var.namespace
   }
 }

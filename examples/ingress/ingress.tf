@@ -6,12 +6,12 @@ resource "kubernetes_manifest" "test-ingress" {
 
   manifest = {
     "apiVersion" = "networking.k8s.io/v1beta1"
-    "kind" = "Ingress"
+    "kind"       = "Ingress"
     "metadata" = {
       "annotations" = {
         "nginx.ingress.kubernetes.io/rewrite-target" = "/$1"
       }
-      "name" = "example-ingress"
+      "name"      = "example-ingress"
       "namespace" = "default"
     }
     "spec" = {

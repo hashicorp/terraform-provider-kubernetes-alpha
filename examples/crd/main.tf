@@ -7,7 +7,7 @@ resource "kubernetes_manifest" "test-crd" {
 
   manifest = {
     apiVersion = "apiextensions.k8s.io/v1"
-    kind = "CustomResourceDefinition"
+    kind       = "CustomResourceDefinition"
     metadata = {
       name = "testcrds.hashicorp.com"
       labels = {
@@ -17,13 +17,13 @@ resource "kubernetes_manifest" "test-crd" {
     spec = {
       group = "hashicorp.com"
       names = {
-        kind = "TestCrd"
+        kind   = "TestCrd"
         plural = "testcrds"
       }
       scope = "Namespaced"
       versions = [{
-        name = "v1"
-        served = true
+        name    = "v1"
+        served  = true
         storage = true
         schema = {
           openAPIV3Schema = {

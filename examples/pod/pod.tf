@@ -5,12 +5,12 @@ resource "kubernetes_manifest" "test-pod" {
   provider = kubernetes-alpha
   manifest = {
     "apiVersion" = "v1"
-    "kind" = "Pod"
+    "kind"       = "Pod"
     "metadata" = {
-      "name" = "label-demo"
+      "name"      = "label-demo"
       "namespace" = "default"
       "labels" = {
-        "app" = "nginx"
+        "app"         = "nginx"
         "environment" = "production"
       }
     }
@@ -18,11 +18,25 @@ resource "kubernetes_manifest" "test-pod" {
       "containers" = [
         {
           "image" = "nginx:1.7.9"
-          "name" = "nginx"
+          "name"  = "nginx"
           "ports" = [
             {
               "containerPort" = 80
-              "protocol" = "TCP"
+              "protocol"      = "TCP"
+            },
+          ]
+          env = [
+            {
+              "name" = "VAR1"
+              "valueFrom" = {
+                "fieldRef" = {
+                  "fieldPath" = "metadata.namespace"
+                }
+              }
+            },
+            {
+              "name"  = "VAR2"
+              "value" = "http://127.0.0.1:8200"
             },
           ]
         },
