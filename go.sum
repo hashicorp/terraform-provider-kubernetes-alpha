@@ -45,6 +45,8 @@ github.com/alexsomesan/openapi-cty v0.0.2 h1:s9UsAIVn0Ug4oNGTrnm/8VRsMZ01wtDou27
 github.com/alexsomesan/openapi-cty v0.0.2/go.mod h1:a+1dABgr2aehVHKcJwCVbVueZn6E6iFCC2C0zIU/nxQ=
 github.com/alexsomesan/openapi-cty v0.0.3 h1:j/gRZLITgrXcLtwzkRuqqLzuviHkXsvtj5LPaawuZgU=
 github.com/alexsomesan/openapi-cty v0.0.3/go.mod h1:a+1dABgr2aehVHKcJwCVbVueZn6E6iFCC2C0zIU/nxQ=
+github.com/alexsomesan/openapi-cty v0.0.4 h1:ArJe9LEdJaZg2DokLL9/2hub/baUTFCJZMQgZk4WOeI=
+github.com/alexsomesan/openapi-cty v0.0.4/go.mod h1:a+1dABgr2aehVHKcJwCVbVueZn6E6iFCC2C0zIU/nxQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo4JG6LR5AXSUEsOjtdm0kw0FtQtMJA=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=

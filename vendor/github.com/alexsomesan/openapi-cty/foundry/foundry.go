@@ -71,7 +71,16 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 	rp := strings.Split(ref.Ref, "/")
 	sid := rp[len(rp)-1]
 
+	switch sid {
+	case "io.k8s.apimachinery.pkg.util.intstr.IntOrString":
+		t := openapi3.Schema{
+			Type: "integer",
+		}
+		return &t, nil
+	}
+
 	nref, ok := f.swagger.Definitions[sid]
+
 	if !ok {
 		return nil, errors.New("schema not found")
 	}

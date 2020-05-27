@@ -3,7 +3,7 @@ module github.com/hashicorp/terraform-provider-kubernetes-alpha
 go 1.15
 
 require (
-	github.com/alexsomesan/openapi-cty v0.0.3
+	github.com/alexsomesan/openapi-cty v0.0.4
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/golang/protobuf v1.4.2
