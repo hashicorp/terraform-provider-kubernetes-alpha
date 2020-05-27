@@ -6,7 +6,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
 cloud.google.com/go/storage
-# github.com/alexsomesan/openapi-cty v0.0.2
+# github.com/alexsomesan/openapi-cty v0.0.4
 ## explicit
 github.com/alexsomesan/openapi-cty/foundry
 # github.com/aws/aws-sdk-go v1.25.3
