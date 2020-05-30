@@ -6,11 +6,6 @@ labels: bug
 
 ---
 
-Hi there,
-
-Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
-
-
 ### Terraform Version and Provider Version
 <!--- Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please upgrade because your issue may have already been fixed. --->
 
@@ -54,6 +49,5 @@ What actually happened?
 ### Community Note
 <!--- Please keep this note for the community --->
 * Please vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue to help the community and maintainers prioritize this request
-* Please do not leave "+1" or other comments that do not add relevant new information or questions, they generate extra noise for issue followers and do not help prioritize the request
 * If you are interested in working on this issue or have submitted a pull request, please leave a comment
 
