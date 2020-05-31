@@ -4,8 +4,8 @@
 </a>
 
 
-![Status: Experimental](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha/all.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
-[![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-kubernetes-alpha.svg?style=flat-square)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/LICENSE)
+![Status: Experimental](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha.svg)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
+[![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-kubernetes-alpha.svg)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/LICENSE)
 ![unit tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/unit%20tests/badge.svg)
 ![acceptance tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/acceptance%20tests/badge.svg)
 
@@ -26,7 +26,11 @@ Our eventual goal is for this generic resource to become a part of our productio
 
 ## Getting Started
 
-Start by downloading a copy of our latest build from the [releases page](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases). You'll need to unzip the release download and copy the binary into your [Terraform plugins folder](https://www.terraform.io/docs/plugins/basics.html#installing-plugins) in order for Terraform to discover it.
+If this is your first time here, you can get an overview of the provider by reading our [introductory blog post](https://www.hashicorp.com/blog/deploy-any-resource-with-the-new-kubernetes-provider-for-hashicorp-terraform/).
+
+Otherwise, start by downloading a copy of our latest build from the [releases page](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases). We run builds nightly to pick up changes that are made since the last semver release.
+
+You'll need to unzip the release download and copy the binary into your [Terraform plugins folder](https://www.terraform.io/docs/plugins/basics.html#installing-plugins) in order for Terraform to discover it.
 
 Once you have the plugin installed, you can find the following examples and more in [our examples folder](examples/). Don't forget to run `terraform init` in your Terraform configuration directory to allow Terraform to detect the provider plugin.
 
@@ -111,7 +115,7 @@ Alternatively, there is also an experimental command line tool [tfk8s](https://g
 
 We welcome your contribution. Please understand that the experimental nature of this repository means that contributing code may be a bit of a moving target. If you have an idea for an enhancement or bug fix, and want to take on the work yourself, please first [create an issue](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) so that we can discuss the implementation with you before you proceed with the work.
 
-You can review our [contribution guide](_about/CONTRIBUTING.md) to begin.
+You can review our [contribution guide](_about/CONTRIBUTING.md) to begin. You can also check out our [frequently asked questions](_about/FAQ.md).
 
 ## Experimental Status
 
