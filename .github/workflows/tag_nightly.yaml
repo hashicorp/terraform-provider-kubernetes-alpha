@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.NIGHTLY_BUILD_TOKEN }}
     - name: Tag
       run: | 
         git tag nightly$(date +"%Y%m%d")
