@@ -44,9 +44,6 @@ jobs:
           for asset in ./release-bin/*.zip; do
             assets+=("-a" "$asset")
           done
-          if [[ "${GITHUB_REF/refs\/tags\//}" = "nightly*" ]]; then
-            export PRE_RELEASE="-p"
-          fi
-          hub release create "${assets[@]}" ${PRE_RELEASE} -m "${GITHUB_REF/refs\/tags\//}" "${GITHUB_REF/refs\/tags\//}"
+          hub release create "${assets[@]}" -m "${GITHUB_REF/refs\/tags\//}" "${GITHUB_REF/refs\/tags\//}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
