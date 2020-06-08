@@ -36,4 +36,6 @@ require (
 	k8s.io/client-go v0.18.0
 )
 
-replace github.com/alexsomesan/openapi-cty => /home/alex/work/openapi-cty
+replace (
+	"github.com/alexsomesan/openapi-cty" => "/home/alex/workspace/openapi-cty"
+)

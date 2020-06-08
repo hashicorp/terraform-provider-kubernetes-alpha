@@ -566,6 +566,8 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 		planned, err = PlanUpdateResourceLocal(ctx, &proposedState)
 	}
 
+	Dlog.Printf("[PlanResourceChange] planned state cty: %s\n", spew.Sdump(planned))
+
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics,
 			&tfplugin5.Diagnostic{

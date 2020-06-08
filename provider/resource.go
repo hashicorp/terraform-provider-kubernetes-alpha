@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/go-cty/cty/convert"
 	ctyjson "github.com/hashicorp/go-cty/cty/json"
@@ -403,6 +404,8 @@ func morphManifestToOAPI(m cty.Value, t cty.Type) (cty.Value, error) {
 					}
 					return nv, nil
 				}
+			case ty.Equals(cty.DynamicPseudoType):
+				return v, nil
 			}
 			return v, nil
 		})
@@ -435,9 +438,11 @@ func PlanUpdateResourceLocal(ctx context.Context, plan *cty.Value) (cty.Value, e
 	if err != nil {
 		return cty.NilVal, fmt.Errorf("failed to determine resource type ID: %s", err)
 	}
+	Dlog.Printf("[PlanUpdateResourceLocal] OAPI type: %s\n", spew.Sdump(tsch))
 
 	// Transform the input manifest to adhere to the type modeled from the OpenAPI spec
 	mobj, err := morphManifestToOAPI(m, tsch)
+	Dlog.Printf("[PlanUpdateResourceLocal] morphed manifest: %s\n", spew.Sdump(mobj))
 
 	var nc cty.Value
 

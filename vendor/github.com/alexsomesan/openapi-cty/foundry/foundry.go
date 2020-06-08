@@ -77,6 +77,11 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 			Type: "integer",
 		}
 		return &t, nil
+	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps":
+		t := openapi3.Schema{
+			Type: "string",
+		}
+		return &t, nil
 	}
 
 	nref, ok := f.swagger.Definitions[sid]
