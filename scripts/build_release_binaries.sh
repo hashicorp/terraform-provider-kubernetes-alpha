@@ -17,7 +17,7 @@ BINARY_NAME="terraform-provider-kubernetes-alpha"
 mkdir -p $ASSETS_DIR
 rm -rf $ASSETS_DIR/*
 
-gox -osarch "$OS_ARCH" -output "$ASSETS_DIR/{{.Dir}}_${VERSION}_{{.OS}}_{{.Arch}}"
+gox -ldflags '-d -s -w' -osarch "$OS_ARCH" -output "$ASSETS_DIR/{{.Dir}}_${VERSION}_{{.OS}}_{{.Arch}}"
 
 for f in $ASSETS_DIR/*; do
     mv $f $ASSETS_DIR/$BINARY_NAME
