@@ -1,6 +1,7 @@
 
 provider "kubernetes-alpha" {
   server_side_planning = true
+  config_path = "~/.kube/config"
 }
 
 resource "kubernetes_manifest" "workspaces_app_terraform_io_crd" {

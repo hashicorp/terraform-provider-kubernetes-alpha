@@ -1,4 +1,5 @@
 provider "kubernetes-alpha" {
+  config_path = "~/.kube/config"
 }
 
 resource "kubernetes_manifest" "test-pod" {

@@ -1,4 +1,6 @@
-variable "kubeconfig" {}
+variable "kubeconfig" {
+  default = "~/.kube/config"
+}
 
 variable "name" {
   type        = string
