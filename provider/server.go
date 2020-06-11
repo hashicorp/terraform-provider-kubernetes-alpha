@@ -1,17 +1,22 @@
 package provider
 
 import (
+	"bytes"
 	"context"
+	"encoding/pem"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
-	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/go-cty/cty/json"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/hashicorp/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
@@ -21,6 +26,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	apimachineryschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
@@ -30,6 +36,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func init() {
@@ -53,11 +60,123 @@ func (s *RawProviderServer) GetSchema(ctx context.Context, req *tfplugin5.GetPro
 func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfplugin5.PrepareProviderConfig_Request) (*tfplugin5.PrepareProviderConfig_Response, error) {
 	resp := &tfplugin5.PrepareProviderConfig_Response{}
 
-	// config, err := msgpack.Unmarshal(req.Config.Msgpack, GetConfigObjectType())
-	//Dlog.Printf("[PrepareProviderConfig][Request][Config]\n%s\n", spew.Sdump(config))
-	// if err != nil {
-	// 	return resp, err
-	// }
+	diags := []*tfplugin5.Diagnostic{}
+	var err error
+
+	providerConfig, err := msgpack.Unmarshal(req.Config.Msgpack, getConfigObjectType())
+	if err != nil {
+		return resp, err
+	}
+
+	configPath := providerConfig.GetAttr("config_path")
+	if !configPath.IsNull() {
+		configPathAbs, err := homedir.Expand(configPath.AsString())
+		if err == nil {
+			_, err = os.Stat(configPathAbs)
+		}
+		if err != nil {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'config_path' refers to an invalid file path",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "config_path",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	host := providerConfig.GetAttr("host")
+	if !host.IsNull() {
+		_, err = url.ParseRequestURI(host.AsString())
+		if err != nil {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'host' is not a valid URL",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "host",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	pemCA := providerConfig.GetAttr("cluster_ca_certificate")
+	if !pemCA.IsNull() {
+		pem, _ := pem.Decode([]byte(pemCA.AsString()))
+		if pem == nil || pem.Type != "CERTIFICATE" {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'cluster_ca_certificate' is not a valid PEM encoded certificate",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "cluster_ca_certificate",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	pemCC := providerConfig.GetAttr("client_certificate")
+	if !pemCC.IsNull() {
+		pem, _ := pem.Decode([]byte(pemCC.AsString()))
+		if pem == nil || pem.Type != "CERTIFICATE" {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'client_certificate' is not a valid PEM encoded certificate",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "client_certificate",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	pemCK := providerConfig.GetAttr("client_key")
+	if !pemCK.IsNull() {
+		pem, _ := pem.Decode([]byte(pemCK.AsString()))
+		if pem == nil || !strings.Contains(pem.Type, "PRIVATE KEY") {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'client_key' is not a valid PEM encoded private key",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "client_key",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	resp.Diagnostics = diags
 
 	return resp, nil
 }
@@ -105,35 +224,197 @@ func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplu
 func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Configure_Request) (*tfplugin5.Configure_Response, error) {
 	response := &tfplugin5.Configure_Response{}
 
-	providerConfig, err := msgpack.Unmarshal(req.Config.Msgpack, GetConfigObjectType())
+	providerConfig, err := msgpack.Unmarshal(req.Config.Msgpack, getConfigObjectType())
 	if err != nil {
 		return response, err
 	}
 
-	configFile := providerConfig.GetAttr("config_file")
-	var kubeconfig string
+	overrides := &clientcmd.ConfigOverrides{}
+	loader := &clientcmd.ClientConfigLoadingRules{}
 
-	// if no config specified, try the known default locations
-	if configFile.IsNull() || configFile.AsString() == "" {
-		h := os.Getenv("HOME")
-		if h == "" {
-			h = os.Getenv("USERPROFILE") // windows
-		}
-		if h == "" {
-			err := fmt.Errorf("cannot determine HOME path")
-			return response, err
-		}
-		kubeconfig = filepath.Join(h, ".kube", "config")
+	var configPath cty.Value
+	if configPathEnv, ok := os.LookupEnv("KUBE_CONFIG_PATH"); ok && configPathEnv != "" {
+		configPath = cty.StringVal(configPathEnv)
 	} else {
-		kubeconfig = configFile.AsString()
+		configPath = providerConfig.GetAttr("config_path")
+	}
+	if !configPath.IsNull() {
+		configPathAbs, err := homedir.Expand(configPath.AsString())
+		if err != nil {
+			return response, fmt.Errorf("cannot load specified config file: %s", err)
+		}
+		loader.ExplicitPath = configPathAbs
 	}
 
-	var clientConfig *rest.Config
-	clientConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		err = fmt.Errorf("cannot load Kubernetes client config from %s: %s", kubeconfig, err)
-		return response, err
+	var cfgContext cty.Value
+	if cfgContextEnv, ok := os.LookupEnv("KUBE_CTX"); ok && cfgContextEnv != "" {
+		cfgContext = cty.StringVal(cfgContextEnv)
+	} else {
+		cfgContext = providerConfig.GetAttr("config_context")
 	}
+	if !cfgContext.IsNull() {
+		overrides.CurrentContext = cfgContext.AsString()
+	}
+
+	overrides.Context = clientcmdapi.Context{}
+
+	var cfgCtxCluster cty.Value
+	if cfgCtxClusterEnv, ok := os.LookupEnv("KUBE_CTX_CLUSTER"); ok && cfgCtxClusterEnv != "" {
+		cfgCtxCluster = cty.StringVal(cfgCtxClusterEnv)
+	} else {
+		cfgCtxCluster = providerConfig.GetAttr("config_context_cluster")
+	}
+	if !cfgCtxCluster.IsNull() {
+		overrides.Context.Cluster = cfgCtxCluster.AsString()
+	}
+
+	var cfgContextAuthInfo cty.Value
+	if cfgContextAuthInfoEnv, ok := os.LookupEnv("KUBE_CTX_USER"); ok && cfgContextAuthInfoEnv != "" {
+		cfgContextAuthInfo = cty.StringVal(cfgContextAuthInfoEnv)
+	} else {
+		cfgContextAuthInfo = providerConfig.GetAttr("config_context_user")
+	}
+	if !cfgContextAuthInfo.IsNull() {
+		overrides.Context.AuthInfo = cfgContextAuthInfo.AsString()
+	}
+
+	var insecure cty.Value
+	if insecureEnv, ok := os.LookupEnv("KUBE_INSECURE"); ok && insecureEnv != "" {
+		iv, err := strconv.ParseBool(insecureEnv)
+		if err != nil {
+			return response, fmt.Errorf("failed to parse config value of 'insecure': %s", err)
+		}
+		insecure = cty.BoolVal(iv)
+	} else {
+		insecure = providerConfig.GetAttr("insecure")
+	}
+	if !insecure.IsNull() {
+		overrides.ClusterInfo.InsecureSkipTLSVerify = insecure.True()
+	}
+
+	var clusterCA cty.Value
+	if clusterCAEnv, ok := os.LookupEnv("KUBE_CLUSTER_CA_CERT_DATA"); ok && clusterCAEnv != "" {
+		clusterCA = cty.StringVal(clusterCAEnv)
+	} else {
+		clusterCA = providerConfig.GetAttr("cluster_ca_certificate")
+	}
+	if !clusterCA.IsNull() {
+		overrides.ClusterInfo.CertificateAuthorityData = bytes.NewBufferString(clusterCA.AsString()).Bytes()
+	}
+
+	var clientCrt cty.Value
+	if clientCrtEnv, ok := os.LookupEnv("KUBE_CLIENT_CERT_DATA"); ok && clientCrtEnv != "" {
+		clientCrt = cty.StringVal(clientCrtEnv)
+	} else {
+		clientCrt = providerConfig.GetAttr("client_certificate")
+	}
+	if !clientCrt.IsNull() {
+		overrides.AuthInfo.ClientCertificateData = bytes.NewBufferString(clientCrt.AsString()).Bytes()
+	}
+
+	var clientCrtKey cty.Value
+	if clientCrtKeyEnv, ok := os.LookupEnv("KUBE_CLIENT_KEY_DATA"); ok && clientCrtKeyEnv != "" {
+		clientCrtKey = cty.StringVal(clientCrtKeyEnv)
+	} else {
+		clientCrtKey = providerConfig.GetAttr("client_key")
+	}
+	if !clientCrtKey.IsNull() {
+		overrides.AuthInfo.ClientKeyData = bytes.NewBufferString(clientCrtKey.AsString()).Bytes()
+	}
+
+	var host cty.Value
+	if hostEnv, ok := os.LookupEnv("KUBE_HOST"); ok && hostEnv != "" {
+		host = cty.StringVal(hostEnv)
+	} else {
+		host = providerConfig.GetAttr("host")
+	}
+	if !host.IsNull() {
+		// Server has to be the complete address of the kubernetes cluster (scheme://hostname:port), not just the hostname,
+		// because `overrides` are processed too late to be taken into account by `defaultServerUrlFor()`.
+		// This basically replicates what defaultServerUrlFor() does with config but for overrides,
+		// see https://github.com/kubernetes/client-go/blob/v12.0.0/rest/url_utils.go#L85-L87
+		hasCA := len(overrides.ClusterInfo.CertificateAuthorityData) != 0
+		hasCert := len(overrides.AuthInfo.ClientCertificateData) != 0
+		defaultTLS := hasCA || hasCert || overrides.ClusterInfo.InsecureSkipTLSVerify
+		hostURL, _, err := rest.DefaultServerURL(host.AsString(), "", apimachineryschema.GroupVersion{}, defaultTLS)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse host: %s", err)
+		}
+		overrides.ClusterInfo.Server = hostURL.String()
+	}
+
+	var username cty.Value
+	if usernameEnv, ok := os.LookupEnv("KUBE_USERNAME"); ok && usernameEnv != "" {
+		username = cty.StringVal(usernameEnv)
+	} else {
+		username = providerConfig.GetAttr("username")
+	}
+	if !username.IsNull() {
+		overrides.AuthInfo.Username = username.AsString()
+	}
+
+	var password cty.Value
+	if passwordEnv, ok := os.LookupEnv("KUBE_PASSWORD"); ok && passwordEnv != "" {
+		password = cty.StringVal(passwordEnv)
+	} else {
+		password = providerConfig.GetAttr("password")
+	}
+	if !password.IsNull() {
+		overrides.AuthInfo.Username = password.AsString()
+	}
+
+	var token cty.Value
+	if tokenEnv, ok := os.LookupEnv("KUBE_TOKEN"); ok && tokenEnv != "" {
+		token = cty.StringVal(tokenEnv)
+	} else {
+		token = providerConfig.GetAttr("token")
+	}
+	if !token.IsNull() {
+		overrides.AuthInfo.Token = token.AsString()
+	}
+
+	execObj := providerConfig.GetAttr("exec")
+	if !execObj.IsNull() {
+		execCfg := clientcmdapi.ExecConfig{}
+		apiv := execObj.GetAttr("api_version")
+		if !apiv.IsNull() {
+			execCfg.APIVersion = apiv.AsString()
+		}
+		cmd := execObj.GetAttr("command")
+		if !cmd.IsNull() {
+			execCfg.Command = cmd.AsString()
+		}
+		xcmdArgs := execObj.GetAttr("args")
+		if !xcmdArgs.IsNull() && xcmdArgs.LengthInt() > 0 {
+			execCfg.Args = make([]string, 0, xcmdArgs.LengthInt())
+			for ait := xcmdArgs.ElementIterator(); ait.Next(); {
+				_, v := ait.Element()
+				execCfg.Args = append(execCfg.Args, v.AsString())
+			}
+		}
+		xcmdEnvs := execObj.GetAttr("env")
+		if !xcmdEnvs.IsNull() && xcmdEnvs.LengthInt() > 0 {
+			execCfg.Env = make([]clientcmdapi.ExecEnvVar, 0, xcmdEnvs.LengthInt())
+			for eit := xcmdEnvs.ElementIterator(); eit.Next(); {
+				k, v := eit.Element()
+				execCfg.Env = append(execCfg.Env, clientcmdapi.ExecEnvVar{
+					Name:  k.AsString(),
+					Value: v.AsString(),
+				})
+			}
+		}
+		overrides.AuthInfo.Exec = &execCfg
+	}
+
+	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loader, overrides)
+	clientConfig, err := cc.ClientConfig()
+	if err != nil {
+		Dlog.Printf("[Configure] Failed to load config:\n%s\n", spew.Sdump(cc))
+		return response, fmt.Errorf("cannot load Kubernetes client config: %s", err)
+	}
+
+	Dlog.Printf("[Configure][ClientConfig] %s\n", spew.Sdump(*clientConfig))
+
 	if logging.IsDebugOrHigher() {
 		clientConfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 			return logging.NewTransport("Kubernetes", rt)
