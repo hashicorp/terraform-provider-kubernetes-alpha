@@ -25,7 +25,7 @@ Due to the internal design of this provider, access to a responsive API server i
 
 ### Credentials
 
-For authentication, the provider can be configured with identity credentials sourced from either a `kubeconfig` file, explicit values in the `provider` block or a combination of both.
+For authentication, the provider can be configured with identity credentials sourced from either a `kubeconfig` file, explicit values in the `provider` block, or a combination of both.
 
 Setting the `config_path` attribute to the path of a `kubeconfig` file will drive the provider to load it and use the credential values in it. When `config_path` is not set **NO EXTERNAL KUBECONFIG WILL BE LOADED**. Specifically, $KUBECONFIG environment variable is **NOT** considered.
 
