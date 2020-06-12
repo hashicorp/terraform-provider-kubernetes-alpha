@@ -49,9 +49,17 @@ type RawProviderServer struct{}
 // GetSchema function
 func (s *RawProviderServer) GetSchema(ctx context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
 
+	cfgSchema, err := GetProviderConfigSchema()
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct provider schema: %s", err)
+	}
+	resSchema, err := GetProviderResourceSchema()
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct resource schema: %s", err)
+	}
 	resp := &tfplugin5.GetProviderSchema_Response{
-		Provider:        GetProviderConfigSchema(),
-		ResourceSchemas: GetProviderResourceSchema(),
+		Provider:        cfgSchema,
+		ResourceSchemas: resSchema,
 	}
 	return resp, nil
 }
@@ -201,7 +209,10 @@ func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplu
 	resp := &tfplugin5.UpgradeResourceState_Response{}
 	resp.Diagnostics = []*tfplugin5.Diagnostic{}
 
-	sch := GetProviderResourceSchema()
+	sch, err := GetProviderResourceSchema()
+	if err != nil {
+		return resp, err
+	}
 	rt, err := GetObjectTypeFromSchema(sch[req.TypeName])
 	if err != nil {
 		return resp, err

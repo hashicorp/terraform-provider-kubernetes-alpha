@@ -32,13 +32,16 @@ func getConfigObjectType() cty.Type {
 }
 
 // GetProviderConfigSchema contains the definitions of all configuration attributes
-func GetProviderConfigSchema() *tfplugin5.Schema {
-	b, _ := ctyObjectToTfpluginSchema(getConfigObjectType())
+func GetProviderConfigSchema() (*tfplugin5.Schema, error) {
+	b, err := ctyObjectToTfpluginSchema(getConfigObjectType())
+	if err != nil {
+		return nil, err
+	}
 
 	return &tfplugin5.Schema{
 		Version: 1,
 		Block:   b,
-	}
+	}, nil
 }
 
 func ctyObjectToTfpluginSchema(o cty.Type) (*tfplugin5.Schema_Block, error) {
