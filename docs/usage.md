@@ -35,7 +35,7 @@ Take note of the `current-context` configured in the file. You can override it u
 
 When combined, the values loaded from the `kubeconfig` file are overridden by the corresponding values configured on `provider` block attributes.
 
-Generaly, there are four major options for providing identity information to the provider for authentication purposes:
+There are five options for providing identity information to the provider for authentication purposes:
 
 * a client certificate & key pair
 * a static token
