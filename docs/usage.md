@@ -33,7 +33,7 @@ If the `config_path` attribute is set to the path of a `kubeconfig` file, the pr
 
 Take note of the `current-context` configured in the file. You can override it using the `config_context` provider attribute.
 
-When combined, the values loaded from the `kubeconfig` file are overridden by the corresponding values configured on `provider` block attributes.
+If both `kubeconfig` and static credentials are defined in the `provider` block, the provider will prefer any attributes specified by the static credentials and ignore the corresponding attributes in the `kubeconfig`.
 
 There are five options for providing identity information to the provider for authentication purposes:
 
