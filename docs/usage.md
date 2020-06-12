@@ -21,6 +21,8 @@ The provider accepts the following configuration attributes under the `provider`
   * `env` - (map string to string) Environment values to set on the plugin process.
   * `args` - (list of strings) Command line arguments to the plugin command.
 
+All attributes are optional, but you must either set a config path or static credentials. An empty provider block will not be a functional configuration.
+
 Due to the internal design of this provider, access to a responsive API server is required both during PLAN and APPLY. The provider makes calls to the Kubernetes API to retrieve metadata and type information during all stages of Terraform operations.
 
 ### Credentials
