@@ -19,7 +19,7 @@ github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/tracing
 # github.com/agext/levenshtein v1.2.2
 github.com/agext/levenshtein
-# github.com/alexsomesan/openapi-cty v0.0.2
+# github.com/alexsomesan/openapi-cty v0.0.4 => /Users/alex/workspace/openapi-cty
 ## explicit
 github.com/alexsomesan/openapi-cty/foundry
 # github.com/apparentlymart/go-textseg v1.0.0
@@ -242,6 +242,8 @@ github.com/mitchellh/go-homedir
 github.com/mitchellh/go-testing-interface
 # github.com/mitchellh/go-wordwrap v1.0.0
 github.com/mitchellh/go-wordwrap
+# github.com/mitchellh/hashstructure v1.0.0
+github.com/mitchellh/hashstructure
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
