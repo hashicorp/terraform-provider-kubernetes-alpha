@@ -10,14 +10,16 @@ if [ -z "$VERSION" ]; then
 fi
 
 # FIXME replace this with goreleaser
-OS_ARCH="freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64"
+OS_ARCH_STATIC="freebsd/386 freebsd/amd64 freebsd/arm linux/386 linux/amd64 linux/arm openbsd/386 openbsd/amd64"
+OS_ARCH="darwin/amd64 windows/amd64 windows/386"
 ASSETS_DIR="./release-bin"
 BINARY_NAME="terraform-provider-kubernetes-alpha"
 
 mkdir -p $ASSETS_DIR
 rm -rf $ASSETS_DIR/*
 
-gox -ldflags '-d -s -w' -osarch "$OS_ARCH" -output "$ASSETS_DIR/{{.Dir}}_${VERSION}_{{.OS}}_{{.Arch}}"
+gox -ldflags '-d -s -w' -osarch "$OS_ARCH_STATIC" -output "$ASSETS_DIR/{{.Dir}}_${VERSION}_{{.OS}}_{{.Arch}}"
+gox -ldflags '-s -w' -osarch "$OS_ARCH" -output "$ASSETS_DIR/{{.Dir}}_${VERSION}_{{.OS}}_{{.Arch}}"
 
 for f in $ASSETS_DIR/*; do
     mv $f $ASSETS_DIR/$BINARY_NAME
