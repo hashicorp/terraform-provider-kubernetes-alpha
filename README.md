@@ -21,7 +21,6 @@ Our eventual goal is for this generic resource to become a part of our productio
 
 * [Terraform](https://www.terraform.io/downloads.html) version 0.12.x +
 * [Kubernetes](https://kubernetes.io/docs/reference) version 1.17.x +
-  * This provider does not support [discrete credentials](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/4) yet. We currently only support [file based configuration](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) from a given or default file location.
 * [Go](https://golang.org/doc/install) version 1.14.x
 
 ## Getting Started
@@ -32,7 +31,7 @@ Otherwise, start by downloading a copy of our latest build from the [releases pa
 
 You'll need to unzip the release download and copy the binary into your [Terraform plugins folder](https://www.terraform.io/docs/plugins/basics.html#installing-plugins) in order for Terraform to discover it.
 
-Once you have the plugin installed, you can find the following examples and more in [our examples folder](examples/). Don't forget to run `terraform init` in your Terraform configuration directory to allow Terraform to detect the provider plugin.
+Once you have the plugin installed, review the [usage document](docs/usage.md) in the [docs](docs/) folder to understand which configuration options are available. You can find the following examples and more in [our examples folder](examples/). Don't forget to run `terraform init` in your Terraform configuration directory to allow Terraform to detect the provider plugin.
 
 ### Create a Kubernetes ConfigMap
 ```hcl

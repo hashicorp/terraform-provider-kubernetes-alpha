@@ -13,6 +13,7 @@ require (
 	github.com/hashicorp/terraform-json v0.4.0
 	github.com/hashicorp/terraform-plugin-sdk v1.4.1
 	github.com/hashicorp/terraform-plugin-test v1.3.0
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect

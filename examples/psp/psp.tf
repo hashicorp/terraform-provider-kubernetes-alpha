@@ -1,4 +1,5 @@
 provider "kubernetes-alpha" {
+  config_path = "~/.kube/config"
 }
 
 # PodSecurityPolicy only works on Kubernetes 1.17+

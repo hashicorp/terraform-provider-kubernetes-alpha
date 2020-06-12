@@ -42,7 +42,10 @@ func ResourceDeepUpdateObjectAttr(prefix cty.Path, newobj *cty.Value) func(path 
 
 // UnmarshalResource extracts a msgpack-ed resource into its corresponding cty.Value
 func UnmarshalResource(resource string, data []byte) (cty.Value, error) {
-	s := GetProviderResourceSchema()
+	s, err := GetProviderResourceSchema()
+	if err != nil {
+		return cty.NilVal, err
+	}
 	t, err := GetObjectTypeFromSchema(s[resource])
 	if err != nil {
 		return cty.NilVal, err
@@ -52,7 +55,10 @@ func UnmarshalResource(resource string, data []byte) (cty.Value, error) {
 
 // MarshalResource extracts a msgpack-ed resource into its corresponding cty.Value
 func MarshalResource(resource string, data *cty.Value) ([]byte, error) {
-	s := GetProviderResourceSchema()
+	s, err := GetProviderResourceSchema()
+	if err != nil {
+		return nil, err
+	}
 	t, err := GetObjectTypeFromSchema(s[resource])
 	if err != nil {
 		return nil, err

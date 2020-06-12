@@ -18,9 +18,9 @@ jobs:
     - uses: engineerd/setup-kind@v0.3.0
     - name: test (server side plan enabled)
       run: |
-        make testacc 
+        make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
     - name: test (server side plan disabled)
       env:
         TESTARGS: "-server-side-plan=false"
       run: |
-        make testacc 
+        make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
