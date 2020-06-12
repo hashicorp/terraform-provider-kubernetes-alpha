@@ -37,6 +37,7 @@ When combined, the values loaded from the `kubeconfig` file are overridden by th
 
 There are five options for providing identity information to the provider for authentication purposes:
 
+* a kubeconfig
 * a client certificate & key pair
 * a static token
 * a username & password pair
