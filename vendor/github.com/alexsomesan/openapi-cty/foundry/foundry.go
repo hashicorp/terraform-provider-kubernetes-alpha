@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi2"
@@ -25,7 +26,11 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 		return nil, fmt.Errorf("failed to parse spec: %s", err)
 	}
 
-	f := foapiv2{&swg, make(map[uint64]cty.Type)}
+	f := foapiv2{
+		swagger:        &swg,
+		typeCache:      make(map[uint64]cty.Type),
+		recursionDepth: 50, // arbitrarily large number - a type this big will likely kill Terraform anyway
+	}
 	d := f.swagger.Definitions
 	if d == nil || len(d) == 0 {
 		return nil, errors.New("spec has no type information")
@@ -40,8 +45,9 @@ type Foundry interface {
 }
 
 type foapiv2 struct {
-	swagger   *openapi2.Swagger
-	typeCache map[uint64]cty.Type
+	swagger        *openapi2.Swagger
+	typeCache      map[uint64]cty.Type
+	recursionDepth uint64
 }
 
 // GetTypeById looks up a type by its fully qualified ID in the Definitions sections of
@@ -62,7 +68,7 @@ func (f foapiv2) GetTypeByID(id string) (cty.Type, error) {
 		return cty.NilType, fmt.Errorf("failed to resolve schema: %s", err)
 	}
 
-	return f.getTypeFromSchema(sch)
+	return f.getTypeFromSchema(sch, 0)
 }
 
 func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, error) {
@@ -79,11 +85,11 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 			Type: "integer",
 		}
 		return &t, nil
-		// case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps":
-		// 	t := openapi3.Schema{
-		// 		Type: "string",
-		// 	}
-		// 	return &t, nil
+	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps":
+		t := openapi3.Schema{
+			Type: "",
+		}
+		return &t, nil
 	}
 
 	nref, ok := f.swagger.Definitions[sid]
@@ -98,7 +104,14 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 	return f.resolveSchemaRef(nref)
 }
 
-func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
+func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (cty.Type, error) {
+	if stackdepth > f.recursionDepth {
+		log.Println("at stack depth")
+		// this is a hack to overcome the inability to express recursion in cty
+		return cty.DynamicPseudoType, nil
+	}
+	log.Printf("stack depth: %d\n", stackdepth)
+
 	if elem == nil {
 		return cty.NilType, errors.New("nil type")
 	}
@@ -126,7 +139,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
 				if err != nil {
 					return cty.NilType, fmt.Errorf("failed to resolve schema: %s", err)
 				}
-				pType, err := f.getTypeFromSchema(schema)
+				pType, err := f.getTypeFromSchema(schema, stackdepth+1)
 				if err != nil {
 					return cty.NilType, err
 				}
@@ -144,7 +157,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
 			if err != nil {
 				return cty.NilType, fmt.Errorf("failed to resolve schema: %s", err)
 			}
-			pt, err := f.getTypeFromSchema(s)
+			pt, err := f.getTypeFromSchema(s, stackdepth+1)
 			if err != nil {
 				return cty.NilType, err
 			}
@@ -169,7 +182,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema) (cty.Type, error) {
 		if err != nil {
 			return cty.NilType, fmt.Errorf("failed to resolve schema for items: %s", err)
 		}
-		t, err := f.getTypeFromSchema(it)
+		t, err := f.getTypeFromSchema(it, stackdepth+1)
 		if err != nil {
 			return cty.NilType, err
 		}
