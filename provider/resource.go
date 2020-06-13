@@ -199,7 +199,7 @@ func UnstructuredToCty(in map[string]interface{}, t cty.Type) (cty.Value, error)
 
 	v, err := ctyjson.Unmarshal(jsonVal, t)
 	if err != nil {
-		return cty.NilVal, errors.Wrapf(err, "unable to unmarshal json from unstructured value (%s - %s)", t.FriendlyName(), v.GoString())
+		return cty.NilVal, errors.Wrapf(err, "unable to unmarshal json from unstructured value into %s", t.FriendlyName())
 	}
 
 	return v, nil
@@ -362,8 +362,9 @@ func morphManifestToOAPI(m cty.Value, t cty.Type) (cty.Value, error) {
 		func(p cty.Path, v cty.Value) (cty.Value, error) {
 			ty, err := typeForPath(t, p)
 			if err != nil {
-				return cty.NilVal, errors.Wrapf(err, "failed to get type for path %s",
-					DumpCtyPath(p))
+				return v, nil
+				// return cty.NilVal, errors.Wrapf(err, "failed to get type for path %s",
+				// 	DumpCtyPath(p))
 			}
 			switch {
 			case ty.IsObjectType():
@@ -442,6 +443,9 @@ func PlanUpdateResourceLocal(ctx context.Context, plan *cty.Value) (cty.Value, e
 
 	// Transform the input manifest to adhere to the type modeled from the OpenAPI spec
 	mobj, err := morphManifestToOAPI(m, tsch)
+	if err != nil {
+		return cty.NilVal, fmt.Errorf("failed to morph manifest to OAPI type: %s", err)
+	}
 	Dlog.Printf("[PlanUpdateResourceLocal] morphed manifest: %s\n", spew.Sdump(mobj))
 
 	var nc cty.Value
