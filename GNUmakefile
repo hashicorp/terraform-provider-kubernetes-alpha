@@ -9,8 +9,17 @@ default: build
 build: fmtcheck
 	go build
 
-install: fmtcheck
-	go install
+install: GOOS=$(shell go env GOOS)
+install: GOARCH=$(shell go env GOARCH)
+ifeq ($(OS),Windows_NT)  # is Windows_NT on XP, 2000, 7, Vista, 10...
+install: DESTINATION=$(APPDATA)/terraform.d/plugins/$(GOOS)_$(GOARCH)
+else
+install: DESTINATION=$(HOME)/.terraform.d/plugins/$(GOOS)_$(GOARCH)
+endif
+install: build
+	@echo "==> Installing plugin to $(DESTINATION)"
+	@mkdir -p $(DESTINATION)
+	@cp ./terraform-provider-kubernetes-alpha $(DESTINATION)
 
 test: fmtcheck
 	go test $(TEST) -v || exit 1
