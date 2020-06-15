@@ -249,7 +249,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		configPath = providerConfig.GetAttr("config_path")
 	}
-	if !configPath.IsNull() {
+	if !configPath.IsNull() && configPath.IsKnown() {
 		configPathAbs, err := homedir.Expand(configPath.AsString())
 		if err != nil {
 			return response, fmt.Errorf("cannot load specified config file: %s", err)
@@ -275,7 +275,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		cfgCtxCluster = providerConfig.GetAttr("config_context_cluster")
 	}
-	if !cfgCtxCluster.IsNull() {
+	if !cfgCtxCluster.IsNull() && cfgCtxCluster.IsKnown() {
 		overrides.Context.Cluster = cfgCtxCluster.AsString()
 	}
 
@@ -285,7 +285,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		cfgContextAuthInfo = providerConfig.GetAttr("config_context_user")
 	}
-	if !cfgContextAuthInfo.IsNull() {
+	if !cfgContextAuthInfo.IsNull() && cfgContextAuthInfo.IsKnown() {
 		overrides.Context.AuthInfo = cfgContextAuthInfo.AsString()
 	}
 
@@ -309,7 +309,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		clusterCA = providerConfig.GetAttr("cluster_ca_certificate")
 	}
-	if !clusterCA.IsNull() {
+	if !clusterCA.IsNull() && clusterCA.IsKnown() {
 		overrides.ClusterInfo.CertificateAuthorityData = bytes.NewBufferString(clusterCA.AsString()).Bytes()
 	}
 
@@ -319,7 +319,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		clientCrt = providerConfig.GetAttr("client_certificate")
 	}
-	if !clientCrt.IsNull() {
+	if !clientCrt.IsNull() && clientCrt.IsKnown() {
 		overrides.AuthInfo.ClientCertificateData = bytes.NewBufferString(clientCrt.AsString()).Bytes()
 	}
 
@@ -329,7 +329,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		clientCrtKey = providerConfig.GetAttr("client_key")
 	}
-	if !clientCrtKey.IsNull() {
+	if !clientCrtKey.IsNull() && clientCrtKey.IsKnown() {
 		overrides.AuthInfo.ClientKeyData = bytes.NewBufferString(clientCrtKey.AsString()).Bytes()
 	}
 
@@ -339,7 +339,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		host = providerConfig.GetAttr("host")
 	}
-	if !host.IsNull() {
+	if !host.IsNull() && host.IsKnown() {
 		// Server has to be the complete address of the kubernetes cluster (scheme://hostname:port), not just the hostname,
 		// because `overrides` are processed too late to be taken into account by `defaultServerUrlFor()`.
 		// This basically replicates what defaultServerUrlFor() does with config but for overrides,
@@ -380,12 +380,12 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	} else {
 		token = providerConfig.GetAttr("token")
 	}
-	if !token.IsNull() {
+	if !token.IsNull() && token.IsKnown() {
 		overrides.AuthInfo.Token = token.AsString()
 	}
 
 	execObj := providerConfig.GetAttr("exec")
-	if !execObj.IsNull() {
+	if !execObj.IsNull() && execObj.IsKnown() {
 		execCfg := clientcmdapi.ExecConfig{}
 		apiv := execObj.GetAttr("api_version")
 		if !apiv.IsNull() {
@@ -421,6 +421,11 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	clientConfig, err := cc.ClientConfig()
 	if err != nil {
 		Dlog.Printf("[Configure] Failed to load config:\n%s\n", spew.Sdump(cc))
+		// TODO: improve the way of detecting this error
+		if err.Error() == "invalid configuration: no configuration has been provided, try setting KUBERNETES_MASTER environment variable" {
+			// this is a terrible fix for if the configuration is a calculated value
+			return response, nil
+		}
 		return response, fmt.Errorf("cannot load Kubernetes client config: %s", err)
 	}
 
