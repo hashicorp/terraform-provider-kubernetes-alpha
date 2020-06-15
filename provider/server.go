@@ -101,7 +101,7 @@ func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfpl
 	}
 
 	host := providerConfig.GetAttr("host")
-	if !host.IsNull() {
+	if !host.IsNull() && host.IsKnown() {
 		_, err = url.ParseRequestURI(host.AsString())
 		if err != nil {
 			diags = append(diags, &tfplugin5.Diagnostic{
@@ -122,7 +122,7 @@ func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfpl
 	}
 
 	pemCA := providerConfig.GetAttr("cluster_ca_certificate")
-	if !pemCA.IsNull() {
+	if !pemCA.IsNull() && host.IsKnown() {
 		pem, _ := pem.Decode([]byte(pemCA.AsString()))
 		if pem == nil || pem.Type != "CERTIFICATE" {
 			diags = append(diags, &tfplugin5.Diagnostic{
@@ -143,7 +143,7 @@ func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfpl
 	}
 
 	pemCC := providerConfig.GetAttr("client_certificate")
-	if !pemCC.IsNull() {
+	if !pemCC.IsNull() && host.IsKnown() {
 		pem, _ := pem.Decode([]byte(pemCC.AsString()))
 		if pem == nil || pem.Type != "CERTIFICATE" {
 			diags = append(diags, &tfplugin5.Diagnostic{
@@ -164,7 +164,7 @@ func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfpl
 	}
 
 	pemCK := providerConfig.GetAttr("client_key")
-	if !pemCK.IsNull() {
+	if !pemCK.IsNull() && host.IsKnown() {
 		pem, _ := pem.Decode([]byte(pemCK.AsString()))
 		if pem == nil || !strings.Contains(pem.Type, "PRIVATE KEY") {
 			diags = append(diags, &tfplugin5.Diagnostic{
