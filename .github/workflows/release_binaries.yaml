@@ -1,49 +1,67 @@
-name: Upload Release Binaries
+name: Upload release binaries
 on:
   push:
     tags:
-    - '[0-9]+.[0-9]+.[0-9]+'
+    - 'v[0-9]+.[0-9]+.[0-9]+*'
     - nightly*
 jobs:
-  build:
-    name: Upload Release Binaries
+  release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.x
-      - name: Install gox
-        run: |
-          go get -u github.com/mitchellh/gox
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v2
-      - name: Install hc-codesign
+      - name: Read go-version
+        id: go-version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./go-version
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ steps.go-version.outputs.content }}
+      - name: Docker Login
+        uses: azure/docker-login@v1
+        with:
+          login-server: docker.pkg.github.com
+          username: docker
+          password: ${{ secrets.CODESIGN_GITHUB_TOKEN }}
+      - id: codesign
+        name: Pull hc-codesign image
+        run: |
+          docker pull docker.pkg.github.com/hashicorp/hc-codesign/hc-codesign:$VERSION
+          echo "::set-output name=image::docker.pkg.github.com/hashicorp/hc-codesign/hc-codesign:$VERSION"
+        env:
+          VERSION: v0
+      - name: Install hc-releases
         run: |
           DOWNLOAD_URL=$(curl -SsL \
             -H "Authorization: token ${{ secrets.CODESIGN_GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/hashicorp/hc-codesign/releases/latest \
-            | jq -r '.assets[] | select(.name | contains("linux_amd64.zip")) | .url')
-          curl -SsL -o /tmp/hc-codesign.zip \
+            https://api.github.com/repos/hashicorp/hc-releases/releases/latest \
+            | jq -r '.assets[] | select(.name | contains("linux_amd64.tgz")) | .url')
+          curl -SsL -o /tmp/hc-releases.tgz \
             -H "Authorization: token ${{ secrets.CODESIGN_GITHUB_TOKEN }}" \
             -H "Accept: application/octet-stream" ${DOWNLOAD_URL}
-          unzip /tmp/hc-codesign.zip
-          sudo mv hc-codesign /usr/bin/hc-codesign
-      - name: Build binaries
+          tar xzf /tmp/hc-releases.tgz
+          sudo mv hc-releases /usr/bin/hc-releases
+      - name: Import PGP key for archive signing
+        run: echo -e "${{ secrets.PGP_SIGNING_KEY }}" | gpg --import
+      - name: Release
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist
         env:
-          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
-          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
-          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          bash scripts/build_release_binaries.sh ${GITHUB_REF/refs\/tags\//}
-      - name: Release binaries
-        run: |
-          set -x
-          assets=()
-          for asset in ./release-bin/*.zip; do
-            assets+=("-a" "$asset")
-          done
-          hub release create "${assets[@]}" -m "${GITHUB_REF/refs\/tags\//}" "${GITHUB_REF/refs\/tags\//}"
-        env:
+          PGP_USER_ID: ${{ secrets.PGP_USER_ID }}
+          RELEASE_AWS_ACCESS_KEY_ID: ${{ secrets.RELEASE_AWS_ACCESS_KEY_ID }}
+          RELEASE_AWS_SECRET_ACCESS_KEY: ${{ secrets.RELEASE_AWS_SECRET_ACCESS_KEY }}
+          CODESIGN_IMAGE: ${{ steps.codesign.outputs.image }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+      - name: Publish released artifacts
+        run: hc-releases publish
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.RELEASE_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.RELEASE_AWS_SECRET_ACCESS_KEY }}

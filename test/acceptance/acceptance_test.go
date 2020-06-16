@@ -34,6 +34,7 @@ func TestMain(m *testing.M) {
 
 	sourceDir, err := os.Getwd()
 	if err != nil {
+		//lintignore:R009
 		panic(err)
 	}
 
@@ -79,6 +80,7 @@ type TFVARS map[string]interface{}
 func loadTerraformConfig(t *testing.T, filename string, tfvars TFVARS) string {
 	_, currentFilename, _, ok := runtime.Caller(0)
 	if !ok {
+		//lintignore:R009
 		panic("Could not determine testdir directory")
 	}
 
