@@ -421,8 +421,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	clientConfig, err := cc.ClientConfig()
 	if err != nil {
 		Dlog.Printf("[Configure] Failed to load config:\n%s\n", spew.Sdump(cc))
-		// TODO: improve the way of detecting this error
-		if err.Error() == "invalid configuration: no configuration has been provided, try setting KUBERNETES_MASTER environment variable" {
+		if errors.Is(err, clientcmd.ErrEmptyConfig) {
 			// this is a terrible fix for if the configuration is a calculated value
 			return response, nil
 		}
