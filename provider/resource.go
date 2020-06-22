@@ -183,22 +183,45 @@ func IsResourceNamespaced(gvr schema.GroupVersionResource) (bool, error) {
 // OpenAPIPathFromGVK returns the ID used to retrieve a resource type definition
 // from the OpenAPI spec document
 func OpenAPIPathFromGVK(gvk schema.GroupVersionKind) (string, error) {
-	var repo string = "api"
 	g := gvk.Group
 	if g == "" {
 		g = "core"
 	}
-	switch g {
-	case "meta":
+
+	var org string = "io.k8s"
+	var repo string = "api"
+	var pkg string = strings.Split(g, ".")[0]
+
+	switch {
+	case g == "meta":
 		repo = "apimachinery.pkg.apis"
-	case "apiextensions.k8s.io":
+	case g == "apiextensions.k8s.io":
 		repo = "apiextensions-apiserver.pkg.apis"
-	case "apiregistration.k8s.io":
+	case g == "apiregistration.k8s.io":
 		repo = "kube-aggregator.pkg.apis"
+	case strings.Contains(g, "kubevirt.io"):
+		org = "io.kubevirt"
+		repo = ""
+		pkg = ""
+		if len(strings.Split(g, ".")) > 2 {
+			repo = strings.Split(g, ".")[0]
+		}
 	}
+
 	// the ID string that Swagger / OpenAPI uses to identify the resource
 	// e.g. "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-	return strings.Join([]string{"io", "k8s", repo, strings.Split(g, ".")[0], gvk.Version, gvk.Kind}, "."), nil
+	// Some of the parameters might be empty (kubevirt case), remove all empty values before join
+	return strings.Join(deleteEmpty([]string{org, repo, pkg, gvk.Version, gvk.Kind}), "."), nil
+}
+
+func deleteEmpty(s []string) []string {
+	var r []string
+	for _, str := range s {
+		if str != "" {
+			r = append(r, str)
+		}
+	}
+	return r
 }
 
 // DeepUnknownVal creates a value given an arbitrary type
