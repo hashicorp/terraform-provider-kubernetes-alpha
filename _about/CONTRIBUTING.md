@@ -10,7 +10,7 @@ Checkout or download this repository, then open a terminal and change to its dir
 ```
 make install
 ```
-This will build the provider and place the provider binary in your plugins directory.
+This will build the provider and place the provider binary in your [plugins directory](https://www.terraform.io/docs/extend/how-terraform-works.html#plugin-locations).
 
 You are now ready to use the provider. You can find example TF configurations in this repository under the `./examples`.
 
