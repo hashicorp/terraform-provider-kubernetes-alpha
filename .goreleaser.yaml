@@ -21,11 +21,12 @@ builds:
       - windows_386
       - windows_amd64
 
-# Draft a new release, but don't publish until we've reviewed the changelog.
+# Draft a new release, upload artifacts, but don't publish until we've reviewed the changelog.
 release:
   github:
   draft: true
   prerelease: true
+  disable: false
 
 archives:
   - format: zip
