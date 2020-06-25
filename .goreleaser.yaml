@@ -21,13 +21,12 @@ builds:
       - windows_386
       - windows_amd64
 
-# When draft=true, the github pipeline is skipped, so we can't use that feature.
 release:
   github:
     owner: hashicorp
     name: terraform-provider-alpha
   prerelease: true
-  draft: false
+  draft: true
 
 archives:
   - format: zip
