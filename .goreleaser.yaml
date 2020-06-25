@@ -24,7 +24,7 @@ builds:
 release:
   github:
     owner: hashicorp
-    name: terraform-provider-alpha
+    name: terraform-provider-kubernetes-alpha
   prerelease: true
   draft: true
 
