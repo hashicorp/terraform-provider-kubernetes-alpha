@@ -28,6 +28,7 @@ func NewHelper() *Helper {
 	overrides := &clientcmd.ConfigOverrides{}
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).ClientConfig()
 	if err != nil {
+		//lintignore:R009
 		panic(err)
 	}
 
@@ -37,6 +38,7 @@ func NewHelper() *Helper {
 
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
+		//lintignore:R009
 		panic(err)
 	}
 

@@ -17,6 +17,7 @@ func InitDevLog() func() {
 	if err != nil {
 		log.Fatalf("error opening log file: %v", err)
 	}
+	//lintignore:AT004
 	Dlog = log.New(f, "RAW provider ", log.Ldate|log.Ltime)
 	return func() {
 		Dlog.Println("Finished")

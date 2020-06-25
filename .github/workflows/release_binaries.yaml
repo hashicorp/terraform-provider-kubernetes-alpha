@@ -1,49 +1,26 @@
-name: Upload Release Binaries
-on:
+name: Upload release binaries
   push:
     tags:
-    - '[0-9]+.[0-9]+.[0-9]+'
-    - nightly*
+    - 'v[0-9]+.[0-9]+.[0-9]+*'
 jobs:
-  build:
-    name: Upload Release Binaries
+  release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.x
-      - name: Install gox
-        run: |
-          go get -u github.com/mitchellh/gox
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v2
-      - name: Install hc-codesign
-        run: |
-          DOWNLOAD_URL=$(curl -SsL \
-            -H "Authorization: token ${{ secrets.CODESIGN_GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/hashicorp/hc-codesign/releases/latest \
-            | jq -r '.assets[] | select(.name | contains("linux_amd64.zip")) | .url')
-          curl -SsL -o /tmp/hc-codesign.zip \
-            -H "Authorization: token ${{ secrets.CODESIGN_GITHUB_TOKEN }}" \
-            -H "Accept: application/octet-stream" ${DOWNLOAD_URL}
-          unzip /tmp/hc-codesign.zip
-          sudo mv hc-codesign /usr/bin/hc-codesign
-      - name: Build binaries
-        env:
-          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
-          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
-          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          bash scripts/build_release_binaries.sh ${GITHUB_REF/refs\/tags\//}
-      - name: Release binaries
-        run: |
-          set -x
-          assets=()
-          for asset in ./release-bin/*.zip; do
-            assets+=("-a" "$asset")
-          done
-          hub release create "${assets[@]}" -m "${GITHUB_REF/refs\/tags\//}" "${GITHUB_REF/refs\/tags\//}"
+      - name: Read go-version
+        id: go-version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./go-version
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ steps.go-version.outputs.content }}
+      - name: Release
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
