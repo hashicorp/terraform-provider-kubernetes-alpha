@@ -24,7 +24,6 @@ builds:
 # Draft a new release, but don't publish until we've reviewed the changelog.
 release:
   github:
-    owner: '{{ .Env.USER }}'
   draft: true
   prerelease: true
 
