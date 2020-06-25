@@ -1,9 +1,13 @@
 name: Upload release binaries
 on:
+# testing release
   push:
-    tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+*'
-    - nightly*
+    branches:
+      - master
+#  push:
+#    tags:
+#    - 'v[0-9]+.[0-9]+.[0-9]+*'
+#    - nightly*
 jobs:
   release:
     runs-on: ubuntu-latest
