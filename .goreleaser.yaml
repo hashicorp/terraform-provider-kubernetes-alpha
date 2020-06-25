@@ -21,12 +21,13 @@ builds:
       - windows_386
       - windows_amd64
 
-# Draft a new release, upload artifacts, but don't publish until we've reviewed the changelog.
+# When draft=true, the github pipeline is skipped, so we can't use that feature.
 release:
   github:
-  draft: true
+    owner: hashicorp
+    name: terraform-provider-alpha
   prerelease: true
-  disable: false
+  draft: false
 
 archives:
   - format: zip
