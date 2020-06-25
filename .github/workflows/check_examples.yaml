@@ -3,11 +3,13 @@ on:
   push:
     paths:
     - 'examples/**'
+    - '**.go'
   pull_request:
     branches:
     - master
     paths:
     - 'examples/**'
+    - '**.go'
 jobs:
   check:
     runs-on: ubuntu-latest
