@@ -35,7 +35,9 @@ Once you have the plugin installed, review the [usage document](docs/usage.md) i
 
 ### Create a Kubernetes ConfigMap
 ```hcl
-provider "kubernetes-alpha" {}
+provider "kubernetes-alpha" {
+  config_path = "~/.kube/config" // path to kubeconfig
+}
 
 resource "kubernetes_manifest" "test-configmap" {
   provider = kubernetes-alpha
@@ -57,7 +59,9 @@ resource "kubernetes_manifest" "test-configmap" {
 ### Create a Kubernetes Custom Resource Definition
 
 ```hcl
-provider "kubernetes-alpha" {}
+provider "kubernetes-alpha" {
+  config_path = "~/.kube/config" // path to kubeconfig
+}
 
 resource "kubernetes_manifest" "test-crd" {
   provider = kubernetes-alpha
