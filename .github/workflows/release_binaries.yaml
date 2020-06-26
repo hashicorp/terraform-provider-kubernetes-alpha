@@ -18,10 +18,27 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.go-version.outputs.content }}
-      - name: Release
+      - name: Docker Login
+        uses: azure/docker-login@v1
+        with:
+          login-server: docker.pkg.github.com
+          username: docker
+          password: ${{ secrets.CODESIGN_GITHUB_TOKEN }}
+      - id: codesign
+        name: Pull hc-codesign image
+        run: |
+          docker pull docker.pkg.github.com/hashicorp/hc-codesign/hc-codesign:$VERSION
+          echo "::set-output name=image::docker.pkg.github.com/hashicorp/hc-codesign/hc-codesign:$VERSION"
+        env:
+          VERSION: v0
+     - name: Release
         uses: goreleaser/goreleaser-action@v2
         with:
           version: latest
           args: release --rm-dist
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+          ARTIFACTORY_USER:  ${{ secrets.ARTIFACTORY_USER }}
+          CIRCLE_TOKEN:      ${{ secrets.CIRCLE_TOKEN }}
+          CODESIGN_IMAGE:    ${{ steps.codesign.outputs.image }}
