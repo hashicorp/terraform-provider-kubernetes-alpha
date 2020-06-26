@@ -31,7 +31,7 @@ jobs:
           echo "::set-output name=image::docker.pkg.github.com/hashicorp/hc-codesign/hc-codesign:$VERSION"
         env:
           VERSION: v0
-     - name: Release
+      - name: Release
         uses: goreleaser/goreleaser-action@v2
         with:
           version: latest
