@@ -593,4 +593,3 @@ k8s.io/utils/pointer
 sigs.k8s.io/structured-merge-diff/v3/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
-# github.com/alexsomesan/openapi-cty => /Users/alex/workspace/openapi-cty
