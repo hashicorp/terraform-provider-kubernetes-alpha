@@ -197,7 +197,7 @@ func UnstructuredToCty(in map[string]interface{}, t cty.Type) (cty.Value, error)
 		return cty.NilVal, errors.Wrapf(err, "unable to marshal value")
 	}
 
-	v, err := ctyjson.Unmarshal(jsonVal, t)
+	v, err := ctyjson.UnmarshalDynamicWithImpliedType(jsonVal, t)
 	if err != nil {
 		return cty.NilVal, errors.Wrapf(err, "unable to unmarshal json from unstructured value into %s", t.FriendlyName())
 	}
