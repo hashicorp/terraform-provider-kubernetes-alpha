@@ -30,12 +30,9 @@ import (
 	apimachineryschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -241,6 +238,14 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 		return response, err
 	}
 
+	ps := GetProviderState()
+
+	ssp := providerConfig.GetAttr("server_side_planning")
+	if !ssp.IsKnown() || ssp.IsNull() {
+		ssp = cty.True // default to true
+	}
+	ps[SSPlanning] = ssp.True()
+
 	overrides := &clientcmd.ConfigOverrides{}
 	loader := &clientcmd.ClientConfigLoadingRules{}
 
@@ -437,38 +442,11 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 		}
 	}
 
-	dynClient, errClient := dynamic.NewForConfig(clientConfig)
-	if errClient != nil {
-		return response, errClient
-	}
-
-	discoClient, errClient := discovery.NewDiscoveryClientForConfig(clientConfig)
-	if errClient != nil {
-		return response, errClient
-	}
-
-	cacher := memory.NewMemCacheClient(discoClient)
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(cacher)
-
 	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
 	clientConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
-	restClient, errClient := rest.UnversionedRESTClientFor(clientConfig)
-	if errClient != nil {
-		Dlog.Printf("[Configure] Error creating REST client %v", errClient)
-		return response, errClient
-	}
 
-	ps := GetProviderState()
-	ps[DynamicClient] = dynClient
-	ps[DiscoveryClient] = discoClient
-	ps[RestMapper] = mapper
-	ps[RestClient] = restClient
+	ps[ClientConfig] = clientConfig
 
-	ssp := providerConfig.GetAttr("server_side_planning")
-	if !ssp.IsKnown() || ssp.IsNull() {
-		ssp = cty.True // default to true
-	}
-	ps[SSPlanning] = ssp.True()
 	return response, nil
 }
 
