@@ -635,18 +635,18 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	var rs dynamic.ResourceInterface
 
 	switch {
-	case applyPriorState.IsNull():
-		{ // Create resource
+	case applyPriorState.IsNull() || (!applyPlannedState.IsNull() && !applyPriorState.IsNull()):
+		{ // Apply resource
 			o := sanitizedPlannedState.GetAttr("object")
 
 			gvr, err := GVRFromCtyObject(&o)
 			if err != nil {
-				return resp, err
+				return resp, fmt.Errorf("failed to determine resource GVR: %s", err)
 			}
 
 			gvk, err := GVKFromCtyObject(&o)
 			if err != nil {
-				return resp, fmt.Errorf("failed to determine resource GVR: %s", err)
+				return resp, fmt.Errorf("failed to determine resource GVK: %s", err)
 			}
 
 			tsch, err := resourceTypeFromOpenAPI(gvk)
@@ -654,19 +654,19 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 			}
 
-			mi, err := CtyObjectToUnstructured(&o)
+			pu, err := CtyObjectToUnstructured(&o)
 			if err != nil {
 				return resp, err
 			}
-
-			// remove null attributes - the API doesn't appreciate requests that include them
-			uo := unstructured.Unstructured{Object: mapRemoveNulls(mi)}
 			ns, err := IsResourceNamespaced(gvr)
 			if err != nil {
 				return resp, err
 			}
+			// remove null attributes - the API doesn't appreciate requests that include them
+			uo := unstructured.Unstructured{Object: mapRemoveNulls(pu)}
 			rnamespace := uo.GetNamespace()
 			rname := uo.GetName()
+
 			if ns {
 				rs = c.Resource(gvr).Namespace(rnamespace)
 			} else {
@@ -680,18 +680,24 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			// Call the Kubernetes API to create the new resource
 			result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
 			if err != nil {
-				Dlog.Printf("[ApplyResourceChange][Create] Error: %s\n%s\n", spew.Sdump(err), spew.Sdump(result))
-				n := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
-				return resp, fmt.Errorf("CREATE resource %s failed: %s", n, err)
+				Dlog.Printf("[ApplyResourceChange][Apply] Error: %s\n%s\n", spew.Sdump(err), spew.Sdump(result))
+				rn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
+				resp.Diagnostics = append(resp.Diagnostics,
+					&tfplugin5.Diagnostic{
+						Severity: tfplugin5.Diagnostic_ERROR,
+						Detail:   err.Error(),
+						Summary:  fmt.Sprintf("PATCH resource %s failed: %s", rn, err),
+					})
+				return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
 			}
-			Dlog.Printf("[ApplyResourceChange][Create] API response:\n%s\n", spew.Sdump(result))
+			Dlog.Printf("[ApplyResourceChange][Apply] API response:\n%s\n", spew.Sdump(result))
 
 			fo := FilterEphemeralFields(result.Object)
 			newResObject, err := UnstructuredToCty(fo, tsch)
 			if err != nil {
 				return resp, err
 			}
-			Dlog.Printf("[ApplyResourceChange][Request][CtyResponse]\n%s\n", spew.Sdump(newResObject))
+			Dlog.Printf("[ApplyResourceChange][Apply][CtyResponse]\n%s\n", spew.Sdump(newResObject))
 
 			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
 			if err != nil {
@@ -743,63 +749,11 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			err = rs.Delete(ctx, rname, v1.DeleteOptions{})
 			if err != nil {
 				rn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
-				return resp, fmt.Errorf("DELETE resource %s failed: %s", rn, err)
-			}
-			resp.NewState = req.PlannedState
-		}
-	case !applyPlannedState.IsNull() && !applyPriorState.IsNull():
-		{ // Update existing resource
-			o := sanitizedPlannedState.GetAttr("object")
-
-			gvr, err := GVRFromCtyObject(&o)
-			if err != nil {
-				return resp, err
-			}
-
-			gvk, err := GVKFromCtyObject(&o)
-			if err != nil {
-				return resp, fmt.Errorf("failed to determine resource GVR: %s", err)
-			}
-
-			tsch, err := resourceTypeFromOpenAPI(gvk)
-			if err != nil {
-				return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
-			}
-
-			pu, err := CtyObjectToUnstructured(&o)
-			if err != nil {
-				return resp, err
-			}
-			ns, err := IsResourceNamespaced(gvr)
-			if err != nil {
-				return resp, err
-			}
-			uo := unstructured.Unstructured{Object: pu}
-			rnamespace := uo.GetNamespace()
-			rname := uo.GetName()
-
-			c, err := GetDynamicClient()
-			if err != nil {
-				return resp, err
-			}
-			if ns {
-				rs = c.Resource(gvr).Namespace(rnamespace)
-			} else {
-				rs = c.Resource(gvr)
-			}
-			jd, err := uo.MarshalJSON()
-			if err != nil {
-				return resp, err
-			}
-			// Call the Kubernetes API to apply the new resource state
-			result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
-			if err != nil {
-				rn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
 				resp.Diagnostics = append(resp.Diagnostics,
 					&tfplugin5.Diagnostic{
 						Severity: tfplugin5.Diagnostic_ERROR,
 						Detail:   err.Error(),
-						Summary:  fmt.Sprintf("PATCH resource %s failed: %s", rn, err),
+						Summary:  fmt.Sprintf("DELETE resource %s failed: %s", rn, err),
 					})
 				return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
 			}
@@ -829,7 +783,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
-			resp.NewState = &tfplugin5.DynamicValue{Msgpack: mp}
+			resp.NewState = req.PlannedState
 		}
 	}
 
