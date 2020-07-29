@@ -84,7 +84,7 @@ func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfpl
 			diags = append(diags, &tfplugin5.Diagnostic{
 				Severity: tfplugin5.Diagnostic_INVALID,
 				Summary:  "Invalid attribute in provider configuration",
-				Detail:   "'config_path' refers to an invalid file path",
+				Detail:   "'config_path' refers to an invalid file path: " + configPathAbs,
 				Attribute: &tfplugin5.AttributePath{
 					Steps: []*tfplugin5.AttributePath_Step{
 						{
