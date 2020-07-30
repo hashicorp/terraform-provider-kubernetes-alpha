@@ -1,4 +1,4 @@
-# Terraform provider for Kubernetes (alpha) 
+# Kubernetes provider for Terraform (alpha) 
 <a href="https://terraform.io">
     <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" alt="Terraform logo" align="right" height="50" />
 </a>
@@ -9,7 +9,7 @@
 ![unit tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/unit%20tests/badge.svg)
 ![acceptance tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/acceptance%20tests/badge.svg)
 
-This Terraform provider for Kubernetes supports all API resources in a generic fashion.
+This Kubernetes provider for Terraform (alpha) supports all API resources in a generic fashion.
 
 This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
 
