@@ -15,7 +15,7 @@ This provider allows you to describe any Kubernetes resource using HCL. See [Mov
 
 Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) generously and detail your experience while using the provider. We welcome your feedback.
 
-Our eventual goal is for this generic resource to become a part of our production capable Kubernetes provider once it is supported by the Terraform Plugin SDK. However, this work is subject to signficant changes as we iterate towards that level of quality.
+Our eventual goal is for this generic resource to become a part of our [official Kubernetes provider](https://github.com/hashicorp/terraform-provider-kubernetes) once it is supported by the Terraform Plugin SDK. However, this work is subject to signficant changes as we iterate towards that level of quality.
 
 ## Requirements
 
