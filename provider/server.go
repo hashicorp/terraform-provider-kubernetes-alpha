@@ -621,8 +621,6 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	}
 	var rs dynamic.ResourceInterface
 
-	waitForBlock := applyPlannedState.GetAttr("wait_for")
-
 	switch {
 	case applyPriorState.IsNull():
 		{ // Create resource
@@ -666,6 +664,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			}
 			Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
 
+			waitForBlock := applyPlannedState.GetAttr("wait_for")
 			if !waitForBlock.IsNull() && waitForBlock.IsKnown() {
 				waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
 				if err != nil {
@@ -776,6 +775,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, err
 			}
 
+			waitForBlock := applyPlannedState.GetAttr("wait_for")
 			if !waitForBlock.IsNull() && waitForBlock.IsKnown() {
 				waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
 				if err != nil {
