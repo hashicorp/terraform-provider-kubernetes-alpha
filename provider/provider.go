@@ -9,12 +9,7 @@ import (
 
 // GetObjectTypeFromSchema returns a cty.Type that can wholy represent the schema input
 func GetObjectTypeFromSchema(schema *tfplugin5.Schema) (cty.Type, error) {
-	bm := map[string]cty.Type{
-		"wait_for": cty.Object(map[string]cty.Type{
-			"fields": cty.Map(cty.String),
-		}),
-	}
-
+	bm := map[string]cty.Type{}
 	for _, att := range schema.Block.Attributes {
 		var t cty.Type
 		err := t.UnmarshalJSON(att.Type)
@@ -23,7 +18,6 @@ func GetObjectTypeFromSchema(schema *tfplugin5.Schema) (cty.Type, error) {
 		}
 		bm[att.Name] = t
 	}
-
 	return cty.Object(bm), nil
 }
 
@@ -34,7 +28,9 @@ func GetProviderResourceSchema() (map[string]*tfplugin5.Schema, error) {
 		return nil, err
 	}
 
-	mapType, err := cty.Map(cty.String).MarshalJSON()
+	waitForType, err := cty.Object(map[string]cty.Type{
+		"fields": cty.Map(cty.String),
+	}).MarshalJSON()
 	if err != nil {
 		return nil, err
 	}
@@ -43,23 +39,6 @@ func GetProviderResourceSchema() (map[string]*tfplugin5.Schema, error) {
 		"kubernetes_manifest": {
 			Version: 1,
 			Block: &tfplugin5.Schema_Block{
-				BlockTypes: []*tfplugin5.Schema_NestedBlock{
-					{
-						TypeName: "wait_for",
-						Nesting:  tfplugin5.Schema_NestedBlock_SINGLE,
-						MaxItems: 1,
-						MinItems: 0,
-						Block: &tfplugin5.Schema_Block{
-							Attributes: []*tfplugin5.Schema_Attribute{
-								{
-									Name:     "fields",
-									Type:     mapType,
-									Optional: true,
-								},
-							},
-						},
-					},
-				},
 				Attributes: []*tfplugin5.Schema_Attribute{
 					{
 						Name:     "manifest",
@@ -71,6 +50,11 @@ func GetProviderResourceSchema() (map[string]*tfplugin5.Schema, error) {
 						Type:     oType,
 						Optional: true,
 						Computed: true,
+					},
+					{
+						Name:     "wait_for",
+						Type:     waitForType,
+						Optional: true,
 					},
 				},
 			},

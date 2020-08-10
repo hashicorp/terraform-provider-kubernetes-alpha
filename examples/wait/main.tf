@@ -29,7 +29,7 @@ resource "kubernetes_manifest" "example" {
     }
   }
 
-  wait_for {
+  wait_for = {
     fields = {
       "status.phase" = "Running"
     }
