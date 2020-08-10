@@ -14,7 +14,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/go-cty/cty/json"
+	ctyjson "github.com/hashicorp/go-cty/cty/json"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
 	"github.com/mitchellh/go-homedir"
@@ -218,7 +218,7 @@ func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplu
 	if err != nil {
 		return resp, err
 	}
-	rv, err := json.Unmarshal(req.RawState.Json, rt)
+	rv, err := ctyjson.Unmarshal(req.RawState.Json, rt)
 	if err != nil {
 		resp.Diagnostics = AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -621,6 +621,8 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 	}
 	var rs dynamic.ResourceInterface
 
+	waitForBlock := applyPlannedState.GetAttr("wait_for")
+
 	switch {
 	case applyPriorState.IsNull():
 		{ // Create resource
@@ -663,6 +665,18 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, err
 			}
 			Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
+
+			if !waitForBlock.IsNull() && waitForBlock.IsKnown() {
+				waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
+				if err != nil {
+					return resp, err
+				}
+
+				err = waiter.Wait(ctx)
+				if err != nil {
+					return resp, err
+				}
+			}
 
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
@@ -761,6 +775,19 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
+
+			if !waitForBlock.IsNull() && waitForBlock.IsKnown() {
+				waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
+				if err != nil {
+					return resp, err
+				}
+
+				err = waiter.Wait(ctx)
+				if err != nil {
+					return resp, err
+				}
+			}
+
 			Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
