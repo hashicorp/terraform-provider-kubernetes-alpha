@@ -81,7 +81,28 @@ func (w *FieldWaiter) Wait(ctx context.Context) error {
 				return false, err
 			}
 
-			if !m.valueMatcher.Match([]byte(v.AsString())) {
+			var s string
+			switch v.Type() {
+			case cty.String:
+				s = v.AsString()
+			case cty.Bool:
+				s = fmt.Sprintf("%t", v.True())
+			case cty.Number:
+				f := v.AsBigFloat()
+				if f.IsInt() {
+					i, _ := f.Int64()
+					s = fmt.Sprintf("%d", i)
+				} else {
+					i, _ := f.Float64()
+					s = fmt.Sprintf("%f", i)
+				}
+			default:
+				return true, fmt.Errorf("wait_for: cannot match on type %q", v.Type().FriendlyName())
+			}
+
+			Dlog.Printf("matching %#v %q", m.valueMatcher, s)
+
+			if !m.valueMatcher.Match([]byte(s)) {
 				return false, nil
 			}
 		}
