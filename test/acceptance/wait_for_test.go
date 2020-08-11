@@ -2,6 +2,7 @@ package provider
 
 import (
 	"testing"
+	"time"
 
 	tfstatehelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/state"
 )
@@ -29,8 +30,16 @@ func TestKubernetesManifest_WaitForFields(t *testing.T) {
 	tf.RequireSetConfig(t, tfconfig)
 	tf.RequireInit(t)
 
-	// TODO time this
+	startTime := time.Now()
 	tf.RequireApply(t)
+
+	// NOTE We set a readinessProbe in the fixture with a delay of 10s
+	// so the apply should take at least 10 seconds to complete.
+	minDuration := time.Duration(10) * time.Second
+	applyDuration := time.Since(startTime)
+	if applyDuration < minDuration {
+		t.Fatalf("the aply should have taken at least %s", minDuration)
+	}
 
 	k8shelper.AssertNamespacedResourceExists(t, "v1", "pods", namespace, name)
 
