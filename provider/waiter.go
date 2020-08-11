@@ -130,8 +130,6 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 
 	Dlog.Printf("[ApplyResourceChange][Wait] Waiting until ready...\n")
 	for e := range w.ResultChan() {
-		Dlog.Printf("%v\n", e.Type)
-
 		if e.Type == watch.Deleted {
 			return fmt.Errorf("resource was deleted")
 		}
@@ -141,9 +139,9 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 			return fmt.Errorf("watch error")
 		}
 
-		// NOTE the typed API resource is actually returned in the
+		// NOTE The typed API resource is actually returned in the
 		// event object but I haven't yet figured out how to convert it
-		// to a cty.Value
+		// to a cty.Value.
 		res, err := resource.Get(ctx, resourceName, v1.GetOptions{})
 		if err != nil {
 			return err
