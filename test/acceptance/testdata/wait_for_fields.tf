@@ -25,7 +25,7 @@ resource "kubernetes_manifest" "test" {
           image = "nginx:1.19"
 
           readinessProbe = {
-            initialDelaySeconds = 5
+            initialDelaySeconds = 10
 
             httpGet = {
               path = "/"
