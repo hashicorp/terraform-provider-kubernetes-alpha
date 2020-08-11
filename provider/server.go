@@ -590,6 +590,19 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	return resp, nil
 }
 
+func (s *RawProviderServer) waitForCompletion(ctx context.Context, applyPlannedState cty.Value, rs dynamic.ResourceInterface, rname string) error {
+	waitForBlock := applyPlannedState.GetAttr("wait_for")
+	if waitForBlock.IsNull() || !waitForBlock.IsKnown() {
+		return nil
+	}
+
+	waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
+	if err != nil {
+		return err
+	}
+	return waiter.Wait(ctx)
+}
+
 // ApplyResourceChange function
 func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplugin5.ApplyResourceChange_Request) (*tfplugin5.ApplyResourceChange_Response, error) {
 	resp := &tfplugin5.ApplyResourceChange_Response{}
@@ -664,17 +677,9 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			}
 			Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
 
-			waitForBlock := applyPlannedState.GetAttr("wait_for")
-			if !waitForBlock.IsNull() && waitForBlock.IsKnown() {
-				waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
-				if err != nil {
-					return resp, err
-				}
-
-				err = waiter.Wait(ctx)
-				if err != nil {
-					return resp, err
-				}
+			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
+			if err != nil {
+				return resp, err
 			}
 
 			newResState, err := cty.Transform(applyPlannedState,
@@ -775,17 +780,9 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, err
 			}
 
-			waitForBlock := applyPlannedState.GetAttr("wait_for")
-			if !waitForBlock.IsNull() && waitForBlock.IsKnown() {
-				waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
-				if err != nil {
-					return resp, err
-				}
-
-				err = waiter.Wait(ctx)
-				if err != nil {
-					return resp, err
-				}
+			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
+			if err != nil {
+				return resp, err
 			}
 
 			Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
