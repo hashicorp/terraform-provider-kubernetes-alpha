@@ -1,6 +1,5 @@
 provider "kubernetes-alpha" {
   config_path = "~/.kube/config"
-  server_side_planning = true
 }
 
 resource "kubernetes_manifest" "example" {
@@ -22,16 +21,25 @@ resource "kubernetes_manifest" "example" {
     spec = {
       containers = [
         {
-          image = "nginx:1.19"
           name  = "nginx"
-        },
+          image = "nginx:1.19"
+
+          readinessProbe = {
+            initialDelaySeconds = 5
+
+            httpGet = {
+              path = "/"
+              port = 80
+            }
+          }
+        }
       ]
     }
   }
 
   wait_for = {
     fields = {
-      "status.phase" = "Running"
+      "status.containerStatuses.0.ready" = "true"
     }
   }
 }
