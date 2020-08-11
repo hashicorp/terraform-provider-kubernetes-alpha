@@ -38,7 +38,7 @@ func TestKubernetesManifest_WaitForFields(t *testing.T) {
 	minDuration := time.Duration(10) * time.Second
 	applyDuration := time.Since(startTime)
 	if applyDuration < minDuration {
-		t.Fatalf("the aply should have taken at least %s", minDuration)
+		t.Fatalf("the apply should have taken at least %s", minDuration)
 	}
 
 	k8shelper.AssertNamespacedResourceExists(t, "v1", "pods", namespace, name)
