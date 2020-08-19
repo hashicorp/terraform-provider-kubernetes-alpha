@@ -7,7 +7,7 @@ import (
 	tfstatehelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/state"
 )
 
-func TestKubernetesManifest_WaitForFields(t *testing.T) {
+func TestKubernetesManifest_WaitForFields_Pod(t *testing.T) {
 	name := randName()
 	namespace := randName()
 
@@ -26,7 +26,7 @@ func TestKubernetesManifest_WaitForFields(t *testing.T) {
 		"namespace":            namespace,
 		"name":                 name,
 	}
-	tfconfig := loadTerraformConfig(t, "wait_for_fields.tf", tfvars)
+	tfconfig := loadTerraformConfig(t, "wait_for_fields_pod.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
 	tf.RequireInit(t)
 
@@ -47,7 +47,10 @@ func TestKubernetesManifest_WaitForFields(t *testing.T) {
 	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{
 		"kubernetes_manifest.test.wait_for": map[string]interface{}{
 			"fields": map[string]interface{}{
-				"status.containerStatuses.0.ready": "true",
+				"status.containerStatuses.0.ready":        "true",
+				"status.containerStatuses.0.restartCount": "0",
+				"status.podIP": "^(\\d+(\\.|$)){4}",
+				"status.phase": "Running",
 			},
 		},
 	})

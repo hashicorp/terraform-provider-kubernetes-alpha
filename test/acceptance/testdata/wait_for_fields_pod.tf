@@ -39,7 +39,10 @@ resource "kubernetes_manifest" "test" {
 
   wait_for = {
     fields = {
-      "status.containerStatuses.0.ready" = "true"
+				"status.containerStatuses.0.ready"        = "true",
+				"status.containerStatuses.0.restartCount" = "0",
+				"status.podIP"                            = "^(\\d+(\\.|$)){4}",
+				"status.phase"                            = "Running",
     }
   }
 }
