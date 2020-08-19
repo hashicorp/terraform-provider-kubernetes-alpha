@@ -122,7 +122,7 @@ resource "kubernetes_manifest" "test" {
       "status.phase" = "Running"
 
       # Check a container's status
-			"status.containerStatuses.0.ready" = "true",
+      "status.containerStatuses.0.ready" = "true",
 
       # Check an ingress has an IP
       "status.loadBalancer.ingress.0.ip" = "^(\\d+(\\.|$)){4}"
