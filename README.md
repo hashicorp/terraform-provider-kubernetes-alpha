@@ -102,6 +102,39 @@ resource "kubernetes_manifest" "test-crd" {
 }
 ```
 
+## Using `wait_for` to block create and update calls
+
+The `kubernetes_manifest` resource supports the ability to block create and update calls until a field is set or has a particular value by specifying the `wait_for` attribute. This is useful for when you create resources like Jobs and Services when you want to wait for something to happen after the resource is created by the API server before Terraform should consider the resource created.
+
+`wait_for` currently supports a `fields` attribute which allows you specify a map of fields paths to regular expressions. You can also specify `*` if you just want to wait for a field to have any value.
+
+```hcl
+resource "kubernetes_manifest" "test" {
+  provider = kubernetes-alpha
+
+  manifest = {
+    // ...
+  }
+
+  wait_for = {
+    fields = {
+      # Check the phase of a pod
+      "status.phase" = "Running"
+
+      # Check a container's status
+      "status.containerStatuses.0.ready" = "true",
+
+      # Check an ingress has an IP
+      "status.loadBalancer.ingress.0.ip" = "^(\\d+(\\.|$)){4}"
+
+      # Check the replica count of a Deployment
+      "status.readyReplicas" = "2"
+    }
+  }
+}
+
+```
+
 ## Moving from YAML to HCL
 
 The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step and then manage that resource in Terraform, rather than using `yamldecode()` inside the resource block. 

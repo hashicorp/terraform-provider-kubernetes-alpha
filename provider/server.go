@@ -14,7 +14,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/go-cty/cty/json"
+	ctyjson "github.com/hashicorp/go-cty/cty/json"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
 	"github.com/mitchellh/go-homedir"
@@ -218,7 +218,7 @@ func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplu
 	if err != nil {
 		return resp, err
 	}
-	rv, err := json.Unmarshal(req.RawState.Json, rt)
+	rv, err := ctyjson.Unmarshal(req.RawState.Json, rt)
 	if err != nil {
 		resp.Diagnostics = AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -590,6 +590,19 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	return resp, nil
 }
 
+func (s *RawProviderServer) waitForCompletion(ctx context.Context, applyPlannedState cty.Value, rs dynamic.ResourceInterface, rname string) error {
+	waitForBlock := applyPlannedState.GetAttr("wait_for")
+	if waitForBlock.IsNull() || !waitForBlock.IsKnown() {
+		return nil
+	}
+
+	waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
+	if err != nil {
+		return err
+	}
+	return waiter.Wait(ctx)
+}
+
 // ApplyResourceChange function
 func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplugin5.ApplyResourceChange_Request) (*tfplugin5.ApplyResourceChange_Response, error) {
 	resp := &tfplugin5.ApplyResourceChange_Response{}
@@ -663,6 +676,11 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, err
 			}
 			Dlog.Printf("[ApplyResourceChange][Create] transformed response:\n%s\n", spew.Sdump(newResObject))
+
+			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
+			if err != nil {
+				return resp, err
+			}
 
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
@@ -761,6 +779,12 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			if err != nil {
 				return resp, err
 			}
+
+			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
+			if err != nil {
+				return resp, err
+			}
+
 			Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
 			newResState, err := cty.Transform(applyPlannedState,
 				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
