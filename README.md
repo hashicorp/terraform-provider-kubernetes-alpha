@@ -13,7 +13,7 @@ This Kubernetes provider for Terraform (alpha) supports all API resources in a g
 
 This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
 
-Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) generously and detail your experience while using the provider. We welcome your feedback.
+Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. At this time, we are not planning to create a migration path for resources created with the kubernetes-alpha provider when the `manifest` resource is merged into the official kubernetes provider. For this reason, please do not rely on this provider for production use while we strive towards project maturity. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) generously and detail your experience while using the provider. We welcome your feedback.
 
 Our eventual goal is for this generic resource to become a part of our [official Kubernetes provider](https://github.com/hashicorp/terraform-provider-kubernetes) once it is supported by the Terraform Plugin SDK. However, this work is subject to signficant changes as we iterate towards that level of quality.
 
