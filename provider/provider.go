@@ -41,20 +41,23 @@ func GetProviderResourceSchema() (map[string]*tfplugin5.Schema, error) {
 			Block: &tfplugin5.Schema_Block{
 				Attributes: []*tfplugin5.Schema_Attribute{
 					{
-						Name:     "manifest",
-						Type:     oType,
-						Required: true,
+						Name:        "manifest",
+						Type:        oType,
+						Required:    true,
+						Description: "A Kubernetes manifest describing the desired state of the resource in HCL format.",
 					},
 					{
-						Name:     "object",
-						Type:     oType,
-						Optional: true,
-						Computed: true,
+						Name:        "object",
+						Type:        oType,
+						Optional:    true,
+						Computed:    true,
+						Description: "The resulting resource state, as returned by the API server after applying the desired state from `manifest`.",
 					},
 					{
-						Name:     "wait_for",
-						Type:     waitForType,
-						Optional: true,
+						Name:        "wait_for",
+						Type:        waitForType,
+						Optional:    true,
+						Description: "A map of attribute paths and desired patterns to be matched. After each apply the provider will wait for all attributes listed here to reach a value that matches the desired pattern.",
 					},
 				},
 			},
