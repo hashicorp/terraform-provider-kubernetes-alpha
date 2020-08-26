@@ -1,4 +1,4 @@
-## 0.2.0 (Unreleased)
+## 0.2.0 (August 26, 2020)
 
 FEATURES
   * Add wait_for block to kubernetes_manifest resource (#95)
