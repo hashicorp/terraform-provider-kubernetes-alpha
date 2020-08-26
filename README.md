@@ -27,9 +27,7 @@ Our eventual goal is for this generic resource to become a part of our [official
 
 If this is your first time here, you can get an overview of the provider by reading our [introductory blog post](https://www.hashicorp.com/blog/deploy-any-resource-with-the-new-kubernetes-provider-for-hashicorp-terraform/).
 
-Otherwise, start by downloading a copy of our latest build from the [releases page](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases).
-
-You'll need to unzip the release download and copy the binary into your [Terraform plugins folder](https://www.terraform.io/docs/plugins/basics.html#installing-plugins) in order for Terraform to discover it.
+Otherwise, start by installing the latest release from the [Terraform registry](https://registry.terraform.io/providers/hashicorp/kubernetes-alpha/latest).
 
 Once you have the plugin installed, review the [usage document](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/docs/usage.md) in the [docs](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/docs/) folder to understand which configuration options are available. You can find the following examples and more in [our examples folder](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/examples/). Don't forget to run `terraform init` in your Terraform configuration directory to allow Terraform to detect the provider plugin.
 
