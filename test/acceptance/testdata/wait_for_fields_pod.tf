@@ -43,13 +43,13 @@ resource "kubernetes_manifest" "test" {
 
   wait_for = {
     fields = {
-				"metadata.annotations[\"test.terraform.io\"]" = "test",
+      "metadata.annotations[\"test.terraform.io\"]" = "test",
 
-				"status.containerStatuses[0].restartCount" = "0",
-				"status.containerStatuses[0].ready"        = "true",
+      "status.containerStatuses[0].restartCount" = "0",
+      "status.containerStatuses[0].ready"        = "true",
 
-				"status.podIP" = "^(\\d+(\\.|$)){4}",
-				"status.phase" = "Running",
+      "status.podIP" = "^(\\d+(\\.|$)){4}",
+      "status.phase" = "Running",
     }
   }
 }
