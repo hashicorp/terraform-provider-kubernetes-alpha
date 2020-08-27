@@ -47,8 +47,11 @@ func TestKubernetesManifest_WaitForFields_Pod(t *testing.T) {
 	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{
 		"kubernetes_manifest.test.wait_for": map[string]interface{}{
 			"fields": map[string]interface{}{
-				"status.containerStatuses.0.ready":        "true",
-				"status.containerStatuses.0.restartCount": "0",
+				"metadata.annotations[\"test.terraform.io\"]": "test",
+
+				"status.containerStatuses[0].ready":        "true",
+				"status.containerStatuses[0].restartCount": "0",
+
 				"status.podIP": "^(\\d+(\\.|$)){4}",
 				"status.phase": "Running",
 			},

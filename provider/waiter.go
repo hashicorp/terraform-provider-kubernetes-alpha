@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strconv"
-	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
+	oldcty "github.com/zclconf/go-cty/cty"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
+
+	hcl "github.com/hashicorp/hcl/v2"
+	hclsyntax "github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 // Waiter is a simple interface to implement a blocking wait operation
@@ -45,7 +48,11 @@ func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, 
 				}
 			}
 
-			matchers = append(matchers, FieldMatcher{FieldPathToCty(k), re})
+			p, err := FieldPathToCty(k)
+			if err != nil {
+				return nil, err
+			}
+			matchers = append(matchers, FieldMatcher{p, re})
 		}
 
 		return &FieldWaiter{
@@ -162,18 +169,41 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 }
 
 // FieldPathToCty takes a string representation of
-// a path to a field in dot notation parses into a cty.Path
-func FieldPathToCty(path string) cty.Path {
-	ctyPath := cty.Path{}
+// a path to a field in dot/square bracket notation
+// and returns a cty.Path
+func FieldPathToCty(fieldPath string) (cty.Path, error) {
+	t, d := hclsyntax.ParseTraversalAbs([]byte(fieldPath), "", hcl.Pos{Line: 1, Column: 1})
+	if d.HasErrors() {
+		return nil, fmt.Errorf("invalid field path %q: %s: %s", fieldPath, d[0].Summary, d[0].Detail)
+	}
 
-	parts := strings.Split(path, ".")
-	for _, part := range parts {
-		if index, err := strconv.Atoi(part); err == nil {
-			ctyPath = ctyPath.IndexInt(index)
-		} else {
-			ctyPath = ctyPath.GetAttr(part)
+	path := cty.Path{}
+	for _, p := range t {
+		switch p.(type) {
+		case hcl.TraverseRoot:
+			path = path.GetAttr(p.(hcl.TraverseRoot).Name)
+		case hcl.TraverseIndex:
+			indexKey := p.(hcl.TraverseIndex).Key
+			indexKeyType := indexKey.Type()
+			if indexKeyType.Equals(oldcty.String) {
+				path = path.GetAttr(indexKey.AsString())
+			} else if indexKeyType.Equals(oldcty.Number) {
+				f := indexKey.AsBigFloat()
+				if f.IsInt() {
+					i, _ := f.Int64()
+					path = path.IndexInt(int(i))
+				} else {
+					return nil, fmt.Errorf("index in field path must be an integer")
+				}
+			} else {
+				return nil, fmt.Errorf("unsupported type in field path: %s", indexKeyType.FriendlyName())
+			}
+		case hcl.TraverseAttr:
+			path = path.GetAttr(p.(hcl.TraverseAttr).Name)
+		case hcl.TraverseSplat:
+			return nil, fmt.Errorf("splat is not supported")
 		}
 	}
 
-	return ctyPath
+	return path, nil
 }
