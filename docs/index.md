@@ -72,7 +72,7 @@ By using the software in this repository (the "Software"), you acknowledge that:
 
 If this is your first time here, you can get an overview of the provider by reading our [introductory blog post](https://www.hashicorp.com/blog/deploy-any-resource-with-the-new-kubernetes-provider-for-hashicorp-terraform/).
 
-Next, review the "Schema" section above to understand which configuration options are available. You can find the following examples and more in [our examples folder](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/examples/). Don't forget to run `terraform init` in your Terraform configuration directory to allow Terraform to detect the provider plugin.
+Next, review the "Schema" section above to understand which configuration options are available. You can find the following examples and more in [our examples folder](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/examples/). Don't forget to run `terraform init` in your Terraform configuration directory to allow Terraform to detect the provider plugin.
 
 ### Create a Kubernetes ConfigMap
 ```hcl
@@ -192,4 +192,4 @@ Alternatively, there is also an experimental command line tool [tfk8s](https://g
 
 We welcome your contribution. Please understand that the experimental nature of this repository means that contributing code may be a bit of a moving target. If you have an idea for an enhancement or bug fix, and want to take on the work yourself, please first [create an issue](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) so that we can discuss the implementation with you before you proceed with the work.
 
-You can review our [contribution guide](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/_about/CONTRIBUTING.md) to begin. You can also check out our [frequently asked questions](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/_about/FAQ.md).
+You can review our [contribution guide](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/_about/CONTRIBUTING.md) to begin. You can also check out our [frequently asked questions](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/_about/FAQ.md).
