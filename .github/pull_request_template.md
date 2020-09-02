@@ -2,10 +2,15 @@
 
 <!--- Please leave a helpful description of the pull request here. --->
 
-### Acceptance tests
-- [ ] Have you added an acceptance test for the functionality being added?
-- [ ] Have you run the acceptance tests on this branch? (If so, please include the test log in a gist)
+### Release Note
+Release note for [CHANGELOG](https://github.com/hashicorp/terraform-provider-kubernetes/blob/master/CHANGELOG.md):
+<!--
+If change is not user facing, just write "NONE" in the release-note block below.
+-->
 
+```release-note
+...
+```
 ### References
 
 <!---
