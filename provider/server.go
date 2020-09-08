@@ -372,7 +372,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 		password = providerConfig.GetAttr("password")
 	}
 	if !password.IsNull() {
-		overrides.AuthInfo.Username = password.AsString()
+		overrides.AuthInfo.Password = password.AsString()
 	}
 
 	var token cty.Value
