@@ -13,6 +13,10 @@ resource "kubernetes_manifest" "test" {
       name      = var.name
       namespace = var.namespace
 
+      annotations = {
+        "test.terraform.io" = "test"
+      }
+
       labels = {
         app = "nginx"
       }
@@ -39,10 +43,13 @@ resource "kubernetes_manifest" "test" {
 
   wait_for = {
     fields = {
-				"status.containerStatuses.0.ready"        = "true",
-				"status.containerStatuses.0.restartCount" = "0",
-				"status.podIP"                            = "^(\\d+(\\.|$)){4}",
-				"status.phase"                            = "Running",
+      "metadata.annotations[\"test.terraform.io\"]" = "test",
+
+      "status.containerStatuses[0].restartCount" = "0",
+      "status.containerStatuses[0].ready"        = "true",
+
+      "status.podIP" = "^(\\d+(\\.|$)){4}",
+      "status.phase" = "Running",
     }
   }
 }
