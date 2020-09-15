@@ -10,7 +10,7 @@ require (
 	github.com/googleapis/gnostic v0.4.0 // indirect
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-hclog v0.14.1 // indirect
-	github.com/hashicorp/go-plugin v1.2.1
+	github.com/hashicorp/go-plugin v1.3.0
 	github.com/hashicorp/hcl/v2 v2.0.0
 	github.com/hashicorp/terraform-json v0.4.0
 	github.com/hashicorp/terraform-plugin-sdk v1.4.1
@@ -27,7 +27,7 @@ require (
 	golang.org/x/sys v0.0.0-20200915084602-288bc346aa39 // indirect
 	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
-	google.golang.org/genproto v0.0.0-20200914193844-75d14daec038 // indirect
+	google.golang.org/genproto v0.0.0-20200915202801-9f80d0600517 // indirect
 	google.golang.org/grpc v1.27.1
 	google.golang.org/protobuf v1.25.0
 	k8s.io/apiextensions-apiserver v0.18.0

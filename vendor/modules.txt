@@ -122,7 +122,7 @@ github.com/hashicorp/go-getter/helper/url
 # github.com/hashicorp/go-hclog v0.14.1
 ## explicit
 github.com/hashicorp/go-hclog
-# github.com/hashicorp/go-plugin v1.2.1
+# github.com/hashicorp/go-plugin v1.3.0
 ## explicit
 github.com/hashicorp/go-plugin
 github.com/hashicorp/go-plugin/internal/plugin
@@ -277,7 +277,7 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20200914193844-75d14daec038
+# google.golang.org/genproto v0.0.0-20200915202801-9f80d0600517
 ## explicit
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/iam/v1
