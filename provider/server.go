@@ -66,123 +66,7 @@ func (s *RawProviderServer) GetSchema(ctx context.Context, req *tfplugin5.GetPro
 func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfplugin5.PrepareProviderConfig_Request) (*tfplugin5.PrepareProviderConfig_Response, error) {
 	resp := &tfplugin5.PrepareProviderConfig_Response{}
 
-	diags := []*tfplugin5.Diagnostic{}
-	var err error
-
-	providerConfig, err := msgpack.Unmarshal(req.Config.Msgpack, getConfigObjectType())
-	if err != nil {
-		return resp, err
-	}
-
-	configPath := providerConfig.GetAttr("config_path")
-	if !configPath.IsNull() {
-		configPathAbs, err := homedir.Expand(configPath.AsString())
-		if err == nil {
-			_, err = os.Stat(configPathAbs)
-		}
-		if err != nil {
-			diags = append(diags, &tfplugin5.Diagnostic{
-				Severity: tfplugin5.Diagnostic_INVALID,
-				Summary:  "Invalid attribute in provider configuration",
-				Detail:   "'config_path' refers to an invalid file path: " + configPathAbs,
-				Attribute: &tfplugin5.AttributePath{
-					Steps: []*tfplugin5.AttributePath_Step{
-						{
-							Selector: &tfplugin5.AttributePath_Step_AttributeName{
-								AttributeName: "config_path",
-							},
-						},
-					},
-				},
-			})
-		}
-	}
-
-	host := providerConfig.GetAttr("host")
-	if !host.IsNull() && host.IsKnown() {
-		_, err = url.ParseRequestURI(host.AsString())
-		if err != nil {
-			diags = append(diags, &tfplugin5.Diagnostic{
-				Severity: tfplugin5.Diagnostic_INVALID,
-				Summary:  "Invalid attribute in provider configuration",
-				Detail:   "'host' is not a valid URL",
-				Attribute: &tfplugin5.AttributePath{
-					Steps: []*tfplugin5.AttributePath_Step{
-						{
-							Selector: &tfplugin5.AttributePath_Step_AttributeName{
-								AttributeName: "host",
-							},
-						},
-					},
-				},
-			})
-		}
-	}
-
-	pemCA := providerConfig.GetAttr("cluster_ca_certificate")
-	if !pemCA.IsNull() && host.IsKnown() {
-		pem, _ := pem.Decode([]byte(pemCA.AsString()))
-		if pem == nil || pem.Type != "CERTIFICATE" {
-			diags = append(diags, &tfplugin5.Diagnostic{
-				Severity: tfplugin5.Diagnostic_INVALID,
-				Summary:  "Invalid attribute in provider configuration",
-				Detail:   "'cluster_ca_certificate' is not a valid PEM encoded certificate",
-				Attribute: &tfplugin5.AttributePath{
-					Steps: []*tfplugin5.AttributePath_Step{
-						{
-							Selector: &tfplugin5.AttributePath_Step_AttributeName{
-								AttributeName: "cluster_ca_certificate",
-							},
-						},
-					},
-				},
-			})
-		}
-	}
-
-	pemCC := providerConfig.GetAttr("client_certificate")
-	if !pemCC.IsNull() && host.IsKnown() {
-		pem, _ := pem.Decode([]byte(pemCC.AsString()))
-		if pem == nil || pem.Type != "CERTIFICATE" {
-			diags = append(diags, &tfplugin5.Diagnostic{
-				Severity: tfplugin5.Diagnostic_INVALID,
-				Summary:  "Invalid attribute in provider configuration",
-				Detail:   "'client_certificate' is not a valid PEM encoded certificate",
-				Attribute: &tfplugin5.AttributePath{
-					Steps: []*tfplugin5.AttributePath_Step{
-						{
-							Selector: &tfplugin5.AttributePath_Step_AttributeName{
-								AttributeName: "client_certificate",
-							},
-						},
-					},
-				},
-			})
-		}
-	}
-
-	pemCK := providerConfig.GetAttr("client_key")
-	if !pemCK.IsNull() && host.IsKnown() {
-		pem, _ := pem.Decode([]byte(pemCK.AsString()))
-		if pem == nil || !strings.Contains(pem.Type, "PRIVATE KEY") {
-			diags = append(diags, &tfplugin5.Diagnostic{
-				Severity: tfplugin5.Diagnostic_INVALID,
-				Summary:  "Invalid attribute in provider configuration",
-				Detail:   "'client_key' is not a valid PEM encoded private key",
-				Attribute: &tfplugin5.AttributePath{
-					Steps: []*tfplugin5.AttributePath_Step{
-						{
-							Selector: &tfplugin5.AttributePath_Step_AttributeName{
-								AttributeName: "client_key",
-							},
-						},
-					},
-				},
-			})
-		}
-	}
-
-	resp.Diagnostics = diags
+	resp.Diagnostics = []*tfplugin5.Diagnostic{}
 
 	return resp, nil
 }
@@ -232,10 +116,126 @@ func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfplu
 // Configure function
 func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Configure_Request) (*tfplugin5.Configure_Response, error) {
 	response := &tfplugin5.Configure_Response{}
+	var err error
 
 	providerConfig, err := msgpack.Unmarshal(req.Config.Msgpack, getConfigObjectType())
 	if err != nil {
 		return response, err
+	}
+
+	diags := []*tfplugin5.Diagnostic{}
+
+	configPath := providerConfig.GetAttr("config_path")
+	if !configPath.IsNull() {
+		configPathAbs, err := homedir.Expand(configPath.AsString())
+		if err == nil {
+			_, err = os.Stat(configPathAbs)
+		}
+		if err != nil {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'config_path' refers to an invalid file path: " + configPathAbs,
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "config_path",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	host := providerConfig.GetAttr("host")
+	if !host.IsNull() && host.IsKnown() {
+		_, err = url.ParseRequestURI(host.AsString())
+		if err != nil {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'host' is not a valid URL",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "host",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	pemCC := providerConfig.GetAttr("client_certificate")
+	if !pemCC.IsNull() && host.IsKnown() {
+		pem, _ := pem.Decode([]byte(pemCC.AsString()))
+		if pem == nil || pem.Type != "CERTIFICATE" {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'client_certificate' is not a valid PEM encoded certificate",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "client_certificate",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	pemCA := providerConfig.GetAttr("cluster_ca_certificate")
+	if !pemCA.IsNull() && host.IsKnown() {
+		pem, _ := pem.Decode([]byte(pemCA.AsString()))
+		if pem == nil || pem.Type != "CERTIFICATE" {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'cluster_ca_certificate' is not a valid PEM encoded certificate",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "cluster_ca_certificate",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	pemCK := providerConfig.GetAttr("client_key")
+	if !pemCK.IsNull() && host.IsKnown() {
+		pem, _ := pem.Decode([]byte(pemCK.AsString()))
+		if pem == nil || !strings.Contains(pem.Type, "PRIVATE KEY") {
+			diags = append(diags, &tfplugin5.Diagnostic{
+				Severity: tfplugin5.Diagnostic_INVALID,
+				Summary:  "Invalid attribute in provider configuration",
+				Detail:   "'client_key' is not a valid PEM encoded private key",
+				Attribute: &tfplugin5.AttributePath{
+					Steps: []*tfplugin5.AttributePath_Step{
+						{
+							Selector: &tfplugin5.AttributePath_Step_AttributeName{
+								AttributeName: "client_key",
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	if len(diags) > 0 {
+		response.Diagnostics = diags
+		return response, errors.New("failed to validate provider configuration")
 	}
 
 	ps := GetProviderState()
@@ -249,7 +249,6 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 	overrides := &clientcmd.ConfigOverrides{}
 	loader := &clientcmd.ClientConfigLoadingRules{}
 
-	var configPath cty.Value
 	if configPathEnv, ok := os.LookupEnv("KUBE_CONFIG_PATH"); ok && configPathEnv != "" {
 		configPath = cty.StringVal(configPathEnv)
 	} else {
@@ -339,7 +338,6 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 		overrides.AuthInfo.ClientKeyData = bytes.NewBufferString(clientCrtKey.AsString()).Bytes()
 	}
 
-	var host cty.Value
 	if hostEnv, ok := os.LookupEnv("KUBE_HOST"); ok && hostEnv != "" {
 		host = cty.StringVal(hostEnv)
 	} else {
