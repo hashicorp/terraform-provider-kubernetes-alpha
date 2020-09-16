@@ -126,21 +126,6 @@ func waitForReattachConfig(ch chan *plugin.ReattachConfig) {
 	}
 }
 
-// ReattachConfig holds the information Terraform needs to be able to attach
-// itself to a provider process, so it can drive the process.
-type ReattachConfig struct {
-	Protocol string
-	Pid      int
-	Test     bool
-	Addr     ReattachConfigAddr
-}
-
-// ReattachConfigAddr is a JSON-encoding friendly version of net.Addr.
-type ReattachConfigAddr struct {
-	Network string
-	String  string
-}
-
 type grpcPlugin struct {
 	plugin.Plugin
 	providerServer *RawProviderServer
