@@ -11,25 +11,26 @@ import (
 	"testing"
 	"time"
 
-	tftest "github.com/hashicorp/terraform-plugin-test"
+	"github.com/hashicorp/terraform-exec/tfexec"
+	tftest "github.com/hashicorp/terraform-plugin-test/v2"
 
-	provider "github.com/hashicorp/terraform-provider-kubernetes-alpha/provider"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/provider"
 	kuberneteshelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/kubernetes"
 )
 
 var useServerSidePlanning bool
 
-var providerName = "kubernetes-alpha"
-
 var tfhelper *tftest.Helper
 var k8shelper *kuberneteshelper.Helper
+var reattachInfo tfexec.ReattachInfo
 
 func TestMain(m *testing.M) {
-	if tftest.RunningAsPlugin() {
-		provider.InitDevLog()
-		provider.Serve()
-		os.Exit(0)
-		return
+	provider.InitDevLog()
+	var err error
+	reattachInfo, err = provider.ServeTest()
+	if err != nil {
+		//lintignore:R009
+		panic(err)
 	}
 
 	sourceDir, err := os.Getwd()
@@ -38,7 +39,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	tfhelper = tftest.AutoInitProviderHelper(providerName, sourceDir)
+	tfhelper = tftest.AutoInitProviderHelper(sourceDir)
 	defer tfhelper.Close()
 
 	k8shelper = kuberneteshelper.NewHelper()

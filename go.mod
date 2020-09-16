@@ -12,9 +12,9 @@ require (
 	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/go-plugin v1.3.0
 	github.com/hashicorp/hcl/v2 v2.0.0
-	github.com/hashicorp/terraform-json v0.4.0
+	github.com/hashicorp/terraform-json v0.5.0
 	github.com/hashicorp/terraform-plugin-sdk v1.4.1
-	github.com/hashicorp/terraform-plugin-test v1.3.0
+	github.com/hashicorp/terraform-plugin-test/v2 v2.1.2
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0

@@ -16,6 +16,7 @@ func TestKubernetesManifest_CustomResourceDefinition(t *testing.T) {
 	name := fmt.Sprintf("%s.%s", plural, group)
 
 	tf := tfhelper.RequireNewWorkingDir(t)
+	tf.SetReattachInfo(reattachInfo)
 	defer func() {
 		tf.RequireDestroy(t)
 		tf.Close()

@@ -11,6 +11,7 @@ func TestKubernetesManifest_Deployment(t *testing.T) {
 	namespace := randName()
 
 	tf := tfhelper.RequireNewWorkingDir(t)
+	tf.SetReattachInfo(reattachInfo)
 	defer func() {
 		tf.RequireDestroy(t)
 		tf.Close()

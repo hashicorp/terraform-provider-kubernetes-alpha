@@ -12,6 +12,7 @@ func TestKubernetesManifest_WaitForFields_Pod(t *testing.T) {
 	namespace := randName()
 
 	tf := tfhelper.RequireNewWorkingDir(t)
+	tf.SetReattachInfo(reattachInfo)
 	defer func() {
 		tf.RequireDestroy(t)
 		tf.Close()
@@ -31,6 +32,7 @@ func TestKubernetesManifest_WaitForFields_Pod(t *testing.T) {
 	tf.RequireInit(t)
 
 	startTime := time.Now()
+	t.Log("Running terraform apply. This test should wait around 10 seconds.")
 	tf.RequireApply(t)
 
 	// NOTE We set a readinessProbe in the fixture with a delay of 10s
