@@ -172,8 +172,8 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 
 	pemCC := providerConfig.GetAttr("client_certificate")
 	if !pemCC.IsNull() && host.IsKnown() {
-		pem, _ := pem.Decode([]byte(pemCC.AsString()))
-		if pem == nil || pem.Type != "CERTIFICATE" {
+		cc, _ := pem.Decode([]byte(pemCC.AsString()))
+		if cc == nil || cc.Type != "CERTIFICATE" {
 			diags = append(diags, &tfplugin5.Diagnostic{
 				Severity: tfplugin5.Diagnostic_INVALID,
 				Summary:  "Invalid attribute in provider configuration",
@@ -193,8 +193,8 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 
 	pemCA := providerConfig.GetAttr("cluster_ca_certificate")
 	if !pemCA.IsNull() && host.IsKnown() {
-		pem, _ := pem.Decode([]byte(pemCA.AsString()))
-		if pem == nil || pem.Type != "CERTIFICATE" {
+		ca, _ := pem.Decode([]byte(pemCA.AsString()))
+		if ca == nil || ca.Type != "CERTIFICATE" {
 			diags = append(diags, &tfplugin5.Diagnostic{
 				Severity: tfplugin5.Diagnostic_INVALID,
 				Summary:  "Invalid attribute in provider configuration",
@@ -214,8 +214,8 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 
 	pemCK := providerConfig.GetAttr("client_key")
 	if !pemCK.IsNull() && host.IsKnown() {
-		pem, _ := pem.Decode([]byte(pemCK.AsString()))
-		if pem == nil || !strings.Contains(pem.Type, "PRIVATE KEY") {
+		ck, _ := pem.Decode([]byte(pemCK.AsString()))
+		if ck == nil || !strings.Contains(ck.Type, "PRIVATE KEY") {
 			diags = append(diags, &tfplugin5.Diagnostic{
 				Severity: tfplugin5.Diagnostic_INVALID,
 				Summary:  "Invalid attribute in provider configuration",
