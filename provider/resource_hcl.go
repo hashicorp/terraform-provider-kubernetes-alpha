@@ -14,7 +14,7 @@ import (
 // PlanUpdateResourceHCL decides whether to off-load the change planning
 // to the API server via a dry-run call or compute the changes locally
 func PlanUpdateResourceHCL(ctx context.Context, in *cty.Value) (cty.Value, error) {
-	s := GetProviderState()
+	s := GetGlobalState()
 	if s[SSPlanning].(bool) {
 		return PlanUpdateResourceHCLServerSide(ctx, in)
 	}

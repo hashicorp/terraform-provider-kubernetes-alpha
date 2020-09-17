@@ -238,7 +238,7 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 		return response, errors.New("failed to validate provider configuration")
 	}
 
-	ps := GetProviderState()
+	ps := GetGlobalState()
 
 	ssp := providerConfig.GetAttr("server_side_planning")
 	if !ssp.IsKnown() || ssp.IsNull() {
