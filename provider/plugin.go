@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -19,7 +20,7 @@ var handshakeConfig = plugin.HandshakeConfig{
 	MagicCookieValue: "d602bf8f470bc67ca7faa0386276bbdd4330efaf76d1a219cb4d6991ca9872b2",
 }
 
-// Serve is the provider entry point
+// Serve is the default provider entry point
 func Serve() {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: handshakeConfig,
@@ -71,6 +72,57 @@ func ServeTest() (tfexec.ReattachInfo, error) {
 		}, nil
 	case <-time.After(10 * time.Second):
 		return nil, fmt.Errorf("timeout when starting the provider")
+	}
+}
+
+// DebugServe is the provider entry point when running in stand-alone process mode
+func DebugServe() {
+	reattachCh := make(chan *plugin.ReattachConfig)
+
+	go waitForReattachConfig(reattachCh)
+
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: handshakeConfig,
+		GRPCServer:      plugin.DefaultGRPCServer,
+		Plugins: plugin.PluginSet{
+			"provider": &grpcPlugin{
+				providerServer: &RawProviderServer{},
+			},
+		},
+		Test: &plugin.ServeTestConfig{
+			ReattachConfigCh: reattachCh,
+		},
+		Logger: hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
+			JSONFormat: false,
+			Level:      hclog.Debug,
+		}),
+	})
+}
+
+func waitForReattachConfig(ch chan *plugin.ReattachConfig) {
+	var config *plugin.ReattachConfig
+	select {
+	case config = <-ch:
+		reattachStr, err := json.Marshal(map[string]tfexec.ReattachConfig{
+			"hashicorp/kubernetes-alpha": {
+				Protocol: string(config.Protocol),
+				Pid:      config.Pid,
+				Test:     config.Test,
+				Addr: tfexec.ReattachConfigAddr{
+					String:  config.Addr.String(),
+					Network: config.Addr.Network(),
+				},
+			},
+		})
+		if err != nil {
+			fmt.Printf("Error building reattach string: %s", err)
+			return
+		}
+		fmt.Printf("# Provider server started\nexport TF_REATTACH_PROVIDERS='%s'\n", string(reattachStr))
+		return
+	case <-time.After(2 * time.Second):
+		fmt.Printf("Timeout while waiting for reattach configuration\n")
+		return
 	}
 }
 
