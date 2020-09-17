@@ -104,7 +104,7 @@ func waitForReattachConfig(ch chan *plugin.ReattachConfig) {
 	select {
 	case config = <-ch:
 		reattachStr, err := json.Marshal(map[string]tfexec.ReattachConfig{
-			"hashicorp/kubernetes-alpha": tfexec.ReattachConfig{
+			"hashicorp/kubernetes-alpha": {
 				Protocol: string(config.Protocol),
 				Pid:      config.Pid,
 				Test:     config.Test,
