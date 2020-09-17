@@ -37,7 +37,7 @@ func GetProviderState() map[string]interface{} {
 }
 
 // GetClientConfig returns the client.Config produced from the
-// provider block attribues
+// provider block attributes.
 func GetClientConfig() (*rest.Config, error) {
 	s := GetProviderState()
 	c, ok := s[ClientConfig]
