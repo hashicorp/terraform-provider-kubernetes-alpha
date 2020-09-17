@@ -26,7 +26,7 @@ module "cluster" {
 /*
   Here we create the Kubernetes resources on the AKS cluster.
   
-  IMPORTANT: there is no explicit or implecit way to express dependency 
+  IMPORTANT: there is no explicit or implicit way to express dependency 
   of the Kubernetes resource on the AKS resource being present.
   You must split the apply into two operations. See README.md
 */
