@@ -1,4 +1,4 @@
-## 0.2.1 (Unreleased)
+## 0.2.1 (September 18, 2020)
 
 FEATURES
 * Add support for waiting on resource fields to reach a certain value (#105)
