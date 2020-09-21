@@ -13,6 +13,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+var providerName = "hashicorp/kubernetes-alpha"
+
 var handshakeConfig = plugin.HandshakeConfig{
 	ProtocolVersion: 5,
 	// The magic cookie values should NEVER be changed.
@@ -20,7 +22,7 @@ var handshakeConfig = plugin.HandshakeConfig{
 	MagicCookieValue: "d602bf8f470bc67ca7faa0386276bbdd4330efaf76d1a219cb4d6991ca9872b2",
 }
 
-// Serve is the default provider entry point
+// Serve is the default entrypoint for the provider.
 func Serve() {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: handshakeConfig,
@@ -33,53 +35,18 @@ func Serve() {
 	})
 }
 
-// ServeTest is for serving the provider in-process when testing
-// returns the reattach configuration or an error
-func ServeTest() (tfexec.ReattachInfo, error) {
+// ServeReattach is the entrypoint for manually starting the provider
+// as a process in reattach mode for debugging.
+func ServeReattach() {
 	reattachConfigCh := make(chan *plugin.ReattachConfig)
-
 	go func() {
-		plugin.Serve(&plugin.ServeConfig{
-			HandshakeConfig: handshakeConfig,
-			GRPCServer:      plugin.DefaultGRPCServer,
-			Plugins: plugin.PluginSet{
-				"provider": &grpcPlugin{
-					providerServer: &RawProviderServer{},
-				},
-			},
-			Test: &plugin.ServeTestConfig{
-				ReattachConfigCh: reattachConfigCh,
-			},
-			Logger: hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
-				JSONFormat: false,
-				Level:      hclog.Info,
-			}),
-		})
+		reattachConfig, err := waitForReattachConfig(reattachConfigCh)
+		if err != nil {
+			fmt.Printf("Error getting reattach config: %s\n", err)
+			return
+		}
+		printReattachConfig(reattachConfig)
 	}()
-
-	select {
-	case reattachConfig := <-reattachConfigCh:
-		return map[string]tfexec.ReattachConfig{
-			"hashicorp/kubernetes-alpha": {
-				Protocol: string(reattachConfig.Protocol),
-				Pid:      reattachConfig.Pid,
-				Test:     true,
-				Addr: tfexec.ReattachConfigAddr{
-					Network: reattachConfig.Addr.Network(),
-					String:  reattachConfig.Addr.String(),
-				},
-			},
-		}, nil
-	case <-time.After(10 * time.Second):
-		return nil, fmt.Errorf("timeout when starting the provider")
-	}
-}
-
-// DebugServe is the provider entry point when running in stand-alone process mode
-func DebugServe() {
-	reattachCh := make(chan *plugin.ReattachConfig)
-
-	go waitForReattachConfig(reattachCh)
 
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: handshakeConfig,
@@ -90,7 +57,7 @@ func DebugServe() {
 			},
 		},
 		Test: &plugin.ServeTestConfig{
-			ReattachConfigCh: reattachCh,
+			ReattachConfigCh: reattachConfigCh,
 		},
 		Logger: hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
 			JSONFormat: false,
@@ -99,30 +66,73 @@ func DebugServe() {
 	})
 }
 
-func waitForReattachConfig(ch chan *plugin.ReattachConfig) {
-	var config *plugin.ReattachConfig
-	select {
-	case config = <-ch:
-		reattachStr, err := json.Marshal(map[string]tfexec.ReattachConfig{
-			"hashicorp/kubernetes-alpha": {
-				Protocol: string(config.Protocol),
-				Pid:      config.Pid,
-				Test:     config.Test,
-				Addr: tfexec.ReattachConfigAddr{
-					String:  config.Addr.String(),
-					Network: config.Addr.Network(),
-				},
+// ServeTest is for serving the provider in-process when testing.
+// Returns a ReattachInfo or an error.
+func ServeTest(ctx context.Context) (tfexec.ReattachInfo, error) {
+	reattachConfigCh := make(chan *plugin.ReattachConfig)
+
+	go plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: handshakeConfig,
+		GRPCServer:      plugin.DefaultGRPCServer,
+		Plugins: plugin.PluginSet{
+			"provider": &grpcPlugin{
+				providerServer: &RawProviderServer{},
 			},
-		})
-		if err != nil {
-			fmt.Printf("Error building reattach string: %s", err)
-			return
-		}
-		fmt.Printf("# Provider server started\nexport TF_REATTACH_PROVIDERS='%s'\n", string(reattachStr))
+		},
+		Test: &plugin.ServeTestConfig{
+			Context:          ctx,
+			ReattachConfigCh: reattachConfigCh,
+		},
+		Logger: hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
+			JSONFormat: false,
+			Level:      hclog.Info,
+		}),
+	})
+
+	reattachConfig, err := waitForReattachConfig(reattachConfigCh)
+	if err != nil {
+		return nil, fmt.Errorf("Error getting reattach config: %s", err)
+	}
+
+	return map[string]tfexec.ReattachConfig{
+		providerName: convertReattachConfig(reattachConfig),
+	}, nil
+}
+
+// convertReattachConfig converts plugin.ReattachConfig to tfexec.ReattachConfig
+func convertReattachConfig(reattachConfig *plugin.ReattachConfig) tfexec.ReattachConfig {
+	return tfexec.ReattachConfig{
+		Protocol: string(reattachConfig.Protocol),
+		Pid:      reattachConfig.Pid,
+		Test:     true,
+		Addr: tfexec.ReattachConfigAddr{
+			Network: reattachConfig.Addr.Network(),
+			String:  reattachConfig.Addr.String(),
+		},
+	}
+}
+
+// printReattachConfig prints the line the user needs to copy and paste
+// to set the TF_REATTACH_PROVIDERS variable
+func printReattachConfig(config *plugin.ReattachConfig) {
+	reattachStr, err := json.Marshal(map[string]tfexec.ReattachConfig{
+		providerName: convertReattachConfig(config),
+	})
+	if err != nil {
+		fmt.Printf("Error building reattach string: %s", err)
 		return
+	}
+	fmt.Printf("# Provider server started\nexport TF_REATTACH_PROVIDERS='%s'\n", string(reattachStr))
+}
+
+// waitForReattachConfig blocks until a ReattachConfig is recieved on the
+// supplied channel or times out after 2 seconds.
+func waitForReattachConfig(ch chan *plugin.ReattachConfig) (*plugin.ReattachConfig, error) {
+	select {
+	case config := <-ch:
+		return config, nil
 	case <-time.After(2 * time.Second):
-		fmt.Printf("Timeout while waiting for reattach configuration\n")
-		return
+		return nil, fmt.Errorf("timeout while waiting for reattach configuration")
 	}
 }
 
