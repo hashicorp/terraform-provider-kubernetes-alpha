@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +28,7 @@ var reattachInfo tfexec.ReattachInfo
 func TestMain(m *testing.M) {
 	provider.InitDevLog()
 	var err error
-	reattachInfo, err = provider.ServeTest()
+	reattachInfo, err = provider.ServeTest(context.TODO())
 	if err != nil {
 		//lintignore:R009
 		panic(err)

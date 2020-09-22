@@ -8,15 +8,14 @@ import (
 )
 
 func main() {
-	var dFlag = flag.Bool("debug", false, "run the provider in re-attach mode")
+	var debug = flag.Bool("debug", false, "run the provider in re-attach mode")
 	flag.Parse()
 
 	defer provider.InitDevLog()()
 
 	provider.Dlog.Printf("Starting up with command line: %#v\n", os.Args)
-
-	if *dFlag {
-		provider.DebugServe()
+	if *debug {
+		provider.ServeReattach()
 	} else {
 		provider.Serve()
 	}

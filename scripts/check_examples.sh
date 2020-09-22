@@ -2,11 +2,16 @@
 
 set -e
 
-export TF_IN_AUTOMATION=true
+TF_IN_AUTOMATION=true
+TF_PLUGIN_VERSION="99.0.0"
+TF_PLUGIN_BINARY_NAME="terraform-provider-kubernetes-alpha"
+TF_PLUGIN_BINARY_PATH=".plugins/registry.terraform.io/hashicorp/kubernetes-alpha/$TF_PLUGIN_VERSION/$(go env GOOS)_$(go env GOARCH)/"
 
-if [ ! -f ./terraform-provider-kubernetes-alpha ]; then
-    make build
+if [ ! -f $TF_PLUGIN_BINARY_PATH ]; then
+    mkdir -p $TF_PLUGIN_BINARY_PATH
 fi
+
+cp ./terraform-provider-kubernetes-alpha $TF_PLUGIN_BINARY_PATH
 
 SKIP_CHECKS=.skip_checks
 for example in $PWD/examples/*; do
@@ -16,12 +21,11 @@ for example in $PWD/examples/*; do
         echo "$SKIP_CHECKS specified. Skipping this example."
         continue
     fi
-    terraform init -plugin-dir ../..
+    terraform init -plugin-dir ../../.plugins
     terraform validate
     terraform plan -out tfplan > /dev/null
     terraform apply tfplan
     terraform refresh
     terraform destroy -auto-approve
     echo
-    
 done

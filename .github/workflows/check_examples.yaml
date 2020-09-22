@@ -26,7 +26,6 @@ jobs:
         go-version: ${{ steps.go-version.outputs.content }}
     - uses: engineerd/setup-kind@v0.3.0
     - name: Check examples run
-      run: ./scripts/check_examples.sh
+      run: make check-examples
       env:
         TERM: xterm-256color
-      shell: bash
