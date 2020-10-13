@@ -1,5 +1,5 @@
 provider "kubernetes-alpha" {
-  server_side_planning = true
+  server_side_planning = false
   config_path = "~/.kube/config"
 }
 
@@ -20,8 +20,13 @@ resource "kubernetes_manifest" "test-crd" {
       names = {
         kind   = "TestCrd"
         plural = "testcrds"
+        singular = "testcrd"
+        listKind = "TestCrds"
       }
       scope = "Namespaced"
+      conversion = {
+        strategy = "None"
+      }
       versions = [{
         name    = "v1"
         served  = true

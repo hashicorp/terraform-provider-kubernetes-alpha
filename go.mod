@@ -9,9 +9,10 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/googleapis/gnostic v0.4.0 // indirect
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
-	github.com/hashicorp/go-hclog v0.14.1 // indirect
+	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hashicorp/go-plugin v1.3.0
 	github.com/hashicorp/hcl/v2 v2.0.0
+	github.com/hashicorp/terraform-exec v0.10.0
 	github.com/hashicorp/terraform-json v0.5.0
 	github.com/hashicorp/terraform-plugin-sdk v1.4.1
 	github.com/hashicorp/terraform-plugin-test/v2 v2.1.2
@@ -34,3 +35,5 @@ require (
 	k8s.io/apimachinery v0.18.0
 	k8s.io/client-go v0.18.0
 )
+
+replace github.com/alexsomesan/openapi-cty => /home/alex/work/openapi-cty
