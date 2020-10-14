@@ -5,7 +5,7 @@ resource "kubernetes_manifest" "webhook-injector" {
     "kind"       = "MutatingWebhookConfiguration"
     "metadata" = {
       "labels" = {
-        "app.kubernetes.io/instance"   = "${var.name}"
+        "app.kubernetes.io/instance"   = var.name
         "app.kubernetes.io/managed-by" = "Terraform"
         "app.kubernetes.io/name"       = "vault-agent-injector"
       }
