@@ -1,4 +1,9 @@
+variable "server_side_planning" {
+  type = bool
+  default = false
+}
+
 provider "kubernetes-alpha" {
-  config_file          = var.kubeconfig
-  server_side_planning = true
+  server_side_planning = var.server_side_planning
+  config_path          = var.kubeconfig
 }

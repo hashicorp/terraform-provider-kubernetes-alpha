@@ -99,7 +99,7 @@ resource "kubernetes_manifest" "service-injector" {
         },
       ]
       "selector" = {
-        "app.kubernetes.io/instance" = "${var.name}"
+        "app.kubernetes.io/instance" = var.name
         "app.kubernetes.io/name"     = "vault-agent-injector"
         "component"                  = "webhook"
       }
