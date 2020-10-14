@@ -1,5 +1,12 @@
+variable "server_side_planning" {
+  type = bool
+  default = false
+}
+
 provider "kubernetes-alpha" {
-    config_path = "~/.kube/config"
+  server_side_planning = var.server_side_planning
+
+  config_path = "~/.kube/config"
 }
 
 resource "kubernetes_manifest" "test-configmap" {

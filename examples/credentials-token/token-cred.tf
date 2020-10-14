@@ -4,10 +4,25 @@
 # The secret also includes the cluster certificate authority required to securely access the API.
 # Retrieve the token and CA from the Secret and paste them into the attributes below.
 #
+variable "minikube_ip" {
+  type = string
+}
+
+variable "minikube_token" {
+  type = string
+}
+
+variable "server_side_planning" {
+  type = bool
+  default = false
+}
+
 provider "kubernetes-alpha" {
-  host = "https://192.168.64.51:8443"
-  cluster_ca_certificate = file("ca.crt")
-  token = "<token-string-goes-here>"
+  server_side_planning = var.server_side_planning
+
+  host = "https://${var.minikube_ip}:8443"
+  cluster_ca_certificate = file("~/.minikube/ca.crt")
+  token = var.minikube_token
 }
 
 # Example resource

@@ -5,18 +5,42 @@
 # Requirement: the AWS cli tool should be installed and confirmed working.
 # If it is not accesible in the PATH, the full path to the 'aws' tool should be used in the "command" attribute.
 
+variable "cluster_ca" {
+  type = string
+}
+
+variable "cluster_region" {
+  type = string
+  default = "eu-central-1"
+}
+
+variable "cluster_endpoint" {
+  type = string
+}
+
+variable "cluster_name" {
+  type = string
+}
+
+variable "server_side_planning" {
+  type = bool
+  default = false
+}
+
 provider "kubernetes-alpha" {
-  host = "https://84FEE4598F246F88925FC81F77877F99.yl4.eu-central-1.eks.amazonaws.com"
+  server_side_planning = var.server_side_planning
+
+  host = var.cluster_endpoint
 
   # Cluster CA certificate obtained from EKS
-  cluster_ca_certificate = file("ca.crt")
+  cluster_ca_certificate = file(var.cluster_ca)
 
   exec = {
     api_version = "client.authentication.k8s.io/v1alpha1"
 
     command = "aws" # this is the actual 'aws' cli tool
 
-    args = ["--region", "eu-central-1", "eks", "get-token", "--cluster-name", "my-eks-cluster"]
+    args = ["--region", var.cluster_region, "eks", "get-token", "--cluster-name", var.cluster_name ]
 
     env = {
       # Credentials for the AWS cli tool

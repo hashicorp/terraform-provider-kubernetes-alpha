@@ -1,7 +1,18 @@
 # Example demonstrates how to authenticate to a cluster API using client certificates
 #
+variable "minikube_ip" {
+  type = string
+}
+
+variable "server_side_planning" {
+  type = bool
+  default = false
+}
+
 provider "kubernetes-alpha" {
-  host = "https://192.168.246.148:8443"
+  server_side_planning = var.server_side_planning
+
+  host = "https://${var.minikube_ip}:8443"
 
   cluster_ca_certificate = file("~/.minikube/ca.crt")
 
