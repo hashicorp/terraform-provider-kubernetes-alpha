@@ -3,7 +3,7 @@ module github.com/hashicorp/terraform-provider-kubernetes-alpha
 go 1.15
 
 require (
-	github.com/alexsomesan/openapi-cty v0.0.5
+	github.com/alexsomesan/openapi-cty v0.0.6
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/golang/protobuf v1.4.2
@@ -34,8 +34,4 @@ require (
 	k8s.io/apiextensions-apiserver v0.18.0
 	k8s.io/apimachinery v0.18.0
 	k8s.io/client-go v0.18.0
-)
-
-replace (
-	"github.com/alexsomesan/openapi-cty" => "/home/alex/workspace/openapi-cty"
 )

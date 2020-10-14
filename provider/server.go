@@ -445,9 +445,6 @@ func (s *RawProviderServer) Configure(ctx context.Context, req *tfplugin5.Config
 
 	ps[ClientConfig] = clientConfig
 
-	ssp := providerConfig.GetAttr("server_side_planning")
-
-	ps[SSPlanning] = ssp.True()
 	return response, nil
 }
 
@@ -557,7 +554,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 		return resp, nil
 	}
 
-	ps := GetProviderState()
+	ps := GetGlobalState()
 	var planned cty.Value
 
 	if ps[SSPlanning].(bool) {
@@ -588,13 +585,16 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfplugi
 	return resp, nil
 }
 
-func (s *RawProviderServer) waitForCompletion(ctx context.Context, applyPlannedState cty.Value, rs dynamic.ResourceInterface, rname string) error {
+func (s *RawProviderServer) waitForCompletion(ctx context.Context, applyPlannedState cty.Value, rs dynamic.ResourceInterface, rname string, rtype cty.Type) error {
+	if applyPlannedState.IsNull() {
+		return nil
+	}
 	waitForBlock := applyPlannedState.GetAttr("wait_for")
 	if waitForBlock.IsNull() || !waitForBlock.IsKnown() {
 		return nil
 	}
 
-	waiter, err := NewResourceWaiter(rs, rname, waitForBlock)
+	waiter, err := NewResourceWaiter(rs, rname, rtype, waitForBlock)
 	if err != nil {
 		return err
 	}
@@ -699,7 +699,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 			}
 			Dlog.Printf("[ApplyResourceChange][Apply][CtyResponse]\n%s\n", spew.Sdump(newResObject))
 
-			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
+			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
 			if err != nil {
 				return resp, err
 			}
@@ -738,6 +738,16 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 				return resp, err
 			}
 
+			gvk, err := GVKFromCtyObject(&pco)
+			if err != nil {
+				return resp, fmt.Errorf("failed to determine resource GVK: %s", err)
+			}
+
+			tsch, err := resourceTypeFromOpenAPI(gvk)
+			if err != nil {
+				return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
+			}
+
 			rnamespace := uo.GetNamespace()
 			rname := uo.GetName()
 
@@ -755,34 +765,14 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfplug
 						Detail:   err.Error(),
 						Summary:  fmt.Sprintf("DELETE resource %s failed: %s", rn, err),
 					})
-				return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
+				return resp, fmt.Errorf("DELETE resource %s failed: %s", rn, err)
 			}
-			Dlog.Printf("[ApplyResourceChange][Update] API response:\n%s\n", spew.Sdump(result))
 
-			fo := FilterEphemeralFields(result.Object)
-			newResObject, err := UnstructuredToCty(fo, tsch)
+			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
 			if err != nil {
 				return resp, err
 			}
 
-			err = s.waitForCompletion(ctx, applyPlannedState, rs, rname)
-			if err != nil {
-				return resp, err
-			}
-
-			Dlog.Printf("[ApplyResourceChange][Update] transformed response:\n%s", spew.Sdump(newResObject))
-
-			newResState, err := cty.Transform(applyPlannedState,
-				ResourceDeepUpdateObjectAttr(cty.GetAttrPath("object"), &newResObject),
-			)
-			if err != nil {
-				return resp, err
-			}
-			Dlog.Printf("[ApplyResourceChange][Update] transformed new state:\n%s", spew.Sdump(newResState))
-			mp, err := MarshalResource(req.TypeName, &newResState)
-			if err != nil {
-				return resp, err
-			}
 			resp.NewState = req.PlannedState
 		}
 	}

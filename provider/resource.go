@@ -419,7 +419,7 @@ func morphManifestToOAPI(m cty.Value, t cty.Type) (cty.Value, error) {
 // PlanUpdateResource decides whether to off-load the change planning
 // to the API server via a dry-run call or compute the changes locally
 func PlanUpdateResource(ctx context.Context, in *cty.Value) (cty.Value, error) {
-	s := GetProviderState()
+	s := GetGlobalState()
 	if s[SSPlanning].(bool) {
 		return PlanUpdateResourceServerSide(ctx, in)
 	}

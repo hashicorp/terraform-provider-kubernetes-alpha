@@ -82,7 +82,7 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 	switch sid {
 	case "io.k8s.apimachinery.pkg.util.intstr.IntOrString":
 		t := openapi3.Schema{
-			Type: "integer",
+			Type: "",
 		}
 		return &t, nil
 	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps":
