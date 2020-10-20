@@ -35,7 +35,6 @@ resource "kubernetes_manifest" "cluster-role-binding-server" {
         "app.kubernetes.io/name"       = "vault"
       }
       "name"      = "${var.name}-vault-server-binding"
-      "namespace" = var.namespace
     }
     "roleRef" = {
       "apiGroup" = "rbac.authorization.k8s.io"

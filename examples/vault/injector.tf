@@ -59,7 +59,6 @@ resource "kubernetes_manifest" "cluster-role-binding-injector" {
         "app.kubernetes.io/name"       = "vault-agent-injector"
       }
       "name"      = "${var.name}-vault-agent-injector-binding"
-      "namespace" = var.namespace
     }
     "roleRef" = {
       "apiGroup" = "rbac.authorization.k8s.io"
