@@ -6,7 +6,7 @@ labels: bug
 
 ---
 
-### Terraform, Provider, Kubernetes and Helm versions
+### Terraform, Provider, Kubernetes versions
 <!--- Run `terraform -v` to show the version. If you are not running the latest version of Terraform, please upgrade because your issue may have already been fixed. 
 Run `kubectl version` to show the server and client versions. Note that this provider only supports Server versions of 1.17 and above.
 --->
@@ -14,7 +14,6 @@ Run `kubectl version` to show the server and client versions. Note that this pro
 Terraform version:
 Provider version:
 Kubernetes version:
-Helm version:
 ```
 
 ### Affected Resource(s)
