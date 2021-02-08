@@ -28,4 +28,4 @@ require (
 	k8s.io/client-go v0.20.0
 )
 
-replace github.com/hashicorp/terraform-plugin-go => /home/alex/work/terraform-plugin-go // TODO: Remove once https://github.com/hashicorp/terraform-plugin-go/pull/58 is merged
+replace github.com/hashicorp/terraform-plugin-go => github.com/alexsomesan/terraform-plugin-go v0.2.2-0.20210208163643-b04920a12f76 // TODO: Remove once https://github.com/hashicorp/terraform-plugin-go/pull/58 is merged
