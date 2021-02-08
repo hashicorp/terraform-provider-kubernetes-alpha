@@ -1,23 +1,10 @@
 package provider
 
+/*
 import (
 	"github.com/hashicorp/go-cty/cty"
 	proto "github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
 )
-
-// WarnsAndErrsToProto converts the warnings and errors returned by the legacy
-// provider to protobuf diagnostics.
-func WarnsAndErrsToProto(warns []string, errs []error) (diags []*proto.Diagnostic) {
-	for _, w := range warns {
-		diags = AppendProtoDiag(diags, w)
-	}
-
-	for _, e := range errs {
-		diags = AppendProtoDiag(diags, e)
-	}
-
-	return diags
-}
 
 // AppendProtoDiag appends a new diagnostic from a warning string or an error.
 // This panics if d is not a string or error.
@@ -46,22 +33,6 @@ func AppendProtoDiag(diags []*proto.Diagnostic, d interface{}) []*proto.Diagnost
 		diags = append(diags, d...)
 	}
 	return diags
-}
-
-// AttributePathToPath takes the proto encoded path and converts it to a cty.Path
-func AttributePathToPath(ap *proto.AttributePath) cty.Path {
-	var p cty.Path
-	for _, step := range ap.Steps {
-		switch selector := step.Selector.(type) {
-		case *proto.AttributePath_Step_AttributeName:
-			p = p.GetAttr(selector.AttributeName)
-		case *proto.AttributePath_Step_ElementKeyString:
-			p = p.Index(cty.StringVal(selector.ElementKeyString))
-		case *proto.AttributePath_Step_ElementKeyInt:
-			p = p.Index(cty.NumberIntVal(selector.ElementKeyInt))
-		}
-	}
-	return p
 }
 
 // PathToAttributePath takes a cty.Path and converts it to a proto-encoded path.
@@ -100,3 +71,4 @@ func PathToAttributePath(p cty.Path) *proto.AttributePath {
 	}
 	return ap
 }
+*/

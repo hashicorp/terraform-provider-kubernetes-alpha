@@ -1,5 +1,7 @@
 package provider
 
+/*
+
 import (
 	"context"
 	"fmt"
@@ -17,13 +19,30 @@ import (
 	hclsyntax "github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
+func (s *RawProviderServer) waitForCompletion(ctx context.Context, applyPlannedState tftypes.Value, rs dynamic.ResourceInterface, rname string, rtype tftypes.Type) error {
+	if applyPlannedState.IsNull() {
+		return nil
+	}
+	waitForBlock := applyPlannedState.GetAttr("wait_for")
+	if waitForBlock.IsNull() || !waitForBlock.IsKnown() {
+		return nil
+	}
+
+	waiter, err := NewResourceWaiter(rs, rname, rtype, waitForBlock)
+	if err != nil {
+		return err
+	}
+	return waiter.Wait(ctx)
+}
+
+
 // Waiter is a simple interface to implement a blocking wait operation
 type Waiter interface {
 	Wait(context.Context) error
 }
 
 // NewResourceWaiter constructs an appropriate Waiter using the supplied waitForBlock configuration
-func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, waitForBlock cty.Value) (Waiter, error) {
+func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, resourceType cty.Type, waitForBlock cty.Value) (Waiter, error) {
 	fields := waitForBlock.GetAttr("fields")
 
 	if !fields.IsNull() || fields.IsKnown() {
@@ -58,6 +77,7 @@ func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, 
 		return &FieldWaiter{
 			resource,
 			resourceName,
+			resourceType,
 			matchers,
 		}, nil
 	}
@@ -76,12 +96,13 @@ type FieldMatcher struct {
 type FieldWaiter struct {
 	resource      dynamic.ResourceInterface
 	resourceName  string
+	resourceType  cty.Type
 	fieldMatchers []FieldMatcher
 }
 
 // Wait blocks until all of the FieldMatchers configured evaluate to true
 func (w *FieldWaiter) Wait(ctx context.Context) error {
-	return wait(ctx, w.resource, w.resourceName, func(obj cty.Value) (bool, error) {
+	return wait(ctx, w.resource, w.resourceName, w.resourceType, func(obj cty.Value) (bool, error) {
 		for _, m := range w.fieldMatchers {
 			v, err := m.path.Apply(obj)
 			if err != nil {
@@ -126,7 +147,7 @@ func (w *NoopWaiter) Wait(_ context.Context) error {
 	return nil
 }
 
-func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName string, condition func(cty.Value) (bool, error)) error {
+func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName string, rtype cty.Type, condition func(cty.Value) (bool, error)) error {
 	w, err := resource.Watch(ctx, v1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("metadata.name", resourceName).String(),
 		Watch:         true,
@@ -154,7 +175,7 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 			return err
 		}
 
-		obj, err := UnstructuredToCty(res.Object)
+		obj, err := UnstructuredToCty(res.Object, rtype)
 		if err != nil {
 			return err
 		}
@@ -207,3 +228,4 @@ func FieldPathToCty(fieldPath string) (cty.Path, error) {
 
 	return path, nil
 }
+*/

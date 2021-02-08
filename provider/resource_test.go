@@ -1,9 +1,16 @@
 package provider
 
 import (
+	"errors"
+	"fmt"
+	"math/big"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -62,5 +69,442 @@ func TestOpenAPIPathFromGVR(t *testing.T) {
 		if strings.Compare(i, s.id) != 0 {
 			t.Fatalf("IDs don't match\n\tWant:\t%s\n\tGot:\t%s", s.id, i)
 		}
+	}
+}
+
+func TestRemoveNulls(t *testing.T) {
+	samples := []struct {
+		in  map[string]interface{}
+		out map[string]interface{}
+	}{
+		{
+			in: map[string]interface{}{
+				"foo": nil,
+			},
+			out: map[string]interface{}{},
+		},
+		{
+			in: map[string]interface{}{
+				"foo": nil,
+				"bar": "test",
+			},
+			out: map[string]interface{}{
+				"bar": "test",
+			},
+		},
+		{
+			in: map[string]interface{}{
+				"foo": nil,
+				"bar": []interface{}{nil, "test"},
+			},
+			out: map[string]interface{}{
+				"bar": []interface{}{"test"},
+			},
+		},
+		{
+			in: map[string]interface{}{
+				"foo": nil,
+				"bar": []interface{}{
+					map[string]interface{}{
+						"some":  nil,
+						"other": "data",
+					},
+					"test",
+				},
+			},
+			out: map[string]interface{}{
+				"bar": []interface{}{
+					map[string]interface{}{
+						"other": "data",
+					},
+					"test",
+				},
+			},
+		},
+	}
+
+	for i, s := range samples {
+		t.Run(fmt.Sprintf("sample%d", i+1), func(t *testing.T) {
+			o := mapRemoveNulls(s.in)
+			if !reflect.DeepEqual(s.out, o) {
+				t.Fatal("sample and output are not equal")
+			}
+		})
+	}
+}
+
+func TestTFValueToUnstructured(t *testing.T) {
+	samples := map[string]struct {
+		In  tftypes.Value
+		Out interface{}
+	}{
+		"string-primitive": {
+			In:  tftypes.NewValue(tftypes.String, "hello"),
+			Out: "hello",
+		},
+		"float-primitive": {
+			In:  tftypes.NewValue(tftypes.Number, big.NewFloat(100.2)),
+			Out: 100.2,
+		},
+		"boolean-primitive": {
+			In:  tftypes.NewValue(tftypes.Bool, true),
+			Out: true,
+		},
+		"list-of-strings": {
+			In: tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, []tftypes.Value{
+				tftypes.NewValue(tftypes.String, "test1"),
+				tftypes.NewValue(tftypes.String, "test2"),
+			}),
+			Out: []interface{}{"test1", "test2"},
+		},
+		"map-of-strings": {
+			In: tftypes.NewValue(tftypes.Map{AttributeType: tftypes.String}, map[string]tftypes.Value{
+				"foo": tftypes.NewValue(tftypes.String, "test1"),
+				"bar": tftypes.NewValue(tftypes.String, "test2"),
+			}),
+			Out: map[string]interface{}{
+				"foo": "test1",
+				"bar": "test2",
+			},
+		},
+		"object": {
+			In: tftypes.NewValue(tftypes.Object{
+				AttributeTypes: map[string]tftypes.Type{
+					"foo":    tftypes.String,
+					"buzz":   tftypes.Number,
+					"fake":   tftypes.Bool,
+					"others": tftypes.List{ElementType: tftypes.String},
+				},
+			}, map[string]tftypes.Value{
+				"foo":  tftypes.NewValue(tftypes.String, "bar"),
+				"buzz": tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(42)),
+				"fake": tftypes.NewValue(tftypes.Bool, true),
+				"others": tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, []tftypes.Value{
+					tftypes.NewValue(tftypes.String, "this"),
+					tftypes.NewValue(tftypes.String, "that"),
+				}),
+			}),
+			Out: map[string]interface{}{
+				"foo":    "bar",
+				"buzz":   int64(42),
+				"fake":   true,
+				"others": []interface{}{"this", "that"},
+			},
+		},
+	}
+	for n, s := range samples {
+		t.Run(n, func(t *testing.T) {
+			r, err := TFValueToUnstructured(&(s.In))
+			if err != nil {
+				t.Logf("Conversion failed for sample '%s': %s", n, err)
+				t.FailNow()
+			}
+			if !reflect.DeepEqual(s.Out, r) {
+				t.Logf("Result doesn't match expectation for sample '%s'", n)
+				t.Logf("\t Sample:\t%s", spew.Sdump(s.In))
+				t.Logf("\t Expected:\t%s", spew.Sdump(s.Out))
+				t.Logf("\t Received:\t%s", spew.Sdump(r))
+				t.Fail()
+			}
+		})
+	}
+}
+
+func TestUnstructuredToTFValue(t *testing.T) {
+	type sampleInType struct {
+		v interface{}
+		t tftypes.Type
+	}
+	samples := map[string]struct {
+		In  sampleInType
+		Out tftypes.Value
+		Err error
+	}{
+		"string": {
+			In: sampleInType{
+				v: "foobar",
+				t: nil,
+			},
+			Out: tftypes.NewValue(tftypes.String, "foobar"),
+		},
+		"boolean": {
+			In: sampleInType{
+				v: true,
+				t: nil,
+			},
+			Out: tftypes.NewValue(tftypes.Bool, true),
+		},
+		"integer": {
+			In: sampleInType{
+				v: int64(100),
+				t: nil,
+			},
+			Out: tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(100)),
+		},
+		"integer64": {
+			In: sampleInType{
+				v: int64(0x100000000),
+				t: nil,
+			},
+			Out: tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(0x100000000)),
+		},
+		"integer32": {
+			In:  sampleInType{int32(0x01000000), nil},
+			Out: tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(0x01000000)),
+		},
+		"integer16": {
+			In:  sampleInType{int16(0x0100), nil},
+			Out: tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(0x0100)),
+		},
+		"float64": {
+			In:  sampleInType{float64(100), nil},
+			Out: tftypes.NewValue(tftypes.Number, big.NewFloat(100)),
+		},
+		"list": {
+			In: sampleInType{[]interface{}{"test1", "test2"}, nil},
+			Out: tftypes.NewValue(tftypes.List{}, []tftypes.Value{
+				tftypes.NewValue(tftypes.String, "test1"),
+				tftypes.NewValue(tftypes.String, "test2"),
+			}),
+		},
+		"map": {
+			In: sampleInType{
+				v: map[string]interface{}{
+					"foo": 18,
+					"bar": "crawl",
+				},
+				t: nil,
+			},
+			Out: tftypes.NewValue(tftypes.Map{}, map[string]tftypes.Value{
+				"foo": tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(18)),
+				"bar": tftypes.NewValue(tftypes.String, "crawl"),
+			}),
+		},
+		"complex-map": {
+			In: sampleInType{
+				v: map[string]interface{}{
+					"foo": []interface{}{"test1", "test2"},
+					"bar": map[string]interface{}{
+						"count": 1,
+						"image": "nginx/latest",
+					},
+					"refresh": true,
+				},
+				t: nil,
+			},
+			Out: tftypes.NewValue(tftypes.Map{}, map[string]tftypes.Value{
+				"foo": tftypes.NewValue(tftypes.List{}, []tftypes.Value{
+					tftypes.NewValue(tftypes.String, "test1"),
+					tftypes.NewValue(tftypes.String, "test2"),
+				}),
+				"bar": tftypes.NewValue(tftypes.Map{}, map[string]tftypes.Value{
+					"count": tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(1)),
+					"image": tftypes.NewValue(tftypes.String, "nginx/latest"),
+				}),
+				"refresh": tftypes.NewValue(tftypes.Bool, true),
+			}),
+		},
+	}
+	for n, s := range samples {
+		t.Run(n, func(t *testing.T) {
+			r, err := UnstructuredToTFValue(s.In.v, s.In.t, tftypes.AttributePath{})
+			if err != nil {
+				t.Logf("Conversion failed for sample '%s': %s", n, err)
+				t.FailNow()
+			}
+			if !reflect.DeepEqual(s.Out, r) {
+				t.Logf("Result doesn't match expectation for sample '%s'", n)
+				t.Logf("\t Sample:\t%s", spew.Sdump(s.In))
+				t.Logf("\t Expected:\t%s", spew.Sdump(s.Out))
+				t.Logf("\t Received:\t%s", spew.Sdump(r))
+				t.Fail()
+			}
+		})
+	}
+}
+
+func TestTFTypeOfValue(t *testing.T) {
+	samples := map[string]struct {
+		In  tftypes.Value
+		Out tftypes.Type
+	}{
+		"string": {
+			In:  tftypes.NewValue(tftypes.String, "hello"),
+			Out: tftypes.String,
+		},
+		"float-number": {
+			In:  tftypes.NewValue(tftypes.Number, big.NewFloat(42.3)),
+			Out: tftypes.Number,
+		},
+		"int-number": {
+			In:  tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(42)),
+			Out: tftypes.Number,
+		},
+		"boolean": {
+			In:  tftypes.NewValue(tftypes.Bool, false),
+			Out: tftypes.Bool,
+		},
+		"list-of-primitives": {
+			In: tftypes.NewValue(tftypes.List{ElementType: tftypes.String},
+				[]tftypes.Value{
+					tftypes.NewValue(tftypes.String, "foo"),
+					tftypes.NewValue(tftypes.String, "bar"),
+				}),
+			Out: tftypes.List{ElementType: tftypes.String},
+		},
+		"list-of-maps": {
+			In: tftypes.NewValue(tftypes.List{ElementType: tftypes.Map{AttributeType: tftypes.Number}},
+				[]tftypes.Value{
+					tftypes.NewValue(tftypes.Map{AttributeType: tftypes.Number}, map[string]tftypes.Value{
+						"foo": tftypes.NewValue(tftypes.Number, big.NewFloat(10)),
+						"bar": tftypes.NewValue(tftypes.Number, big.NewFloat(20)),
+					}),
+					tftypes.NewValue(tftypes.Map{AttributeType: tftypes.Number}, map[string]tftypes.Value{
+						"max": tftypes.NewValue(tftypes.Number, big.NewFloat(0)),
+						"min": tftypes.NewValue(tftypes.Number, big.NewFloat(0xFFFFFFF)),
+					}),
+				}),
+			Out: tftypes.List{ElementType: tftypes.Map{AttributeType: tftypes.Number}},
+		},
+		"map-of-primitives": {
+			In: tftypes.NewValue(tftypes.Map{AttributeType: tftypes.Number}, map[string]tftypes.Value{
+				"foo": tftypes.NewValue(tftypes.Number, big.NewFloat(10)),
+				"bar": tftypes.NewValue(tftypes.Number, big.NewFloat(20)),
+			}),
+			Out: tftypes.Map{AttributeType: tftypes.Number},
+		},
+		"map-of-lists": {
+			In: tftypes.NewValue(tftypes.Map{AttributeType: tftypes.List{ElementType: tftypes.Number}}, map[string]tftypes.Value{
+				"foo": tftypes.NewValue(tftypes.List{ElementType: tftypes.Number}, []tftypes.Value{
+					tftypes.NewValue(tftypes.Number, big.NewFloat(10)),
+					tftypes.NewValue(tftypes.Number, big.NewFloat(20)),
+				}),
+				"bar": tftypes.NewValue(tftypes.List{ElementType: tftypes.Number}, []tftypes.Value{
+					tftypes.NewValue(tftypes.Number, big.NewFloat(3.14)),
+					tftypes.NewValue(tftypes.Number, big.NewFloat(9.99)),
+				}),
+			}),
+			Out: tftypes.Map{AttributeType: tftypes.List{ElementType: tftypes.Number}},
+		},
+		"object-of-primitives": {
+			In: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{"foo": tftypes.String, "bar": tftypes.Number}}, map[string]tftypes.Value{
+				"foo": tftypes.NewValue(tftypes.String, "test"),
+				"bar": tftypes.NewValue(tftypes.Number, big.NewFloat(32)),
+			}),
+			Out: tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+				"foo": tftypes.String,
+				"bar": tftypes.Number,
+			}},
+		},
+	}
+	for n, s := range samples {
+		t.Run(n, func(t *testing.T) {
+			r, err := TFTypeOfValue(s.In)
+			if err != nil {
+				t.Logf("Conversion failed for sample '%s': %s", n, err)
+				t.FailNow()
+			}
+			if !cmp.Equal(r, s.Out) {
+				t.Logf("Result doesn't match expectation for sample '%s'", n)
+				t.Logf("\t Sample:\t%s", spew.Sdump(s.In))
+				t.Logf("\t Expected:\t%s", spew.Sdump(s.Out))
+				t.Logf("\t Received:\t%s", spew.Sdump(r))
+				t.Fail()
+			}
+		})
+	}
+}
+
+func TestResourceDeepMergeValue(t *testing.T) {
+	samples := map[string]struct {
+		A   tftypes.Value
+		B   tftypes.Value
+		Out tftypes.Value
+		E   error
+	}{
+		"unknown-unknown": {
+			A:   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			B:   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			Out: tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			E:   nil,
+		},
+		"unknown-nil": {
+			A:   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			B:   tftypes.NewValue(tftypes.String, nil),
+			Out: tftypes.NewValue(tftypes.String, nil),
+			E:   nil,
+		},
+		"nil-unknown": {
+			A:   tftypes.NewValue(tftypes.String, nil),
+			B:   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			Out: tftypes.NewValue(tftypes.String, nil),
+			E:   nil,
+		},
+		"nil-string": {
+			A:   tftypes.NewValue(tftypes.String, nil),
+			B:   tftypes.NewValue(tftypes.String, "foobar"),
+			Out: tftypes.NewValue(tftypes.String, "foobar"),
+			E:   nil,
+		},
+		"unknown-string": {
+			A:   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			B:   tftypes.NewValue(tftypes.String, "foobar"),
+			Out: tftypes.NewValue(tftypes.String, "foobar"),
+			E:   nil,
+		},
+		"string-unknown": {
+			A:   tftypes.NewValue(tftypes.String, "foobar"),
+			B:   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			Out: tftypes.NewValue(tftypes.String, "foobar"),
+			E:   nil,
+		},
+		"string-nil": {
+			A:   tftypes.NewValue(tftypes.String, "foobar"),
+			B:   tftypes.NewValue(tftypes.String, nil),
+			Out: tftypes.NewValue(tftypes.String, nil),
+			E:   nil,
+		},
+		"string-list": {
+			A:   tftypes.NewValue(tftypes.String, "foobar"),
+			B:   tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, nil),
+			Out: tftypes.Value{},
+			E:   errors.New("failed to merge values: incompatible types of A and B"),
+		},
+		"object-string": {
+			A:   tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{}}, nil),
+			B:   tftypes.NewValue(tftypes.String, "foobar"),
+			Out: tftypes.Value{},
+			E:   errors.New("failed to merge values: incompatible types of A and B"),
+		},
+		"object-unknown": {
+			A:   tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{}}, nil),
+			B:   tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{}}, tftypes.UnknownValue),
+			Out: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{}}, nil),
+			E:   nil,
+		},
+	}
+	for name, s := range samples {
+		t.Run(name, func(t *testing.T) {
+			r, err := ResourceDeepMergeValue(s.A, s.B)
+			if err != nil {
+				if s.E == nil {
+					t.Logf("Unexpected error received for sample '%s': %s", name, err)
+					t.FailNow()
+				}
+				if strings.Compare(err.Error(), s.E.Error()) != 0 {
+					t.Logf("Error does not match expectation for sample'%s': %s", name, err)
+					t.FailNow()
+				}
+			} else {
+				if !cmp.Equal(r, s.Out, cmp.Exporter(func(reflect.Type) bool { return true })) {
+					t.Logf("Result doesn't match expectation for sample '%s'", name)
+					t.Logf("\t Sample A:\t%s", spew.Sdump(s.A))
+					t.Logf("\t Sample B:\t%s", spew.Sdump(s.B))
+					t.Logf("\t Expected:\t%s", spew.Sdump(s.Out))
+					t.Logf("\t Received:\t%s", spew.Sdump(r))
+					t.Fail()
+				}
+			}
+		})
 	}
 }

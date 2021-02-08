@@ -3,9 +3,8 @@ package provider
 import (
 	"log"
 	"os"
-	"strings"
 
-	"github.com/hashicorp/go-cty/cty"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // Dlog is the development logger
@@ -17,6 +16,8 @@ func InitDevLog() func() {
 	if err != nil {
 		log.Fatalf("error opening log file: %v", err)
 	}
+	spew.Config.SortKeys = true
+	// spew.Config.SpewKeys = true
 	//lintignore:AT004
 	Dlog = log.New(f, "RAW provider ", log.Ldate|log.Ltime)
 	return func() {
@@ -25,26 +26,26 @@ func InitDevLog() func() {
 	}
 }
 
-// DumpCtyPath creates log-friendly representation of a cty.Path value
-func DumpCtyPath(in cty.Path) string {
-	b := strings.Builder{}
-	for i, p := range in {
-		switch t := p.(type) {
-		case cty.GetAttrStep:
-			b.WriteString(t.Name)
-		case cty.IndexStep:
-			var v string
-			switch t.Key.Type() {
-			case cty.Number:
-				v = t.Key.AsBigFloat().String()
-			case cty.String:
-				v = t.Key.AsString()
-			}
-			b.WriteString(v)
-		}
-		if i < len(in)-1 {
-			b.WriteString(".")
-		}
-	}
-	return b.String()
-}
+// // DumpCtyPath creates log-friendly representation of a cty.Path value
+// func DumpCtyPath(in cty.Path) string {
+// 	b := strings.Builder{}
+// 	for i, p := range in {
+// 		switch t := p.(type) {
+// 		case cty.GetAttrStep:
+// 			b.WriteString(t.Name)
+// 		case cty.IndexStep:
+// 			var v string
+// 			switch t.Key.Type() {
+// 			case cty.Number:
+// 				v = t.Key.AsBigFloat().String()
+// 			case cty.String:
+// 				v = t.Key.AsString()
+// 			}
+// 			b.WriteString(v)
+// 		}
+// 		if i < len(in)-1 {
+// 			b.WriteString(".")
+// 		}
+// 	}
+// 	return b.String()
+// }
