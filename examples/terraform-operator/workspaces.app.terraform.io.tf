@@ -1,6 +1,4 @@
-
 provider "kubernetes-alpha" {
-  server_side_planning = true
   config_path = "~/.kube/config"
 }
 

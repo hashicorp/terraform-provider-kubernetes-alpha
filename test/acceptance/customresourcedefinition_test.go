@@ -24,11 +24,10 @@ func TestKubernetesManifest_CustomResourceDefinition(t *testing.T) {
 	}()
 
 	tfvars := TFVARS{
-		"server_side_planning": useServerSidePlanning,
-		"kind":                 kind,
-		"plural":               plural,
-		"group":                group,
-		"group_version":        version,
+		"kind":          kind,
+		"plural":        plural,
+		"group":         group,
+		"group_version": version,
 	}
 	tfconfig := loadTerraformConfig(t, "customresourcedefinition.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
@@ -83,13 +82,12 @@ func TestKubernetesManifest_CustomResource(t *testing.T) {
 	}()
 
 	tfvars := TFVARS{
-		"server_side_planning": useServerSidePlanning,
-		"name":                 name,
-		"namespace":            namespace,
-		"kind":                 kind,
-		"plural":               plural,
-		"group":                group,
-		"group_version":        version,
+		"name":          name,
+		"namespace":     namespace,
+		"kind":          kind,
+		"plural":        plural,
+		"group":         group,
+		"group_version": version,
 	}
 	tfconfig := loadTerraformConfig(t, "custom_resource.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)

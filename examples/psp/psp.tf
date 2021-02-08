@@ -9,14 +9,12 @@ resource "kubernetes_manifest" "psp" {
     "apiVersion" = "policy/v1beta1"
     "kind"       = "PodSecurityPolicy"
     "metadata" = {
-      "name"      = "example"
-      "namespace" = "default"
+      "name" = "example"
     }
     "spec" = {
       "fsGroup" = {
         "rule" = "RunAsAny"
       }
-      "privileged" = false
       "runAsUser" = {
         "rule" = "RunAsAny"
       }

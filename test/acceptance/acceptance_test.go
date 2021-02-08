@@ -19,8 +19,6 @@ import (
 	kuberneteshelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/kubernetes"
 )
 
-var useServerSidePlanning bool
-
 var tfhelper *tftest.Helper
 var k8shelper *kuberneteshelper.Helper
 var reattachInfo tfexec.ReattachInfo
@@ -45,7 +43,6 @@ func TestMain(m *testing.M) {
 
 	k8shelper = kuberneteshelper.NewHelper()
 
-	useServerSidePlanning = *flag.Bool("server-side-plan", true, "Run the tests with server_side_planning set to true")
 	flag.Parse()
 
 	rand.Seed(time.Now().UTC().UnixNano())

@@ -1,5 +1,4 @@
 provider "kubernetes-alpha" {
-  server_side_planning = var.server_side_planning
 }
 
 resource "kubernetes_manifest" "test" {

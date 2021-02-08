@@ -1,5 +1,4 @@
 provider "kubernetes-alpha" {
-  server_side_planning = var.server_side_planning
 }
 
 resource "kubernetes_manifest" "test_crd" {
@@ -7,20 +6,20 @@ resource "kubernetes_manifest" "test_crd" {
 
   manifest = {
     apiVersion = "apiextensions.k8s.io/v1"
-    kind = "CustomResourceDefinition"
+    kind       = "CustomResourceDefinition"
     metadata = {
       name = "${var.plural}.${var.group}"
     }
     spec = {
       group = var.group
       names = {
-        kind = var.kind
+        kind   = var.kind
         plural = var.plural
       }
       scope = "Namespaced"
       versions = [{
-        name = var.group_version
-        served = true
+        name    = var.group_version
+        served  = true
         storage = true
         schema = {
           openAPIV3Schema = {
@@ -49,10 +48,10 @@ resource "kubernetes_manifest" "test" {
 
   manifest = {
     apiVersion = "${var.group}/${var.group_version}"
-    kind = var.kind
+    kind       = var.kind
     metadata = {
       namespace = var.namespace
-      name = var.name
+      name      = var.name
     }
     data = "this is a test"
   }

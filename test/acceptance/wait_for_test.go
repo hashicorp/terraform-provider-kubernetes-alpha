@@ -23,9 +23,8 @@ func TestKubernetesManifest_WaitForFields_Pod(t *testing.T) {
 	defer k8shelper.DeleteNamespace(t, namespace)
 
 	tfvars := TFVARS{
-		"server_side_planning": useServerSidePlanning,
-		"namespace":            namespace,
-		"name":                 name,
+		"namespace": namespace,
+		"name":      name,
 	}
 	tfconfig := loadTerraformConfig(t, "wait_for_fields_pod.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)

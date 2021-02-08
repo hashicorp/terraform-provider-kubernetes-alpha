@@ -1,8 +1,3 @@
-variable "server_side_planning" {
-  type    = bool
-  default = true
-}
-
 variable "location" {
   type    = string
   default = "West Europe"
@@ -32,8 +27,6 @@ module "cluster" {
 */
 
 provider "kubernetes-alpha" {
-  server_side_planning = var.server_side_planning
-
   host                   = module.cluster.host
   cluster_ca_certificate = module.cluster.cluster_ca_certificate
   client_certificate     = module.cluster.client_certificate
