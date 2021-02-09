@@ -29,7 +29,7 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 	f := foapiv2{
 		swagger:        &swg,
 		typeCache:      make(map[uint64]tftypes.Type),
-		recursionDepth: 50, // arbitrarily large number - a type this big will likely kill Terraform anyway
+		recursionDepth: 15, // arbitrarily large number - a type this big will likely kill Terraform anyway
 	}
 
 	d := f.swagger.Definitions
@@ -89,6 +89,11 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 		}
 		return &t, nil
 	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps":
+		t := openapi3.Schema{
+			Type: "",
+		}
+		return &t, nil
+	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps":
 		t := openapi3.Schema{
 			Type: "",
 		}
