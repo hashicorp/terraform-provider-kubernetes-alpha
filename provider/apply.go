@@ -141,7 +141,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				&tfprotov5.Diagnostic{
 					Severity: tfprotov5.DiagnosticSeverityError,
 					Detail:   err.Error(),
-					Summary:  fmt.Sprintf("PATCH resource %s failed!\nAPI Error: %s", rn, err),
+					Summary:  fmt.Sprintf("PATCH for resource %s failed to apply", rn),
 				})
 			return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
 		}
