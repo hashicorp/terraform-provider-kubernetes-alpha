@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// ResourceDeepMergeValue is a cty.Transform callback that sets each leaf node below the "object" attribute to a new cty.Value
+// ResourceDeepMergeValue is a tftypes.Transform callback that sets each leaf node below the "object" attribute to a new cty.Value
 func ResourceDeepMergeValue(aval, bval tftypes.Value) (tftypes.Value, error) {
 	var err error
 
@@ -66,36 +66,6 @@ func ResourceDeepMergeValue(aval, bval tftypes.Value) (tftypes.Value, error) {
 	}
 	return tftypes.Value{}, errors.New("failed to merge values: unknown combination")
 }
-
-// GVRFromTftypesObject extracts a canonical schema.GroupVersionResource out of the resource's
-// metadata by checking it against the discovery API via a RESTMapper
-// func GVRFromTftypesObject(in *tftypes.Value, m meta.RESTMapper) (schema.GroupVersionResource, error) {
-// 	r := schema.GroupVersionResource{}
-// 	var obj map[string]tftypes.Value
-// 	err := in.As(&obj)
-// 	if err != nil {
-// 		return r, err
-// 	}
-// 	var apv string
-// 	var kind string
-// 	err = obj["apiVersion"].As(&apv)
-// 	if err != nil {
-// 		return r, err
-// 	}
-// 	err = obj["kind"].As(&kind)
-// 	if err != nil {
-// 		return r, err
-// 	}
-// 	gv, err := schema.ParseGroupVersion(apv)
-// 	if err != nil {
-// 		return r, err
-// 	}
-// 	gvr, err := m.ResourceFor(gv.WithResource(kind))
-// 	if err != nil {
-// 		return r, err
-// 	}
-// 	return gvr, nil
-// }
 
 // GVRFromUnstructured extracts a canonical schema.GroupVersionResource out of the resource's
 // metadata by checking it against the discovery API via a RESTMapper
@@ -242,9 +212,11 @@ func TFValueToUnstructured(in *tftypes.Value) (interface{}, error) {
 // UnstructuredToTFValue converts a Kubernetes dynamic client unstructured object
 // into a Terraform specific tftypes.Value type object
 func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
-	// var err error
+	if st == nil {
+		return tftypes.Value{}, errors.New("type cannot be nil")
+	}
 	if in == nil {
-		return tftypes.NewValue(tftypes.DynamicPseudoType, nil), nil
+		return tftypes.NewValue(st, nil), nil
 	}
 	var err error
 	switch in.(type) {
@@ -270,20 +242,20 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 	case int16:
 		return tftypes.NewValue(tftypes.Number, new(big.Float).SetInt64(int64(in.(int16)))), nil
 	case float64:
-		return tftypes.NewValue(tftypes.Number, &in), nil
+		return tftypes.NewValue(tftypes.Number, new(big.Float).SetFloat64(in.(float64))), nil
 	case []interface{}:
 		var il []tftypes.Value
 		for k, v := range in.([]interface{}) {
 			var iv tftypes.Value
 			switch {
 			case st.Is(tftypes.List{}):
-				iv, err = UnstructuredToTFValue(v, st.(tftypes.List).ElementType, at)
+				iv, err = UnstructuredToTFValue(v, st.(tftypes.List).ElementType, at.WithElementKeyInt(int64(k)))
 			case st.Is(tftypes.Set{}):
-				iv, err = UnstructuredToTFValue(v, st.(tftypes.Set).ElementType, at)
+				iv, err = UnstructuredToTFValue(v, st.(tftypes.Set).ElementType, at.WithElementKeyInt(int64(k)))
 			case st.Is(tftypes.Tuple{}):
-				iv, err = UnstructuredToTFValue(v, st.(tftypes.Tuple).ElementTypes[k], at)
+				iv, err = UnstructuredToTFValue(v, st.(tftypes.Tuple).ElementTypes[k], at.WithElementKeyInt(int64(k)))
 			case st.Is(tftypes.DynamicPseudoType):
-				iv, err = UnstructuredToTFValue(v, tftypes.DynamicPseudoType, at)
+				iv, err = UnstructuredToTFValue(v, tftypes.DynamicPseudoType, at.WithElementKeyInt(int64(k)))
 			default:
 				return tftypes.Value{}, fmt.Errorf("failed to convert unstructured list value: incompatible type: %s", st.String())
 			}
@@ -312,19 +284,23 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 		im := make(map[string]tftypes.Value)
 		for k, v := range in.(map[string]interface{}) {
 			var kt tftypes.Type
+			var eap tftypes.AttributePath
 			switch {
 			case st.Is(tftypes.Object{}):
 				kt = st.(tftypes.Object).AttributeTypes[k]
+				eap = at.WithAttributeName(k)
 			case st.Is(tftypes.Map{}):
 				kt = st.(tftypes.Map).AttributeType
+				eap = at.WithElementKeyString(k)
 			case st.Is(tftypes.DynamicPseudoType):
 				kt = tftypes.DynamicPseudoType
+				eap = eap.WithAttributeName(k)
 			default:
-				return tftypes.Value{}, fmt.Errorf("failed to convert unstructured map value: incompatible type: %s", st.String())
+				return tftypes.Value{}, at.NewErrorf("failed to convert unstructured map value: incompatible type: %s", st.String())
 			}
-			im[k], err = UnstructuredToTFValue(v, kt, at)
+			im[k], err = UnstructuredToTFValue(v, kt, eap)
 			if err != nil {
-				return tftypes.Value{}, fmt.Errorf("failed to convert map element value: %s", err)
+				return tftypes.Value{}, at.NewErrorf("failed to convert map element value: %s", err)
 			}
 		}
 		if st.Is(tftypes.DynamicPseudoType) {
@@ -336,7 +312,7 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 		}
 		return tftypes.NewValue(st, im), nil
 	}
-	return tftypes.Value{}, at.NewErrorf("cannot convert value of unknown type")
+	return tftypes.Value{}, errors.New("cannot convert value of unknown type")
 }
 
 // OpenAPIPathFromGVK returns the ID used to retrieve a resource type definition
@@ -447,113 +423,3 @@ func FilterEphemeralFields(in map[string]interface{}) map[string]interface{} {
 
 	return in
 }
-
-// TFTypeOfValue returns an equivalent type of an arbitrarily complex tftypes.Value
-// by infering it using a breadth-first traversal of the input structure.
-//
-// NOTE:
-// This solution is not ideal and was developed as a workaround for not being able to
-// directly extract the type of a tftypes.Value due to it being private.
-// This should be resolved when https://github.com/hashicorp/terraform-plugin-go/pull/58 merges
-//
-// TODO: We should remove this function after validating the solution from above PR.
-func TFTypeOfValue(in tftypes.Value) (tftypes.Type, error) {
-	if !in.IsKnown() {
-		return tftypes.DynamicPseudoType, nil
-	}
-	var err error
-	switch {
-	case in.Type().Is(tftypes.Number):
-		return tftypes.Number, nil
-	case in.Type().Is(tftypes.String):
-		return tftypes.String, nil
-	case in.Type().Is(tftypes.Bool):
-		return tftypes.Bool, nil
-	case in.Type().Is(tftypes.DynamicPseudoType):
-		return tftypes.DynamicPseudoType, nil
-	case in.Type().Is(tftypes.Map{}):
-		atm := make(map[string]tftypes.Value)
-		in.As(&atm)
-		var t tftypes.Type
-		for _, v := range atm {
-			t, err = TFTypeOfValue(v)
-			if err != nil {
-				return nil, err
-			}
-			break
-		}
-		return tftypes.Map{AttributeType: t}, nil
-	case in.Type().Is(tftypes.Object{}):
-		atm := make(map[string]tftypes.Value)
-		tpm := make(map[string]tftypes.Type)
-		in.As(&atm)
-		for k, v := range atm {
-			tpm[k], err = TFTypeOfValue(v)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return tftypes.Object{AttributeTypes: tpm}, nil
-	case in.Type().Is(tftypes.List{}):
-		var el []tftypes.Value
-		in.As(&el)
-		t, err := TFTypeOfValue(el[0])
-		if err != nil {
-			return nil, err
-		}
-		return tftypes.List{ElementType: t}, nil
-	case in.Type().Is(tftypes.Set{}):
-		var el []tftypes.Value
-		in.As(&el)
-		t, err := TFTypeOfValue(el[0])
-		if err != nil {
-			return nil, err
-		}
-		return tftypes.Set{ElementType: t}, err
-	case in.Type().Is(tftypes.Tuple{}):
-		var el []tftypes.Value
-		var t []tftypes.Type
-		in.As(&el)
-		for i, v := range el {
-			t[i], err = TFTypeOfValue(v)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return tftypes.Tuple{ElementTypes: t}, nil
-	}
-	return nil, fmt.Errorf("cannot determine type for value: %#v", in)
-}
-
-/*
-func typeForPath(t cty.Type, p cty.Path) (cty.Type, error) {
-	if len(p) == 0 {
-		return t, nil
-	}
-	switch ts := p[0].(type) {
-	case cty.IndexStep:
-		if !t.IsListType() && !t.IsMapType() && !t.IsSetType() {
-			return cty.NilType, fmt.Errorf("cannot use path step %s on type %s",
-				p[0], t.GoString())
-		}
-		return typeForPath(t.ElementType(), p[1:])
-	case cty.GetAttrStep:
-		switch {
-		case t.IsObjectType():
-			if !t.HasAttribute(ts.Name) {
-				return cty.NilType, fmt.Errorf("type %s has no attribute '%s'",
-					t.FriendlyName(), ts.Name)
-			}
-			return typeForPath(t.AttributeType(ts.Name), p[1:])
-		case t.IsMapType():
-			return typeForPath(t.ElementType(), p[1:])
-		default:
-			return cty.NilType, fmt.Errorf("cannot use path step %s on type %s",
-				p[0], t.GoString())
-		}
-	}
-	return cty.NilType, errors.Errorf("cannot use path step %s on type %s",
-		p[0], t.GoString())
-}
-
-*/
