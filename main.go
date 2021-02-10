@@ -5,20 +5,32 @@ import (
 	"flag"
 	"os"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/provider"
 )
 
 func main() {
 	var debug = flag.Bool("debug", false, "run the provider in re-attach mode")
+	var jsonLog = flag.Bool("jsonlog", false, "output logging as JSON")
+
 	flag.Parse()
 	ctx := context.Background()
 
-	defer provider.InitDevLog()()
+	var logLevel string
+	logLevel, ok := os.LookupEnv("TF_LOG")
+	if !ok {
+		logLevel = "info"
+	}
 
-	provider.Dlog.Printf("Starting up with command line: %#v\n", os.Args)
+	logger := hclog.New(&hclog.LoggerOptions{
+		JSONFormat: *jsonLog,
+		Level:      hclog.LevelFromString(logLevel),
+		Output:     os.Stderr,
+	})
+
 	if *debug {
-		provider.ServeReattach(ctx)
+		provider.ServeReattach(ctx, logger)
 	} else {
-		provider.Serve(ctx)
+		provider.Serve(ctx, logger)
 	}
 }

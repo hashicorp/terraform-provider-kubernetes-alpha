@@ -489,7 +489,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loader, overrides)
 	clientConfig, err := cc.ClientConfig()
 	if err != nil {
-		Dlog.Printf("[Configure] Failed to load config:\n%s\n", spew.Sdump(cc))
+		s.logger.Error("[Configure] Failed to load config:\n%s\n", spew.Sdump(cc))
 		if errors.Is(err, clientcmd.ErrEmptyConfig) {
 			// this is a terrible fix for if the configuration is a calculated value
 			return response, nil
@@ -497,7 +497,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 		return response, fmt.Errorf("cannot load Kubernetes client config: %s", err)
 	}
 
-	if logging.IsDebugOrHigher() {
+	if s.logger.IsTrace() {
 		clientConfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 			return logging.NewTransport("Kubernetes", rt)
 		}
@@ -506,7 +506,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
 	clientConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
 
-	Dlog.Printf("[Configure][ClientConfig]\n%s\n", spew.Sdump(*clientConfig))
+	s.logger.Trace("[Configure][ClientConfig]\n%s\n", spew.Sdump(*clientConfig))
 	s.clientConfig = clientConfig
 
 	return response, nil

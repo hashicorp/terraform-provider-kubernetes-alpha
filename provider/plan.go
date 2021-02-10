@@ -42,7 +42,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, err
 	}
-	Dlog.Printf("[PlanResourceChange][PriorState]\n%s\n", spew.Sdump(proposedState))
+	s.logger.Trace("[PlanResourceChange][PriorState]\n%s\n", spew.Sdump(proposedState))
 
 	// Decode prior resource state
 	priorState, err := req.PriorState.Unmarshal(rt)
@@ -64,15 +64,15 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, err
 	}
-	Dlog.Printf("[PlanResourceChange][PriorState]\n%s\n", spew.Sdump(priorState))
+	s.logger.Trace("[PlanResourceChange][PriorState]\n%s\n", spew.Sdump(priorState))
 
 	if proposedState.IsNull() {
 		// we plan to delete the resource
 		if _, ok := priorVal["object"]; ok {
 			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 				Severity: tfprotov5.DiagnosticSeverityError,
-				Summary:  "Failed to find existing object state before delete",
-				Detail:   err.Error(),
+				Summary:  "Invalid prior state while planning for destroy",
+				Detail:   fmt.Sprintf("'object' attribute missing from state: %s", err),
 			})
 			return resp, err
 		}
@@ -84,7 +84,8 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	if !ok {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "Missing 'manifest' attribute",
+			Summary:  "Invalid proposed state during planning",
+			Detail:   "Missing 'manifest' attribute",
 		})
 		return resp, fmt.Errorf("missing 'manifest' attribute")
 	}
@@ -107,15 +108,13 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, err
 	}
-	Dlog.Printf("[PlanResourceChange][ProposedNewState] GVK\n%s\n", spew.Sdump(gvk))
-	// Dlog.Printf("[PlanResourceChange][ProposedNewState]\n%s\n", spew.Sdump(ppMan))
 
 	objectType, err := s.TFTypeFromOpenAPI(gvk)
 	if err != nil {
 		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 	}
 	so := objectType.(tftypes.Object)
-	Dlog.Printf("[PlanUpdateResourceLocal] OAPI type: %s\n", spew.Sdump(so.AttributeTypes))
+	s.logger.Debug("[PlanUpdateResourceLocal] OAPI type: ", spew.Sdump(so))
 
 	// Transform the input manifest to adhere to the type model from the OpenAPI spec
 	mobj, err := MorphValueToType(ppMan, objectType, tftypes.AttributePath{})
@@ -127,7 +126,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, err
 	}
-	Dlog.Printf("[PlanUpdateResourceLocal] morphed manifest: %s\n", spew.Sdump(mobj))
+	s.logger.Trace("[PlanUpdateResourceLocal] morphed manifest: %s\n", spew.Sdump(mobj))
 
 	completeObj, err := TFValueDeepUnknown(objectType, mobj)
 	if err != nil {
@@ -138,7 +137,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, err
 	}
-	Dlog.Printf("[PlanUpdateResourceLocal] backfilled manifest: %s\n", spew.Sdump(completeObj))
+	s.logger.Trace("[PlanUpdateResourceLocal] backfilled manifest: %s\n", spew.Sdump(completeObj))
 
 	if proposedVal["object"].IsNull() { // plan for Create
 		proposedVal["object"] = completeObj
@@ -147,7 +146,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	}
 
 	propStateVal := tftypes.NewValue(proposedState.Type(), proposedVal)
-	Dlog.Printf("[PlanResourceChange] planned state: %s\n", spew.Sdump(propStateVal))
+	s.logger.Trace("[PlanResourceChange] planned state: %s\n", spew.Sdump(propStateVal))
 
 	plannedState, err := tfprotov5.NewDynamicValue(propStateVal.Type(), propStateVal)
 	if err != nil {

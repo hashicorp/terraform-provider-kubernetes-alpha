@@ -63,7 +63,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		return resp, err
 	}
 	co := resState["object"]
-	cu, err := TFValueToUnstructured(&co)
+	cu, err := TFValueToUnstructured(co)
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
@@ -72,7 +72,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		})
 		return resp, err
 	}
-	Dlog.Printf("[ReadResource][DecodedCurrent]\n%s\n", spew.Sdump(cu))
+	s.logger.Trace("[ReadResource][TFValueToUnstructured]\n%s\n", spew.Sdump(cu))
 
 	rm, err := s.getRestMapper()
 	if err != nil {

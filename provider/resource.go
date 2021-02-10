@@ -132,9 +132,12 @@ func IsResourceNamespaced(gvk schema.GroupVersionKind, m meta.RESTMapper) (bool,
 
 // TFValueToUnstructured converts a Terraform specific tftypes.Value type object
 // into a Kubernetes dynamic client specific unstructured object
-func TFValueToUnstructured(in *tftypes.Value) (interface{}, error) {
+func TFValueToUnstructured(in tftypes.Value) (interface{}, error) {
 	var err error
-	if in.IsNull() || !in.IsKnown() {
+	if !in.IsKnown() {
+		return nil, errors.New("cannot convert unknown value to unstructrued")
+	}
+	if in.IsNull() {
 		return nil, nil
 	}
 	if in.Type().Is(tftypes.DynamicPseudoType) {
@@ -172,7 +175,7 @@ func TFValueToUnstructured(in *tftypes.Value) (interface{}, error) {
 			return lv, err
 		}
 		for k, le := range l {
-			ne, err := TFValueToUnstructured(&le)
+			ne, err := TFValueToUnstructured(le)
 			if err != nil {
 				return lv, fmt.Errorf("cannot convert list element %d to Unstructured: %s", k, err.Error())
 			}
@@ -192,7 +195,7 @@ func TFValueToUnstructured(in *tftypes.Value) (interface{}, error) {
 			return mv, err
 		}
 		for k, me := range m {
-			ne, err := TFValueToUnstructured(&me)
+			ne, err := TFValueToUnstructured(me)
 			if err != nil {
 				return mv, fmt.Errorf("cannot convert `map element %s to Unstructured: %s", k, err.Error())
 			}
@@ -265,19 +268,11 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 			il = append(il, iv)
 		}
 		if st.Is(tftypes.DynamicPseudoType) {
-			var lType tftypes.Type = il[0].Type()
-			for i := 1; i < len(il); i++ {
-				if !lType.Is(il[i].Type()) {
-					// attributes have differnent types - it's a tupple
-					tTypes := make([]tftypes.Type, len(il))
-					for k := range il {
-						tTypes[k] = il[k].Type()
-					}
-					return tftypes.NewValue(tftypes.Tuple{ElementTypes: tTypes}, il), nil
-				}
+			tTypes := make([]tftypes.Type, len(il))
+			for k := range il {
+				tTypes[k] = il[k].Type()
 			}
-			// all key types match  - it's a list
-			return tftypes.NewValue(tftypes.List{ElementType: il[0].Type()}, il), nil
+			return tftypes.NewValue(tftypes.Tuple{ElementTypes: tTypes}, il), nil
 		}
 		return tftypes.NewValue(st, il), nil
 	case map[string]interface{}:

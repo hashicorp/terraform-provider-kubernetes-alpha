@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi2"
@@ -29,7 +28,7 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 	f := foapiv2{
 		swagger:        &swg,
 		typeCache:      make(map[uint64]tftypes.Type),
-		recursionDepth: 15, // arbitrarily large number - a type this big will likely kill Terraform anyway
+		recursionDepth: 50, // arbitrarily large number - a type this big will likely kill Terraform anyway
 	}
 
 	d := f.swagger.Definitions
@@ -114,11 +113,9 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 
 func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tftypes.Type, error) {
 	if stackdepth > f.recursionDepth {
-		log.Println("at stack depth")
 		// this is a hack to overcome the inability to express recursion in tftypes
-		return tftypes.DynamicPseudoType, nil
+		return nil, errors.New("recursion runaway while generating type from OpenAPI spec")
 	}
-	// log.Printf("stack depth: %d\n", stackdepth)
 
 	if elem == nil {
 		return nil, errors.New("cannot convert OpenAPI type (nil)")

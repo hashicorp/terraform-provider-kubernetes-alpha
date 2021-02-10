@@ -16,13 +16,13 @@ import (
 var providerName = "registry.terraform.io/hashicorp/kubernetes-alpha"
 
 // Serve is the default entrypoint for the provider.
-func Serve(ctx context.Context) error {
-	return tf5server.Serve(providerName, func() tfprotov5.ProviderServer { return &(RawProviderServer{}) })
+func Serve(ctx context.Context, logger hclog.Logger) error {
+	return tf5server.Serve(providerName, func() tfprotov5.ProviderServer { return &(RawProviderServer{logger: logger}) })
 }
 
 // ServeReattach is the entrypoint for manually starting the provider
 // as a process in reattach mode for debugging.
-func ServeReattach(ctx context.Context) error {
+func ServeReattach(ctx context.Context, logger hclog.Logger) error {
 	reattachConfigCh := make(chan *plugin.ReattachConfig)
 	go func() {
 		reattachConfig, err := waitForReattachConfig(reattachConfigCh)
@@ -33,13 +33,8 @@ func ServeReattach(ctx context.Context) error {
 		printReattachConfig(reattachConfig)
 	}()
 
-	logger := hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
-		JSONFormat: false,
-		Level:      hclog.Debug,
-	})
-
 	return tf5server.Serve(providerName,
-		func() tfprotov5.ProviderServer { return &(RawProviderServer{}) },
+		func() tfprotov5.ProviderServer { return &(RawProviderServer{logger: logger}) },
 		tf5server.WithDebug(ctx, reattachConfigCh, nil),
 		tf5server.WithGoPluginLogger(logger),
 	)
@@ -47,16 +42,11 @@ func ServeReattach(ctx context.Context) error {
 
 // ServeTest is for serving the provider in-process when testing.
 // Returns a ReattachInfo or an error.
-func ServeTest(ctx context.Context) (tfexec.ReattachInfo, error) {
+func ServeTest(ctx context.Context, logger hclog.Logger) (tfexec.ReattachInfo, error) {
 	reattachConfigCh := make(chan *plugin.ReattachConfig)
 
-	logger := hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
-		JSONFormat: false,
-		Level:      hclog.Debug,
-	})
-
 	go tf5server.Serve(providerName,
-		func() tfprotov5.ProviderServer { return &(RawProviderServer{}) },
+		func() tfprotov5.ProviderServer { return &(RawProviderServer{logger: logger}) },
 		tf5server.WithDebug(ctx, reattachConfigCh, nil),
 		tf5server.WithGoPluginLogger(logger),
 	)

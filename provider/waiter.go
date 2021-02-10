@@ -128,7 +128,7 @@ func (w *FieldWaiter) Wait(ctx context.Context) error {
 				return true, fmt.Errorf("wait_for: cannot match on type %q", v.Type().FriendlyName())
 			}
 
-			Dlog.Printf("matching %#v %q", m.valueMatcher, s)
+			log.Printf("matching %#v %q", m.valueMatcher, s)
 
 			if !m.valueMatcher.Match([]byte(s)) {
 				return false, nil
@@ -156,14 +156,14 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 		return err
 	}
 
-	Dlog.Printf("[ApplyResourceChange][Wait] Waiting until ready...\n")
+	log.Printf("[ApplyResourceChange][Wait] Waiting until ready...\n")
 	for e := range w.ResultChan() {
 		if e.Type == watch.Deleted {
 			return fmt.Errorf("resource was deleted")
 		}
 
 		if e.Type == watch.Error {
-			Dlog.Printf("Error when watching: %#v", e.Object)
+			log.Printf("Error when watching: %#v", e.Object)
 			return fmt.Errorf("watch error")
 		}
 
