@@ -97,8 +97,19 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 			Type: "",
 		}
 		return &t, nil
+	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceSubresourceStatus":
+		t := openapi3.Schema{
+			Type:       "object",
+			Properties: map[string]*openapi3.SchemaRef{},
+		}
+		return &t, nil
+	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceSubresourceStatus":
+		t := openapi3.Schema{
+			Type:       "object",
+			Properties: map[string]*openapi3.SchemaRef{},
+		}
+		return &t, nil
 	}
-
 	nref, ok := f.swagger.Definitions[sid]
 
 	if !ok {
