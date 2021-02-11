@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	tftest "github.com/hashicorp/terraform-plugin-test/v2"
 
@@ -24,9 +25,8 @@ var k8shelper *kuberneteshelper.Helper
 var reattachInfo tfexec.ReattachInfo
 
 func TestMain(m *testing.M) {
-	provider.InitDevLog()
 	var err error
-	reattachInfo, err = provider.ServeTest(context.TODO())
+	reattachInfo, err = provider.ServeTest(context.TODO(), hclog.Default())
 	if err != nil {
 		//lintignore:R009
 		panic(err)

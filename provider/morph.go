@@ -38,7 +38,7 @@ func MorphValueToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) 
 	case v.Type().Is(tftypes.Object{}):
 		return morphObjectToType(v, t, p)
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph from value: %v", v)
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph from value: %v", p.String(), v)
 }
 
 func morphBoolToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
@@ -48,7 +48,7 @@ func morphBoolToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (
 	var bnat bool
 	err := v.As(&bnat)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph boolean value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph boolean value: %v", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.String):
@@ -56,7 +56,7 @@ func morphBoolToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of bool value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of bool value into type: %s", p.String(), t.String())
 }
 
 func morphNumberToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
@@ -66,7 +66,7 @@ func morphNumberToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath)
 	var vnat big.Float
 	err := v.As(&vnat)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph number value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph number value: %v", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.String):
@@ -75,7 +75,7 @@ func morphNumberToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath)
 		return v, nil
 
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of number value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of number value into type: %s", p.String(), t.String())
 }
 
 func morphStringToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
@@ -85,26 +85,26 @@ func morphStringToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath)
 	var vnat string
 	err := v.As(&vnat)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph string value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph string value: %v", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.Number):
 		fv, err := strconv.ParseFloat(vnat, 64)
 		if err != nil {
-			return tftypes.Value{}, p.NewErrorf("failed to morph string value to tftypes.Number: %v", err)
+			return tftypes.Value{}, p.NewErrorf("[%s] failed to morph string value to tftypes.Number: %v", p.String(), err)
 		}
 		nv := new(big.Float).SetFloat64(fv)
 		return tftypes.NewValue(t, nv), nil
 	case t.Is(tftypes.Bool):
 		bv, err := strconv.ParseBool(vnat)
 		if err != nil {
-			return tftypes.Value{}, p.NewErrorf("failed to morph string value: %v", err)
+			return tftypes.Value{}, p.NewErrorf("[%s] failed to morph string value: %v", p.String(), err)
 		}
 		return tftypes.NewValue(t, bv), nil
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of string value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of string value into type: %s", p.String(), t.String())
 }
 
 func morphListToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
@@ -114,40 +114,38 @@ func morphListToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (
 	var lvals []tftypes.Value
 	err := v.As(&lvals)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph list value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph list value: %s", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.Tuple{}):
 		if len(t.(tftypes.Tuple).ElementTypes) != len(lvals) {
-			return tftypes.Value{}, p.NewErrorf("failed to morph list into tuple (length mismatch)")
+			return tftypes.Value{}, p.NewErrorf("[%s] failed to morph list into tuple (length mismatch)", p.String())
 		}
 		var tvals []tftypes.Value = make([]tftypes.Value, len(lvals))
 		for i, v := range lvals {
-			p.WithElementKeyInt(int64(i))
-			nv, err := MorphValueToType(v, t.(tftypes.Tuple).ElementTypes[i], p)
+			elp := p.WithElementKeyInt(int64(i))
+			nv, err := MorphValueToType(v, t.(tftypes.Tuple).ElementTypes[i], elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph list element into tuple element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph list element into tuple element: %v", elp.String(), err)
 			}
 			tvals[i] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, tvals), nil
 	case t.Is(tftypes.Set{}):
 		var svals []tftypes.Value = make([]tftypes.Value, len(lvals))
 		for i, v := range lvals {
-			p.WithElementKeyInt(int64(i))
-			nv, err := MorphValueToType(v, t.(tftypes.Set).ElementType, p)
+			elp := p.WithElementKeyInt(int64(i))
+			nv, err := MorphValueToType(v, t.(tftypes.Set).ElementType, elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph list element into set element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph list element into set element: %v", elp.String(), err)
 			}
 			svals[i] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, svals), nil
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of list value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of list value into type: %s", p.String(), t.String())
 }
 
 func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
@@ -157,37 +155,35 @@ func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath
 	var tvals []tftypes.Value
 	err := v.As(&tvals)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph tuple value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph tuple value: %v", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.List{}):
 		var lvals []tftypes.Value = make([]tftypes.Value, len(tvals))
 		for i, v := range tvals {
-			p.WithElementKeyInt(int64(i))
-			nv, err := MorphValueToType(v, t.(tftypes.List).ElementType, p)
+			elp := p.WithElementKeyInt(int64(i))
+			nv, err := MorphValueToType(v, t.(tftypes.List).ElementType, elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph tuple element into list element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph tuple element into list element: %v", elp.String(), err)
 			}
 			lvals[i] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, lvals), nil
 	case t.Is(tftypes.Set{}):
 		var svals []tftypes.Value = make([]tftypes.Value, len(tvals))
 		for i, v := range tvals {
-			p.WithElementKeyInt(int64(i))
-			nv, err := MorphValueToType(v, t.(tftypes.Set).ElementType, p)
+			elp := p.WithElementKeyInt(int64(i))
+			nv, err := MorphValueToType(v, t.(tftypes.Set).ElementType, elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph tuple element into set element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph tuple element into set element: %v", elp.String(), err)
 			}
 			svals[i] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, svals), nil
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of tuple value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of tuple value into type: %s", p.String(), t.String())
 }
 
 func morphSetToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
@@ -197,40 +193,38 @@ func morphSetToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (t
 	var svals []tftypes.Value
 	err := v.As(&svals)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph set value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph set value: %v", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.List{}):
 		var lvals []tftypes.Value = make([]tftypes.Value, len(svals))
 		for i, v := range svals {
-			p.WithElementKeyInt(int64(i))
-			nv, err := MorphValueToType(v, t.(tftypes.List).ElementType, p)
+			elp := p.WithElementKeyInt(int64(i))
+			nv, err := MorphValueToType(v, t.(tftypes.List).ElementType, elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph set` element into list element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph set element into list element : %v", elp.String(), err)
 			}
 			lvals[i] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, lvals), nil
 	case t.Is(tftypes.Tuple{}):
 		if len(t.(tftypes.Tuple).ElementTypes) != len(svals) {
-			return tftypes.Value{}, p.NewErrorf("failed to morph list into tuple (length mismatch)")
+			return tftypes.Value{}, p.NewErrorf("[%s] failed to morph list into tuple (length mismatch)", p.String())
 		}
 		var tvals []tftypes.Value = make([]tftypes.Value, len(svals))
 		for i, v := range svals {
-			p.WithElementKeyInt(int64(i))
-			nv, err := MorphValueToType(v, t.(tftypes.Tuple).ElementTypes[i], tftypes.AttributePath{})
+			elp := p.WithElementKeyInt(int64(i))
+			nv, err := MorphValueToType(v, t.(tftypes.Tuple).ElementTypes[i], elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph list element into tuple element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph list element into tuple element: %v", elp.String(), err)
 			}
 			tvals[i] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, tvals), nil
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of set value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of set value into type: %s", p.String(), t.String())
 }
 
 func morphMapToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
@@ -240,72 +234,68 @@ func morphMapToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (t
 	var mvals map[string]tftypes.Value
 	err := v.As(&mvals)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph map value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph map value: %v", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.Object{}):
 		var ovals map[string]tftypes.Value = make(map[string]tftypes.Value, len(mvals))
 		for k, v := range mvals {
-			p.WithElementKeyString(k)
-			nv, err := MorphValueToType(v, t.(tftypes.Object).AttributeTypes[k], p)
+			elp := p.WithElementKeyString(k)
+			nv, err := MorphValueToType(v, t.(tftypes.Object).AttributeTypes[k], elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph map element into object element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph map element into object element: %v", elp.String(), err)
 			}
 			ovals[k] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, ovals), nil
 	case t.Is(tftypes.Map{}):
 		var mvals map[string]tftypes.Value = make(map[string]tftypes.Value, len(mvals))
 		for k, v := range mvals {
-			p.WithElementKeyString(k)
-			nv, err := MorphValueToType(v, t.(tftypes.Map).AttributeType, p)
+			elp := p.WithElementKeyString(k)
+			nv, err := MorphValueToType(v, t.(tftypes.Map).AttributeType, elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph object element into map element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph object element into map element: %v", elp.String(), err)
 			}
 			mvals[k] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, mvals), nil
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of map value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of map value into type: %s", p.String(), t.String())
 }
 
 func morphObjectToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
 	var vals map[string]tftypes.Value
 	err := v.As(&vals)
 	if err != nil {
-		return tftypes.Value{}, p.NewErrorf("failed to morph object value: %v", err)
+		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph object value %v", p.String(), err)
 	}
 	switch {
 	case t.Is(tftypes.Object{}):
 		var ovals map[string]tftypes.Value = make(map[string]tftypes.Value, len(vals))
 		for k, v := range vals {
-			p.WithAttributeName(k)
-			nv, err := MorphValueToType(v, t.(tftypes.Object).AttributeTypes[k], p)
+			elp := p.WithAttributeName(k)
+			nv, err := MorphValueToType(v, t.(tftypes.Object).AttributeTypes[k], elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph object element into object element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph object element into object element: %v", elp.String(), err)
 			}
 			ovals[k] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, ovals), nil
 	case t.Is(tftypes.Map{}):
 		var mvals map[string]tftypes.Value = make(map[string]tftypes.Value, len(vals))
 		for k, v := range vals {
-			p.WithElementKeyString(k)
-			nv, err := MorphValueToType(v, t.(tftypes.Map).AttributeType, p)
+			elp := p.WithElementKeyString(k)
+			nv, err := MorphValueToType(v, t.(tftypes.Map).AttributeType, elp)
 			if err != nil {
-				return tftypes.Value{}, p.NewErrorf("failed to morph object element into map element: %v", err)
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph object element into map element: %v", elp.String(), err)
 			}
 			mvals[k] = nv
-			p.WithoutLastStep()
 		}
 		return tftypes.NewValue(t, mvals), nil
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
-	return tftypes.Value{}, p.NewErrorf("unsupported morph of object value into type: %s", t.String())
+	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of object value into type: %s", p.String(), t.String())
 }

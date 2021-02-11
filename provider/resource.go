@@ -18,7 +18,7 @@ func ResourceDeepMergeValue(aval, bval tftypes.Value) (tftypes.Value, error) {
 	var err error
 
 	if !aval.Type().Is(bval.Type()) {
-		return tftypes.Value{}, errors.New("failed to merge values: incompatible types of A and B")
+		return tftypes.Value{}, errors.New("cannot merge values: incompatible types of A and B")
 	}
 
 	switch {
@@ -32,7 +32,7 @@ func ResourceDeepMergeValue(aval, bval tftypes.Value) (tftypes.Value, error) {
 			if bval.IsKnown() {
 				return bval, nil
 			}
-			return tftypes.Value{}, errors.New("failed to merge values: neither value is known")
+			return tftypes.Value{}, errors.New("cannot merge values: neither value is known")
 		}
 		if !bval.IsKnown() {
 			return aval, nil
@@ -45,26 +45,26 @@ func ResourceDeepMergeValue(aval, bval tftypes.Value) (tftypes.Value, error) {
 
 		err = aval.As(&Aattributes)
 		if err != nil {
-			return tftypes.Value{}, fmt.Errorf("failed to merge values: cannot unpack object value A: %s", err)
+			return tftypes.Value{}, fmt.Errorf("cannot merge values: cannot unpack object value A: %s", err)
 		}
 
 		err = bval.As(&Battributes)
 		if err != nil {
-			return tftypes.Value{}, fmt.Errorf("failed to merge values: cannot unpack object value B: %s", err)
+			return tftypes.Value{}, fmt.Errorf("cannot merge values: cannot unpack object value B: %s", err)
 		}
 
 		for k := range Aattributes {
 			if _, ok := Battributes[k]; ok {
 				Rattributes[k], err = ResourceDeepMergeValue(Aattributes[k], Aattributes[k])
 				if err != nil {
-					return tftypes.Value{}, fmt.Errorf("failed to merge object elements: %s", err)
+					return tftypes.Value{}, fmt.Errorf("cannot merge object elements: %s", err)
 				}
 				Rtype[k] = Rattributes[k].Type()
 			}
 		}
 		return tftypes.NewValue(tftypes.Object{AttributeTypes: Rtype}, Rattributes), nil
 	}
-	return tftypes.Value{}, errors.New("failed to merge values: unknown combination")
+	return tftypes.Value{}, errors.New("cannot merge values: unknown combination")
 }
 
 // GVRFromUnstructured extracts a canonical schema.GroupVersionResource out of the resource's
@@ -114,7 +114,7 @@ func GVKFromTftypesObject(in *tftypes.Value, m meta.RESTMapper) (schema.GroupVer
 			return m.GroupVersionKind, nil
 		}
 	}
-	return schema.GroupVersionKind{}, errors.New("failed to select exact GV from REST mapper")
+	return schema.GroupVersionKind{}, errors.New("cannot select exact GV from REST mapper")
 }
 
 // IsResourceNamespaced determines if a resource is namespaced or cluster-level
@@ -132,52 +132,59 @@ func IsResourceNamespaced(gvk schema.GroupVersionKind, m meta.RESTMapper) (bool,
 
 // TFValueToUnstructured converts a Terraform specific tftypes.Value type object
 // into a Kubernetes dynamic client specific unstructured object
-func TFValueToUnstructured(in tftypes.Value) (interface{}, error) {
+func TFValueToUnstructured(in tftypes.Value, ap tftypes.AttributePath) (interface{}, error) {
 	var err error
 	if !in.IsKnown() {
-		return nil, errors.New("cannot convert unknown value to unstructrued")
+		return nil, ap.NewErrorf("[%s] cannot convert unknown value to Unstructured", ap.String())
 	}
 	if in.IsNull() {
 		return nil, nil
 	}
 	if in.Type().Is(tftypes.DynamicPseudoType) {
-		return nil, fmt.Errorf("cannot convert dynamic value to Unstructured")
+		return nil, ap.NewErrorf("[%s] cannot convert dynamic value to Unstructured", ap.String())
 	}
 	switch {
 	case in.Type().Is(tftypes.Bool):
 		var bv bool
 		err = in.As(&bv)
-		return bv, err
+		if err != nil {
+			return nil, ap.NewErrorf("[%s] cannot extract contents of attribute: %s", ap.String(), err)
+		}
+		return bv, nil
 	case in.Type().Is(tftypes.Number):
 		var nv big.Float
 		err = in.As(&nv)
 		if nv.IsInt() {
 			inv, acc := nv.Int64()
 			if acc != big.Exact {
-				return inv, fmt.Errorf("inexact integer approximation when converting number value")
+				return nil, ap.NewErrorf("[%s] inexact integer approximation when converting number value at:", ap.String())
 			}
-			return inv, err
+			return inv, nil
 		}
 		fnv, acc := nv.Float64()
 		if acc != big.Exact {
-			return fnv, fmt.Errorf("inexact float approximation when converting number value")
+			return nil, ap.NewErrorf("[%s] inexact float approximation when converting number value", ap.String())
 		}
 		return fnv, err
 	case in.Type().Is(tftypes.String):
 		var sv string
 		err = in.As(&sv)
-		return sv, err
+		if err != nil {
+			return nil, ap.NewErrorf("[%s] cannot extract contents of attribute: %s", ap.String(), err)
+		}
+		return sv, nil
 	case in.Type().Is(tftypes.List{}) || in.Type().Is(tftypes.Tuple{}):
 		var l []tftypes.Value
 		var lv []interface{}
 		err = in.As(&l)
 		if err != nil {
-			return lv, err
+			return nil, ap.NewErrorf("[%s] cannot extract contents of attribute: %s", ap.String(), err)
 		}
 		for k, le := range l {
-			ne, err := TFValueToUnstructured(le)
+			nextAp := ap.WithElementKeyInt(int64(k))
+			ne, err := TFValueToUnstructured(le, nextAp)
 			if err != nil {
-				return lv, fmt.Errorf("cannot convert list element %d to Unstructured: %s", k, err.Error())
+				return nil, nextAp.NewErrorf("[%s] cannot convert list element to Unstructured: %s", nextAp.String(), err)
 			}
 			if ne != nil {
 				lv = append(lv, ne)
@@ -192,12 +199,19 @@ func TFValueToUnstructured(in tftypes.Value) (interface{}, error) {
 		mv := make(map[string]interface{})
 		err = in.As(&m)
 		if err != nil {
-			return mv, err
+			return nil, ap.NewErrorf("[%s] cannot extract contents of attribute: %s", ap.String(), err)
 		}
 		for k, me := range m {
-			ne, err := TFValueToUnstructured(me)
+			var nextAp tftypes.AttributePath
+			switch {
+			case in.Type().Is(tftypes.Map{}):
+				nextAp = ap.WithElementKeyString(k)
+			case in.Type().Is(tftypes.Object{}):
+				nextAp = ap.WithAttributeName(k)
+			}
+			ne, err := TFValueToUnstructured(me, nextAp)
 			if err != nil {
-				return mv, fmt.Errorf("cannot convert `map element %s to Unstructured: %s", k, err.Error())
+				return nil, nextAp.NewErrorf("[%s]: cannot convert map element to Unstructured: %s", nextAp.String(), err.Error())
 			}
 			if ne != nil {
 				mv[k] = ne
@@ -213,7 +227,7 @@ func TFValueToUnstructured(in tftypes.Value) (interface{}, error) {
 		}
 		return mv, nil
 	default:
-		return nil, fmt.Errorf("cannot convert value of unknown type")
+		return nil, ap.NewErrorf("[%s] cannot convert value of unknown type (%s)", ap.String(), in.Type().String())
 	}
 }
 
@@ -265,10 +279,10 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 			case st.Is(tftypes.DynamicPseudoType):
 				iv, err = UnstructuredToTFValue(v, tftypes.DynamicPseudoType, at.WithElementKeyInt(int64(k)))
 			default:
-				return tftypes.Value{}, fmt.Errorf("failed to convert unstructured list value: incompatible type: %s", st.String())
+				return tftypes.Value{}, fmt.Errorf("cannot convert unstructured list value: incompatible type: %s", st.String())
 			}
 			if err != nil {
-				return tftypes.Value{}, fmt.Errorf("failed to convert unstructured list element value: %s", err)
+				return tftypes.Value{}, fmt.Errorf("cannot convert unstructured list element value: %s", err)
 			}
 			il = append(il, iv)
 		}
@@ -296,11 +310,11 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 				kt = tftypes.DynamicPseudoType
 				eap = eap.WithAttributeName(k)
 			default:
-				return tftypes.Value{}, at.NewErrorf("failed to convert unstructured map value: incompatible type: %s", st.String())
+				return tftypes.Value{}, at.NewErrorf("cannot convert unstructured map value: incompatible type: %s", st.String())
 			}
 			im[k], err = UnstructuredToTFValue(v, kt, eap)
 			if err != nil {
-				return tftypes.Value{}, at.NewErrorf("failed to convert map element value: %s", err)
+				return tftypes.Value{}, at.NewErrorf("cannot convert map element value: %s", err)
 			}
 		}
 		if st.Is(tftypes.DynamicPseudoType) {
@@ -341,17 +355,17 @@ func OpenAPIPathFromGVK(gvk schema.GroupVersionKind) (string, error) {
 func (ps *RawProviderServer) TFTypeFromOpenAPI(gvk schema.GroupVersionKind) (tftypes.Type, error) {
 	id, err := OpenAPIPathFromGVK(gvk)
 	if err != nil {
-		return tftypes.DynamicPseudoType, fmt.Errorf("failed to determine resource type ID: %s", err)
+		return nil, fmt.Errorf("cannot determine resource type ID: %s", err)
 	}
 
 	oapi, err := ps.GetOAPIFoundry()
 	if err != nil {
-		return tftypes.DynamicPseudoType, fmt.Errorf("failed to get OpenAPI foundry: %s", err)
+		return nil, fmt.Errorf("cannot get OpenAPI foundry: %s", err)
 	}
 
 	tsch, err := oapi.GetTypeByID(id)
 	if err != nil {
-		return tftypes.DynamicPseudoType, fmt.Errorf("failed to get resource type from OpenAPI (ID %s): %s", id, err)
+		return nil, fmt.Errorf("cannot get resource type from OpenAPI (ID %s): %s", id, err)
 	}
 
 	// remove "status" attribute from resource type

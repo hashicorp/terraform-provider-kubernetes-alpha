@@ -194,7 +194,7 @@ func TestTFValueToUnstructured(t *testing.T) {
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
-			r, err := TFValueToUnstructured(s.In)
+			r, err := TFValueToUnstructured(s.In, tftypes.AttributePath{})
 			if err != nil {
 				t.Logf("Conversion failed for sample '%s': %s", n, err)
 				t.FailNow()

@@ -23,7 +23,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			Summary:  "Failed to determine planned resource type",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
 
 	applyPlannedState, err := req.PlannedState.Unmarshal(rt)
@@ -33,9 +33,9 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			Summary:  "Failed to unmarshal planned resource state",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
-	s.logger.Trace("[ApplyResourceChange][Request][PlannedState]\n%s\n", spew.Sdump(applyPlannedState))
+	s.logger.Trace("[ApplyResourceChange]", "[PlannedState]", spew.Sdump(applyPlannedState))
 
 	applyPriorState, err := req.PriorState.Unmarshal(rt)
 	if err != nil {
@@ -44,9 +44,9 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			Summary:  "Failed to unmarshal prior resource state",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
-	s.logger.Trace("[ApplyResourceChange][Request][PriorState]\n%s\n", spew.Sdump(applyPriorState))
+	s.logger.Trace("[ApplyResourceChange]", "[PriorState]", spew.Sdump(applyPriorState))
 
 	c, err := s.getDynamicClient()
 	if err != nil {
@@ -56,7 +56,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				Summary:  "Failed to retrieve Kubrentes dynamic client during apply",
 				Detail:   err.Error(),
 			})
-		return resp, err
+		return resp, nil
 	}
 	m, err := s.getRestMapper()
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				Summary:  "Failed to retrieve Kubrentes RESTMapper client during apply",
 				Detail:   err.Error(),
 			})
-		return resp, err
+		return resp, nil
 	}
 	var rs dynamic.ResourceInterface
 
@@ -81,7 +81,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				Summary:  "Failed to extract planned resource state values",
 				Detail:   err.Error(),
 			})
-			return resp, err
+			return resp, nil
 		}
 		obj, ok := plannedStateVal["object"]
 		if !ok {
@@ -89,7 +89,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				Severity: tfprotov5.DiagnosticSeverityError,
 				Summary:  "Failed to find object value in planned resource state",
 			})
-			return resp, err
+			return resp, nil
 		}
 
 		gvk, err := GVKFromTftypesObject(&obj, m)
@@ -102,15 +102,22 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 		}
 
-		pu, err := TFValueToUnstructured(TFValueUnknownToNull(obj))
+		minObj := TFValueUnknownToNull(obj)
+		s.logger.Trace("[ApplyResourceChange][Apply]", "[TFValueUnknownToNull]", spew.Sdump(minObj))
+
+		pu, err := TFValueToUnstructured(minObj, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
+		s.logger.Trace("[ApplyResourceChange][Apply]", "[TFValueToUnstructured]", spew.Sdump(pu))
 
 		// remove null attributes - the API doesn't appreciate requests that include them
-		uo := unstructured.Unstructured{Object: mapRemoveNulls(pu.(map[string]interface{}))}
+		rqObj := mapRemoveNulls(pu.(map[string]interface{}))
+
+		uo := unstructured.Unstructured{Object: rqObj}
 		rnamespace := uo.GetNamespace()
 		rname := uo.GetName()
+		rnn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
 
 		gvr, err := GVRFromUnstructured(&uo, m)
 		if err != nil {
@@ -127,30 +134,35 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		} else {
 			rs = c.Resource(gvr)
 		}
-		jd, err := uo.MarshalJSON()
+		jsonManifest, err := uo.MarshalJSON()
 		if err != nil {
-			return resp, err
-		}
-
-		// Call the Kubernetes API to create the new resource
-		result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jd, v1.PatchOptions{FieldManager: "Terraform"})
-		if err != nil {
-			s.logger.Error("[ApplyResourceChange][Apply] API error: %s\n%s\n", spew.Sdump(err), spew.Sdump(result))
-			rn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
 			resp.Diagnostics = append(resp.Diagnostics,
 				&tfprotov5.Diagnostic{
 					Severity: tfprotov5.DiagnosticSeverityError,
 					Detail:   err.Error(),
-					Summary:  fmt.Sprintf("PATCH for resource %s failed to apply", rn),
+					Summary:  fmt.Sprintf("Failed to marshall resource '%s' to JSON", rnn),
 				})
-			return resp, fmt.Errorf("PATCH resource %s failed: %s", rn, err)
+			return resp, nil
+		}
+
+		// Call the Kubernetes API to create the new resource
+		result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jsonManifest, v1.PatchOptions{FieldManager: "Terraform"})
+		if err != nil {
+			s.logger.Error("[ApplyResourceChange][Apply]", "API error", spew.Sdump(err), "API response", spew.Sdump(result))
+			resp.Diagnostics = append(resp.Diagnostics,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   err.Error(),
+					Summary:  fmt.Sprintf("PATCH for resource %s failed to apply", rnn),
+				})
+			return resp, nil
 		}
 
 		newResObject, err := UnstructuredToTFValue(FilterEphemeralFields(result.Object), tsch, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
-		s.logger.Trace("[ApplyResourceChange][Apply][UnstructuredToTFValue]\n%s\n", spew.Sdump(newResObject))
+		s.logger.Trace("[ApplyResourceChange][Apply]", "[UnstructuredToTFValue]", spew.Sdump(newResObject))
 
 		// TODO: convert waiter to tftypes
 		// err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
@@ -165,13 +177,12 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		plannedStateVal["object"] = TFValueUnknownToNull(compObj)
 
 		newStateVal := tftypes.NewValue(applyPlannedState.Type(), plannedStateVal)
-		s.logger.Trace("[ApplyResourceChange][Apply] new state value\n%s\n", spew.Sdump(newStateVal))
+		s.logger.Trace("[ApplyResourceChange][Apply]", "new state value", spew.Sdump(newStateVal))
 
 		newResState, err := tfprotov5.NewDynamicValue(newStateVal.Type(), newStateVal)
 		if err != nil {
 			return resp, err
 		}
-		s.logger.Trace("[ApplyResourceChange][Create] transformed new state:\n%s", spew.Sdump(newResState))
 
 		resp.NewState = &newResState
 
@@ -185,7 +196,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				Summary:  "Failed to extract prior resource state values",
 				Detail:   err.Error(),
 			})
-			return resp, err
+			return resp, nil
 		}
 		pco, ok := priorStateVal["object"]
 		if !ok {
@@ -193,10 +204,10 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				Severity: tfprotov5.DiagnosticSeverityError,
 				Summary:  "Failed to find object value in prior resource state",
 			})
-			return resp, err
+			return resp, nil
 		}
 
-		pu, err := TFValueToUnstructured(pco)
+		pu, err := TFValueToUnstructured(pco, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
@@ -239,7 +250,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 					Detail:   err.Error(),
 					Summary:  fmt.Sprintf("DELETE resource %s failed: %s", rn, err),
 				})
-			return resp, fmt.Errorf("DELETE resource %s failed: %s", rn, err)
+			return resp, nil
 		}
 
 		// err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)

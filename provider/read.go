@@ -24,7 +24,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 			Summary:  "Failed to determine resource type",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
 
 	currentState, err := req.CurrentState.Unmarshal(rt)
@@ -34,15 +34,15 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 			Summary:  "Failed to decode current state",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
 	if currentState.IsNull() {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
 			Summary:  "Failed to read resource",
-			Detail:   "incomplete of missing state",
+			Detail:   "Incomplete of missing state",
 		})
-		return resp, fmt.Errorf("failed to read resource")
+		return resp, nil
 	}
 	err = currentState.As(&resState)
 	if err != nil {
@@ -51,37 +51,37 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 			Summary:  "Failed to extract resource from current state",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
 
 	if resState["object"].IsNull() {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  fmt.Sprintf("current state of resource %s has no 'object' attribute", req.TypeName),
+			Summary:  "Current state of resource has no 'object' attribute",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
 	co := resState["object"]
-	cu, err := TFValueToUnstructured(co)
+	cu, err := TFValueToUnstructured(co, tftypes.AttributePath{})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  fmt.Sprintf("%s: failed encode 'object' attribute to Unstructured", req.TypeName),
+			Summary:  "Failed encode 'object' attribute to Unstructured",
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
-	s.logger.Trace("[ReadResource][TFValueToUnstructured]\n%s\n", spew.Sdump(cu))
+	s.logger.Trace("[ReadResource]", "[TFValueToUnstructured]", spew.Sdump(cu))
 
 	rm, err := s.getRestMapper()
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  fmt.Sprintf("failed to get RESTMapper client"),
+			Summary:  fmt.Sprintf("Failed to get RESTMapper client"),
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
 	client, err := s.getDynamicClient()
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 			Summary:  fmt.Sprintf("failed to get Dynamic client"),
 			Detail:   err.Error(),
 		})
-		return resp, err
+		return resp, nil
 	}
 
 	uo := unstructured.Unstructured{Object: cu.(map[string]interface{})}
@@ -123,7 +123,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 			Detail:   err.Error(),
 		}
 		resp.Diagnostics = append(resp.Diagnostics, &d)
-		return resp, err
+		return resp, nil
 	}
 
 	gvk, err := GVKFromTftypesObject(&co, rm)

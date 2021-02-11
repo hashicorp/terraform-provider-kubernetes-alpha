@@ -93,6 +93,9 @@ func TFValueUnknownToNull(v tftypes.Value) tftypes.Value {
 	if !v.IsKnown() {
 		return tftypes.NewValue(v.Type(), nil)
 	}
+	if v.IsNull() {
+		return v
+	}
 	switch {
 	case v.Type().Is(tftypes.List{}) || v.Type().Is(tftypes.Set{}) || v.Type().Is(tftypes.Tuple{}):
 		tpel := make([]tftypes.Value, 0)

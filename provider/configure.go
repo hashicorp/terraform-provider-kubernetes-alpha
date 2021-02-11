@@ -489,7 +489,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loader, overrides)
 	clientConfig, err := cc.ClientConfig()
 	if err != nil {
-		s.logger.Error("[Configure] Failed to load config:\n%s\n", spew.Sdump(cc))
+		s.logger.Error("[Configure]", "Failed to load config:", spew.Sdump(cc))
 		if errors.Is(err, clientcmd.ErrEmptyConfig) {
 			// this is a terrible fix for if the configuration is a calculated value
 			return response, nil
@@ -506,7 +506,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
 	clientConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
 
-	s.logger.Trace("[Configure][ClientConfig]\n%s\n", spew.Sdump(*clientConfig))
+	s.logger.Trace("[Configure]", "[ClientConfig]", spew.Sdump(*clientConfig))
 	s.clientConfig = clientConfig
 
 	return response, nil
