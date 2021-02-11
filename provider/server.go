@@ -42,13 +42,6 @@ func (s *RawProviderServer) PrepareProviderConfig(ctx context.Context, req *tfpr
 	return resp, nil
 }
 
-// ValidateResourceTypeConfig function
-func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req *tfprotov5.ValidateResourceTypeConfigRequest) (*tfprotov5.ValidateResourceTypeConfigResponse, error) {
-	s.logger.Trace("[ValidateResourceTypeConfig][Request]\n%s\n", spew.Sdump(*req))
-	resp := &tfprotov5.ValidateResourceTypeConfigResponse{}
-	return resp, nil
-}
-
 // ValidateDataSourceConfig function
 func (s *RawProviderServer) ValidateDataSourceConfig(ctx context.Context, req *tfprotov5.ValidateDataSourceConfigRequest) (*tfprotov5.ValidateDataSourceConfigResponse, error) {
 	s.logger.Trace("[ValidateDataSourceConfig][Request]\n%s\n", spew.Sdump(*req))
