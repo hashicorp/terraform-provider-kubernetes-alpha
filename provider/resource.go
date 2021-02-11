@@ -204,6 +204,11 @@ func TFValueToUnstructured(in tftypes.Value) (interface{}, error) {
 			}
 		}
 		if len(mv) == 0 {
+			if strings.HasSuffix(ap.String(), `AttributeName("subresources").AttributeName("status")`) {
+				// TODO: this is a horrible hack to work around the fact that `CustomResourceSubresourceStatus`
+				// is specified as an empty object type in the OpenAPI spec. Because of that,
+				return mv, nil
+			}
 			return nil, nil
 		}
 		return mv, nil
