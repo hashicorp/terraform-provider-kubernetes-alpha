@@ -6,6 +6,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ValidateResourceTypeConfig function
@@ -43,7 +44,31 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		return resp, nil
 	}
 
-	s.logger.Trace("[ValidateResourceTypeConfig]", "[Config]", spew.Sdump(config))
+	manifest, ok := configVal["manifest"]
+	if !ok {
+		att := tftypes.AttributePath{}.WithAttributeName("manifest")
+		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+			Severity:  tfprotov5.DiagnosticSeverityError,
+			Summary:   "Manifest missing from resource configuration",
+			Detail:    "A manifest attribute containing a valid Kubernetes resource configuration is required.",
+			Attribute: &att,
+		})
+		return resp, nil
+	}
+	manObj, err := TFValueToUnstructured(manifest, tftypes.AttributePath{})
+	if err != nil {
+		att := tftypes.AttributePath{}.WithAttributeName("manifest")
+		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+			Severity:  tfprotov5.DiagnosticSeverityError,
+			Summary:   `Invalid "manifest" attribute`,
+			Detail:    err.Error(),
+			Attribute: &att,
+		})
+		return resp, nil
+	}
+	manu := unstructured.Unstructured{Object: manObj.(map[string]interface{})}
+
+	s.logger.Trace("[ValidateResourceTypeConfig]", "[Manifest]", spew.Sdump(manu))
 
 	return resp, nil
 }
