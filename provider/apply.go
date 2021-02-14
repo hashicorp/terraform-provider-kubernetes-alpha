@@ -2,12 +2,14 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
@@ -114,7 +116,8 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		// remove null attributes - the API doesn't appreciate requests that include them
 		rqObj := mapRemoveNulls(pu.(map[string]interface{}))
 
-		uo := unstructured.Unstructured{Object: rqObj}
+		uo := unstructured.Unstructured{}
+		uo.SetUnstructuredContent(rqObj)
 		rnamespace := uo.GetNamespace()
 		rname := uo.GetName()
 		rnn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
@@ -146,15 +149,19 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		}
 
 		// Call the Kubernetes API to create the new resource
-		result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jsonManifest, v1.PatchOptions{FieldManager: "Terraform"})
+		result, err := rs.Patch(ctx, rname, types.ApplyPatchType, jsonManifest, metav1.PatchOptions{FieldManager: "Terraform"})
 		if err != nil {
 			s.logger.Error("[ApplyResourceChange][Apply]", "API error", spew.Sdump(err), "API response", spew.Sdump(result))
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfprotov5.Diagnostic{
-					Severity: tfprotov5.DiagnosticSeverityError,
-					Detail:   err.Error(),
-					Summary:  fmt.Sprintf("PATCH for resource %s failed to apply", rnn),
-				})
+			if status := apierrors.APIStatus(nil); errors.As(err, &status) {
+				resp.Diagnostics = append(resp.Diagnostics, APIStatusErrorToDiagnostics(status.Status())...)
+			} else {
+				resp.Diagnostics = append(resp.Diagnostics,
+					&tfprotov5.Diagnostic{
+						Severity: tfprotov5.DiagnosticSeverityError,
+						Detail:   err.Error(),
+						Summary:  fmt.Sprintf(`PATCH for resource "%s" failed to apply`, rnn),
+					})
+			}
 			return resp, nil
 		}
 
@@ -228,11 +235,6 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, err
 		}
 
-		// tsch, err := s.TFTypeFromOpenAPI(gvk)
-		// if err != nil {
-		// 	return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
-		// }
-
 		rnamespace := uo.GetNamespace()
 		rname := uo.GetName()
 
@@ -241,7 +243,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		} else {
 			rs = c.Resource(gvr)
 		}
-		err = rs.Delete(ctx, rname, v1.DeleteOptions{})
+		err = rs.Delete(ctx, rname, metav1.DeleteOptions{})
 		if err != nil {
 			rn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
 			resp.Diagnostics = append(resp.Diagnostics,
@@ -253,6 +255,10 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
+		// tsch, err := s.TFTypeFromOpenAPI(gvk)
+		// if err != nil {
+		// 	return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
+		// }
 		// err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
 		// if err != nil {
 		// 	return resp, err

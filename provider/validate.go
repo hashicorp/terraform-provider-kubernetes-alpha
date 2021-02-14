@@ -11,12 +11,8 @@ import (
 // ValidateResourceTypeConfig function
 func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req *tfprotov5.ValidateResourceTypeConfigRequest) (*tfprotov5.ValidateResourceTypeConfigResponse, error) {
 	resp := &tfprotov5.ValidateResourceTypeConfigResponse{}
-	validKeys := map[string]bool{
-		"apiVersion": false,
-		"kind":       false,
-		"metadata":   false,
-		"spec":       false,
-	}
+	requiredKeys := []string{"apiVersion", "kind", "metadata"}
+	forbiddenKeys := []string{"status"}
 
 	rt, err := GetResourceType(req.TypeName)
 	if err != nil {
@@ -75,27 +71,25 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		return resp, nil
 	}
 
-	for key := range rawManifest {
-		_, ok := validKeys[key]
-		if !ok {
+	for _, key := range requiredKeys {
+		if _, present := rawManifest[key]; !present {
 			kp := att.WithAttributeName(key)
 			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 				Severity:  tfprotov5.DiagnosticSeverityError,
-				Summary:   `Invalid attribute key in "manifest" value`,
-				Detail:    fmt.Sprintf("'%s' is not a valid attribute key in a manifest configuration", key),
+				Summary:   `Attribute key missing from "manifest" value`,
+				Detail:    fmt.Sprintf("'%s' attribute key is missing from manifest configuration", key),
 				Attribute: &kp,
 			})
-		} else {
-			validKeys[key] = true
 		}
 	}
-	for key, present := range validKeys {
-		if !present {
+
+	for _, key := range forbiddenKeys {
+		if _, present := rawManifest[key]; present {
 			kp := att.WithAttributeName(key)
 			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 				Severity:  tfprotov5.DiagnosticSeverityError,
-				Summary:   `Required attribute key missing from "manifest" value`,
-				Detail:    fmt.Sprintf("'%s' attribute key is missing from manifest configuration", key),
+				Summary:   `Forbidden attribute key in "manifest" value`,
+				Detail:    fmt.Sprintf("'%s' attribute key is not allowed in manifest configuration", key),
 				Attribute: &kp,
 			})
 		}
