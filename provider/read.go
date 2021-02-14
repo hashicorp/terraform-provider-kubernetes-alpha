@@ -142,7 +142,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		return resp, err
 	}
 
-	nobj, err = TFValueDeepUnknown(objectType, nobj)
+	nobj, err = TFValueDeepUnknown(objectType, nobj, tftypes.AttributePath{})
 	if err != nil {
 		return resp, err
 	}

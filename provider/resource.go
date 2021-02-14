@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -180,6 +182,9 @@ func TFValueToUnstructured(in tftypes.Value, ap tftypes.AttributePath) (interfac
 		if err != nil {
 			return nil, ap.NewErrorf("[%s] cannot extract contents of attribute: %s", ap.String(), err)
 		}
+		if len(l) == 0 {
+			return lv, nil
+		}
 		for k, le := range l {
 			nextAp := ap.WithElementKeyInt(int64(k))
 			ne, err := TFValueToUnstructured(le, nextAp)
@@ -201,6 +206,9 @@ func TFValueToUnstructured(in tftypes.Value, ap tftypes.AttributePath) (interfac
 		if err != nil {
 			return nil, ap.NewErrorf("[%s] cannot extract contents of attribute: %s", ap.String(), err)
 		}
+		if len(m) == 0 {
+			return mv, nil
+		}
 		for k, me := range m {
 			var nextAp tftypes.AttributePath
 			switch {
@@ -218,11 +226,6 @@ func TFValueToUnstructured(in tftypes.Value, ap tftypes.AttributePath) (interfac
 			}
 		}
 		if len(mv) == 0 {
-			if strings.HasSuffix(ap.String(), `AttributeName("subresources").AttributeName("status")`) {
-				// TODO: this is a horrible hack to work around the fact that `CustomResourceSubresourceStatus`
-				// is specified as an empty object type in the OpenAPI spec. Because of that,
-				return mv, nil
-			}
 			return nil, nil
 		}
 		return mv, nil
@@ -251,7 +254,7 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 			}
 			return tftypes.NewValue(tftypes.Number, num), nil
 		default:
-			return tftypes.NewValue(tftypes.String, in), nil
+			return tftypes.NewValue(tftypes.String, in.(string)), nil
 		}
 	case bool:
 		return tftypes.NewValue(tftypes.Bool, in), nil
@@ -286,7 +289,7 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 			}
 			il = append(il, iv)
 		}
-		if st.Is(tftypes.DynamicPseudoType) {
+		if st.Is(tftypes.DynamicPseudoType) || st.(tftypes.List).ElementType.Is(tftypes.DynamicPseudoType) {
 			tTypes := make([]tftypes.Type, len(il))
 			for k := range il {
 				tTypes[k] = il[k].Type()
@@ -310,23 +313,34 @@ func UnstructuredToTFValue(in interface{}, st tftypes.Type, at tftypes.Attribute
 				kt = tftypes.DynamicPseudoType
 				eap = eap.WithAttributeName(k)
 			default:
-				return tftypes.Value{}, at.NewErrorf("cannot convert unstructured map value: incompatible type: %s", st.String())
+				return tftypes.Value{}, eap.NewErrorf("cannot convert unstructured map value: incompatible type: %s", st.String())
 			}
 			im[k], err = UnstructuredToTFValue(v, kt, eap)
 			if err != nil {
 				return tftypes.Value{}, at.NewErrorf("cannot convert map element value: %s", err)
 			}
 		}
-		if st.Is(tftypes.DynamicPseudoType) {
+		switch {
+		case st.Is(tftypes.DynamicPseudoType) || st.Is(tftypes.Object{}):
 			oTypes := make(map[string]tftypes.Type)
 			for k, v := range im {
 				oTypes[k] = v.Type()
 			}
 			return tftypes.NewValue(tftypes.Object{AttributeTypes: oTypes}, im), nil
+		case st.Is(tftypes.Map{}):
+			et := tftypes.Type(nil)
+			if len(im) > 0 {
+				for k := range im {
+					et = im[k].Type()
+					break
+				}
+			} else {
+				et = st.(tftypes.Map).AttributeType
+			}
+			return tftypes.NewValue(tftypes.Map{AttributeType: et}, im), nil
 		}
-		return tftypes.NewValue(st, im), nil
 	}
-	return tftypes.Value{}, errors.New("cannot convert value of unknown type")
+	return tftypes.Value{}, at.NewErrorf("[%s] cannot convert value of unknown type", at.String())
 }
 
 // OpenAPIPathFromGVK returns the ID used to retrieve a resource type definition

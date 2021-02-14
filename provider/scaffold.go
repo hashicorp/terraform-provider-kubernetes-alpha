@@ -8,74 +8,89 @@ import (
 
 // TFValueDeepUnknown creates a value given an arbitrary type
 // with a default value of Unknown for all its primitives.
-func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value) (tftypes.Value, error) {
+func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath) (tftypes.Value, error) {
 	if t == nil {
 		return tftypes.Value{}, fmt.Errorf("type cannot be nil")
+	}
+	if !v.IsKnown() {
+		return v, nil
 	}
 	switch {
 	case t.Is(tftypes.Object{}):
 		atts := t.(tftypes.Object).AttributeTypes
-		vals := make(map[string]tftypes.Value, len(atts))
+		var vals map[string]tftypes.Value
+		ovals := make(map[string]tftypes.Value, len(atts))
 		err := v.As(&vals)
 		if err != nil {
-			return tftypes.Value{}, err
+			return tftypes.Value{}, p.NewError(err)
 		}
 		for name, att := range atts {
-			nv, err := TFValueDeepUnknown(att, vals[name])
+			np := p.WithAttributeName(name)
+			nv, err := TFValueDeepUnknown(att, vals[name], np)
 			if err != nil {
-				return tftypes.Value{}, err
+				return tftypes.Value{}, np.NewError(err)
 			}
-			vals[name] = nv
+			ovals[name] = nv
 		}
-		return tftypes.NewValue(t, vals), nil
+		return tftypes.NewValue(t, ovals), nil
 	case t.Is(tftypes.Map{}):
-		vals := make(map[string]tftypes.Value, 0)
-		err := v.As(&vals)
-		if err != nil {
-			return tftypes.Value{}, err
-		}
-		if len(vals) == 0 {
+		if v.IsNull() {
 			return tftypes.NewValue(t, tftypes.UnknownValue), nil
 		}
+		var vals map[string]tftypes.Value
+		err := v.As(&vals)
+		if err != nil {
+			return tftypes.Value{}, p.NewError(err)
+		}
 		for name, el := range vals {
-			nv, err := TFValueDeepUnknown(t.(tftypes.Map).AttributeType, el)
+			np := p.WithElementKeyString(name)
+			nv, err := TFValueDeepUnknown(t.(tftypes.Map).AttributeType, el, np)
 			if err != nil {
-				return tftypes.Value{}, err
+				return tftypes.Value{}, np.NewError(err)
 			}
 			vals[name] = nv
 		}
 		return tftypes.NewValue(t, vals), nil
 	case t.Is(tftypes.Tuple{}):
+		if v.IsNull() {
+			return tftypes.NewValue(t, tftypes.UnknownValue), nil
+		}
 		atts := t.(tftypes.Tuple).ElementTypes
 		vals := make([]tftypes.Value, len(atts))
 		err := v.As(&vals)
 		if err != nil {
-			return tftypes.Value{}, err
-		}
-		if len(vals) == 0 {
-			return tftypes.NewValue(t, tftypes.UnknownValue), nil
+			return tftypes.Value{}, p.NewError(err)
 		}
 		for i, et := range atts {
-			nv, err := TFValueDeepUnknown(et, vals[i])
+			np := p.WithElementKeyInt(int64(i))
+			nv, err := TFValueDeepUnknown(et, vals[i], np)
 			if err != nil {
-				return tftypes.Value{}, err
+				return tftypes.Value{}, np.NewError(err)
 			}
 			vals[i] = nv
 		}
 		return tftypes.NewValue(t, vals), nil
-	case t.Is(tftypes.List{}):
+	case t.Is(tftypes.List{}) || t.Is(tftypes.Set{}):
+		if v.IsNull() {
+			return tftypes.NewValue(t, tftypes.UnknownValue), nil
+		}
 		vals := make([]tftypes.Value, 0)
 		err := v.As(&vals)
 		if err != nil {
-			return tftypes.Value{}, err
+			return tftypes.Value{}, p.NewError(err)
 		}
-		if len(vals) == 0 {
-			return tftypes.NewValue(t, tftypes.UnknownValue), nil
+		var elt tftypes.Type
+		switch {
+		case t.Is(tftypes.List{}):
+			elt = t.(tftypes.List).ElementType
+		case t.Is(tftypes.Set{}):
+			elt = t.(tftypes.Set).ElementType
 		}
 		for i, el := range vals {
-			nv, err := TFValueDeepUnknown(t.(tftypes.List).ElementType, el)
+			np := p.WithElementKeyInt(int64(i))
+			nv, err := TFValueDeepUnknown(elt, el, np)
 			if err != nil {
-				return tftypes.Value{}, err
+				return tftypes.Value{}, np.NewError(err)
 			}
 			vals[i] = nv
 		}

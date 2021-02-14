@@ -128,7 +128,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	}
 	s.logger.Trace("[PlanResourceChange]", "morphed manifest", spew.Sdump(mobj))
 
-	completeObj, err := TFValueDeepUnknown(objectType, mobj)
+	completeObj, err := TFValueDeepUnknown(objectType, mobj, tftypes.AttributePath{})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,

@@ -177,7 +177,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		// 	return resp, err
 		// }
 
-		compObj, err := TFValueDeepUnknown(tsch, newResObject)
+		compObj, err := TFValueDeepUnknown(tsch, newResObject, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
