@@ -1,4 +1,4 @@
-package provider
+package morph
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 )
 
-// TFValueDeepUnknown creates a value given an arbitrary type
+// DeepUnknown creates a value given an arbitrary type
 // with a default value of Unknown for all its primitives.
-func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath) (tftypes.Value, error) {
+func DeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath) (tftypes.Value, error) {
 	if t == nil {
 		return tftypes.Value{}, fmt.Errorf("type cannot be nil")
 	}
@@ -26,7 +26,7 @@ func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath
 		}
 		for name, att := range atts {
 			np := p.WithAttributeName(name)
-			nv, err := TFValueDeepUnknown(att, vals[name], np)
+			nv, err := DeepUnknown(att, vals[name], np)
 			if err != nil {
 				return tftypes.Value{}, np.NewError(err)
 			}
@@ -44,7 +44,7 @@ func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath
 		}
 		for name, el := range vals {
 			np := p.WithElementKeyString(name)
-			nv, err := TFValueDeepUnknown(t.(tftypes.Map).AttributeType, el, np)
+			nv, err := DeepUnknown(t.(tftypes.Map).AttributeType, el, np)
 			if err != nil {
 				return tftypes.Value{}, np.NewError(err)
 			}
@@ -63,7 +63,7 @@ func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath
 		}
 		for i, et := range atts {
 			np := p.WithElementKeyInt(int64(i))
-			nv, err := TFValueDeepUnknown(et, vals[i], np)
+			nv, err := DeepUnknown(et, vals[i], np)
 			if err != nil {
 				return tftypes.Value{}, np.NewError(err)
 			}
@@ -88,7 +88,7 @@ func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath
 		}
 		for i, el := range vals {
 			np := p.WithElementKeyInt(int64(i))
-			nv, err := TFValueDeepUnknown(elt, el, np)
+			nv, err := DeepUnknown(elt, el, np)
 			if err != nil {
 				return tftypes.Value{}, np.NewError(err)
 			}
@@ -103,8 +103,8 @@ func TFValueDeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath
 	}
 }
 
-// TFValueUnknownToNull replaces all unknown values in a deep structure with null
-func TFValueUnknownToNull(v tftypes.Value) tftypes.Value {
+// UnknownToNull replaces all unknown values in a deep structure with null
+func UnknownToNull(v tftypes.Value) tftypes.Value {
 	if !v.IsKnown() {
 		return tftypes.NewValue(v.Type(), nil)
 	}
@@ -116,14 +116,14 @@ func TFValueUnknownToNull(v tftypes.Value) tftypes.Value {
 		tpel := make([]tftypes.Value, 0)
 		v.As(&tpel)
 		for i := range tpel {
-			tpel[i] = TFValueUnknownToNull(tpel[i])
+			tpel[i] = UnknownToNull(tpel[i])
 		}
 		return tftypes.NewValue(v.Type(), tpel)
 	case v.Type().Is(tftypes.Map{}) || v.Type().Is(tftypes.Object{}):
 		mpel := make(map[string]tftypes.Value)
 		v.As(&mpel)
 		for k, ev := range mpel {
-			mpel[k] = TFValueUnknownToNull(ev)
+			mpel[k] = UnknownToNull(ev)
 		}
 		return tftypes.NewValue(v.Type(), mpel)
 	}

@@ -1,4 +1,4 @@
-package provider
+package morph
 
 import (
 	"math/big"
@@ -233,7 +233,7 @@ func TestMorphValueToType(t *testing.T) {
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
-			r, err := MorphValueToType(s.In.V, s.In.T, tftypes.AttributePath{})
+			r, err := ValueToType(s.In.V, s.In.T, tftypes.AttributePath{})
 			if err != nil {
 				t.Logf("Failed type-morphing for sample '%s': %s", n, err)
 				t.FailNow()

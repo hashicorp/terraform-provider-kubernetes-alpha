@@ -7,6 +7,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/morph"
 )
 
 // PlanResourceChange function
@@ -117,7 +118,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	s.logger.Debug("[PlanUpdateResource]", "OAPI type", spew.Sdump(so))
 
 	// Transform the input manifest to adhere to the type model from the OpenAPI spec
-	mobj, err := MorphValueToType(ppMan, objectType, tftypes.AttributePath{})
+	mobj, err := morph.ValueToType(ppMan, objectType, tftypes.AttributePath{})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
@@ -128,7 +129,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	}
 	s.logger.Trace("[PlanResourceChange]", "morphed manifest", spew.Sdump(mobj))
 
-	completeObj, err := TFValueDeepUnknown(objectType, mobj, tftypes.AttributePath{})
+	completeObj, err := morph.DeepUnknown(objectType, mobj, tftypes.AttributePath{})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,

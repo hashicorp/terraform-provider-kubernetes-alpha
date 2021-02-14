@@ -1,4 +1,4 @@
-package provider
+package morph
 
 import (
 	"reflect"
@@ -18,7 +18,7 @@ type deepUnknownTestSample struct {
 	Out tftypes.Value
 }
 
-func TestTFValueDeepUnknown(t *testing.T) {
+func TestDeepUnknown(t *testing.T) {
 	samples := map[string]deepUnknownTestSample{
 		"string-nil": {
 			In: deepUnknownTestSampleInput{
@@ -97,7 +97,7 @@ func TestTFValueDeepUnknown(t *testing.T) {
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
-			rv, err := TFValueDeepUnknown(s.In.T, s.In.V)
+			rv, err := DeepUnknown(s.In.T, s.In.V, tftypes.AttributePath{})
 			if err != nil {
 				t.Logf("Conversion failed for sample '%s': %s", n, err)
 				t.FailNow()

@@ -7,8 +7,10 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/morph"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -63,7 +65,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		return resp, nil
 	}
 	co := resState["object"]
-	cu, err := TFValueToUnstructured(co, tftypes.AttributePath{})
+	cu, err := payload.FromTFValue(co, tftypes.AttributePath{})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
@@ -72,7 +74,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		})
 		return resp, nil
 	}
-	s.logger.Trace("[ReadResource]", "[TFValueToUnstructured]", spew.Sdump(cu))
+	s.logger.Trace("[ReadResource]", "[unstructured.FromTFValue]", spew.Sdump(cu))
 
 	rm, err := s.getRestMapper()
 	if err != nil {
@@ -109,9 +111,9 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 
 	var ro *unstructured.Unstructured
 	if ns {
-		ro, err = rcl.Namespace(rnamespace).Get(ctx, rname, v1.GetOptions{})
+		ro, err = rcl.Namespace(rnamespace).Get(ctx, rname, metav1.GetOptions{})
 	} else {
-		ro, err = rcl.Get(ctx, rname, v1.GetOptions{})
+		ro, err = rcl.Get(ctx, rname, metav1.GetOptions{})
 	}
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -137,12 +139,12 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 	}
 
 	fo := FilterEphemeralFields(ro.Object)
-	nobj, err := UnstructuredToTFValue(fo, objectType, tftypes.AttributePath{})
+	nobj, err := payload.ToTFValue(fo, objectType, tftypes.AttributePath{})
 	if err != nil {
 		return resp, err
 	}
 
-	nobj, err = TFValueDeepUnknown(objectType, nobj, tftypes.AttributePath{})
+	nobj, err = morph.DeepUnknown(objectType, nobj, tftypes.AttributePath{})
 	if err != nil {
 		return resp, err
 	}
@@ -152,7 +154,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 	if err != nil {
 		return resp, err
 	}
-	rawState["object"] = TFValueUnknownToNull(nobj)
+	rawState["object"] = morph.UnknownToNull(nobj)
 
 	nsVal := tftypes.NewValue(currentState.Type(), rawState)
 	newState, err := tfprotov5.NewDynamicValue(nsVal.Type(), nsVal)

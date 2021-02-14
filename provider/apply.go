@@ -8,6 +8,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/morph"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -104,14 +106,14 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 		}
 
-		minObj := TFValueUnknownToNull(obj)
-		s.logger.Trace("[ApplyResourceChange][Apply]", "[TFValueUnknownToNull]", spew.Sdump(minObj))
+		minObj := morph.UnknownToNull(obj)
+		s.logger.Trace("[ApplyResourceChange][Apply]", "[UnknownToNull]", spew.Sdump(minObj))
 
-		pu, err := TFValueToUnstructured(minObj, tftypes.AttributePath{})
+		pu, err := payload.FromTFValue(minObj, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
-		s.logger.Trace("[ApplyResourceChange][Apply]", "[TFValueToUnstructured]", spew.Sdump(pu))
+		s.logger.Trace("[ApplyResourceChange][Apply]", "[payload.FromTFValue]", spew.Sdump(pu))
 
 		// remove null attributes - the API doesn't appreciate requests that include them
 		rqObj := mapRemoveNulls(pu.(map[string]interface{}))
@@ -165,11 +167,11 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		newResObject, err := UnstructuredToTFValue(FilterEphemeralFields(result.Object), tsch, tftypes.AttributePath{})
+		newResObject, err := payload.ToTFValue(FilterEphemeralFields(result.Object), tsch, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
-		s.logger.Trace("[ApplyResourceChange][Apply]", "[UnstructuredToTFValue]", spew.Sdump(newResObject))
+		s.logger.Trace("[ApplyResourceChange][Apply]", "[payload.ToTFValue]", spew.Sdump(newResObject))
 
 		// TODO: convert waiter to tftypes
 		// err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
@@ -177,11 +179,11 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		// 	return resp, err
 		// }
 
-		compObj, err := TFValueDeepUnknown(tsch, newResObject, tftypes.AttributePath{})
+		compObj, err := morph.DeepUnknown(tsch, newResObject, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
-		plannedStateVal["object"] = TFValueUnknownToNull(compObj)
+		plannedStateVal["object"] = morph.UnknownToNull(compObj)
 
 		newStateVal := tftypes.NewValue(applyPlannedState.Type(), plannedStateVal)
 		s.logger.Trace("[ApplyResourceChange][Apply]", "new state value", spew.Sdump(newStateVal))
@@ -214,7 +216,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		pu, err := TFValueToUnstructured(pco, tftypes.AttributePath{})
+		pu, err := payload.FromTFValue(pco, tftypes.AttributePath{})
 		if err != nil {
 			return resp, err
 		}
