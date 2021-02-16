@@ -11,60 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// ResourceDeepMergeValue is a tftypes.Transform callback that sets each leaf node below the "object" attribute to a new cty.Value
-func ResourceDeepMergeValue(aval, bval tftypes.Value) (tftypes.Value, error) {
-	var err error
-
-	if !aval.Type().Is(bval.Type()) {
-		return tftypes.Value{}, errors.New("cannot merge values: incompatible types of A and B")
-	}
-
-	switch {
-	case aval.Type().Is(tftypes.String) || aval.Type().Is(tftypes.Number) || aval.Type().Is(tftypes.Bool):
-		if bval.IsKnown() {
-			return bval, nil
-		}
-		return aval, nil
-	case aval.Type().Is(tftypes.Object{}):
-		if !aval.IsKnown() {
-			if bval.IsKnown() {
-				return bval, nil
-			}
-			return tftypes.Value{}, errors.New("cannot merge values: neither value is known")
-		}
-		if !bval.IsKnown() {
-			return aval, nil
-		}
-
-		var Aattributes map[string]tftypes.Value
-		var Battributes map[string]tftypes.Value
-		Rattributes := make(map[string]tftypes.Value) // result value attributes
-		Rtype := make(map[string]tftypes.Type)
-
-		err = aval.As(&Aattributes)
-		if err != nil {
-			return tftypes.Value{}, fmt.Errorf("cannot merge values: cannot unpack object value A: %s", err)
-		}
-
-		err = bval.As(&Battributes)
-		if err != nil {
-			return tftypes.Value{}, fmt.Errorf("cannot merge values: cannot unpack object value B: %s", err)
-		}
-
-		for k := range Aattributes {
-			if _, ok := Battributes[k]; ok {
-				Rattributes[k], err = ResourceDeepMergeValue(Aattributes[k], Aattributes[k])
-				if err != nil {
-					return tftypes.Value{}, fmt.Errorf("cannot merge object elements: %s", err)
-				}
-				Rtype[k] = Rattributes[k].Type()
-			}
-		}
-		return tftypes.NewValue(tftypes.Object{AttributeTypes: Rtype}, Rattributes), nil
-	}
-	return tftypes.Value{}, errors.New("cannot merge values: unknown combination")
-}
-
 // GVRFromUnstructured extracts a canonical schema.GroupVersionResource out of the resource's
 // metadata by checking it against the discovery API via a RESTMapper
 func GVRFromUnstructured(o *unstructured.Unstructured, m meta.RESTMapper) (schema.GroupVersionResource, error) {
