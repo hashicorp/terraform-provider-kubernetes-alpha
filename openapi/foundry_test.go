@@ -205,7 +205,7 @@ var samples = testSamples{
 								"specReplicasPath":   tftypes.String,
 								"statusReplicasPath": tftypes.String,
 							}},
-							"status": tftypes.DynamicPseudoType,
+							"status": tftypes.Map{AttributeType: tftypes.String},
 						}},
 					}}},
 				}},
