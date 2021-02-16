@@ -1,14 +1,16 @@
 name: Unit tests
-
 on:
   push:
+    branches:
+      - master
+      - main
     paths:
-      - '**.go'
+      - "**.go"
   pull_request:
     branches:
       - master
     paths:
-      - '**.go'
+      - "**.go"
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
