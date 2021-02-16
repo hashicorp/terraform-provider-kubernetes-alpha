@@ -1,9 +1,9 @@
 resource "kubernetes_service_account" "tfc-service-account" {
   metadata {
-    name      = "${var.namespace}-sync-workspace"
-    namespace = var.namespace
+    name      = "${kubernetes_manifest.namespace.object.metadata.name}-sync-workspace"
+    namespace = kubernetes_manifest.namespace.object.metadata.name
     labels = {
-      app = var.namespace
+      app = kubernetes_manifest.namespace.object.metadata.name
     }
   }
 }

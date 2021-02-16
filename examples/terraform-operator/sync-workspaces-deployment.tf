@@ -1,9 +1,9 @@
 resource "kubernetes_deployment" "tfc-deployment" {
   metadata {
-    name      = "${var.namespace}-sync-workspace"
-    namespace = var.namespace
+    name      = "${kubernetes_manifest.namespace.object.metadata.name}-sync-workspace"
+    namespace = kubernetes_manifest.namespace.object.metadata.name
     labels = {
-      app = var.namespace
+      app = kubernetes_manifest.namespace.object.metadata.name
     }
   }
 
@@ -12,14 +12,14 @@ resource "kubernetes_deployment" "tfc-deployment" {
 
     selector {
       match_labels = {
-        app       = var.namespace
+        app       = kubernetes_manifest.namespace.object.metadata.name
         component = "sync-workspace"
       }
     }
     template {
       metadata {
         labels = {
-          app       = var.namespace
+          app       = kubernetes_manifest.namespace.object.metadata.name
           component = "sync-workspace"
         }
       }
@@ -50,7 +50,7 @@ resource "kubernetes_deployment" "tfc-deployment" {
         container {
           name    = "terraform-sync-workspace"
           image   = var.sync_workspace_image
-          command = ["/bin/sh", "-ec", "terraform-k8s sync-workspace \\\n  --k8s-watch-namespace=\"${var.namespace}\""]
+          command = ["/bin/sh", "-ec", "terraform-k8s sync-workspace \\\n  --k8s-watch-namespace=\"${kubernetes_manifest.namespace.object.metadata.name}\""]
 
           env {
             name = "POD_NAME"
