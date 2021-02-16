@@ -1,4 +1,4 @@
-TEST?="./provider"
+TEST?="./..."
 ACCTEST?="./test/acceptance"
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
@@ -22,12 +22,10 @@ install: build
 	@cp ./terraform-provider-kubernetes-alpha $(DESTINATION)
 
 test: fmtcheck
-	go test $(TEST) -v || exit 1
-	echo $(TEST) | \
-		xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
+	go test -v $(TESTARGS) -timeout=30s -parallel=4 $(TEST)
 
 testacc: fmtcheck
-	go test -count=1 $(ACCTEST) -v $(TESTARGS) -timeout 120m
+	go test -count=1 -tags acceptance $(ACCTEST) -v $(TESTARGS) -timeout 120m
 
 vet:
 	@echo "go vet ."
@@ -57,7 +55,6 @@ test-compile:
 		exit 1; \
 	fi
 	go test -c $(TEST) $(TESTARGS)
-
 
 
 website:
