@@ -33,6 +33,8 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, nil
 	}
+	s.logger.Trace("[PlanResourceChange]", "[ProposedState]", spew.Sdump(proposedState))
+
 	proposedVal := make(map[string]tftypes.Value)
 	err = proposedState.As(&proposedVal)
 	if err != nil {
@@ -43,7 +45,6 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, nil
 	}
-	s.logger.Trace("[PlanResourceChange]", "[ProposedState]", spew.Sdump(proposedState))
 
 	// Decode prior resource state
 	priorState, err := req.PriorState.Unmarshal(rt)
@@ -55,6 +56,8 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, nil
 	}
+	s.logger.Trace("[PlanResourceChange]", "[PriorState]", spew.Sdump(priorState))
+
 	priorVal := make(map[string]tftypes.Value)
 	err = priorState.As(&priorVal)
 	if err != nil {
@@ -65,7 +68,6 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, nil
 	}
-	s.logger.Trace("[PlanResourceChange]", "[PriorState]", spew.Sdump(priorState))
 
 	if proposedState.IsNull() {
 		// we plan to delete the resource
@@ -83,12 +85,14 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 
 	ppMan, ok := proposedVal["manifest"]
 	if !ok {
+		matp := tftypes.AttributePath{}.WithAttributeName("manifest")
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
-			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "Invalid proposed state during planning",
-			Detail:   "Missing 'manifest' attribute",
+			Severity:  tfprotov5.DiagnosticSeverityError,
+			Summary:   "Invalid proposed state during planning",
+			Detail:    "Missing 'manifest' attribute",
+			Attribute: &matp,
 		})
-		return resp, fmt.Errorf("missing 'manifest' attribute")
+		return resp, nil
 	}
 
 	rm, err := s.getRestMapper()
@@ -127,7 +131,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, nil
 	}
-	s.logger.Trace("[PlanResourceChange]", "morphed manifest", spew.Sdump(mobj))
+	s.logger.Debug("[PlanResourceChange]", "morphed manifest", spew.Sdump(mobj))
 
 	completeObj, err := morph.DeepUnknown(objectType, mobj, tftypes.AttributePath{})
 	if err != nil {
@@ -138,12 +142,47 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		})
 		return resp, nil
 	}
-	s.logger.Trace("[PlanResourceChange]", "backfilled manifest", spew.Sdump(completeObj))
+	s.logger.Debug("[PlanResourceChange]", "backfilled manifest", spew.Sdump(completeObj))
 
 	if proposedVal["object"].IsNull() { // plan for Create
 		proposedVal["object"] = completeObj
 	} else { // plan for Update
-		// TODO: implement update
+		priorObj, ok := priorVal["object"]
+		if !ok {
+			oatp := tftypes.AttributePath{}.WithAttributeName("object")
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity:  tfprotov5.DiagnosticSeverityError,
+				Summary:   "Invalid prior state during planning",
+				Detail:    "Missing 'object' attribute",
+				Attribute: &oatp,
+			})
+			return resp, nil
+		}
+		updatedObj, err := tftypes.Transform(completeObj, func(ap tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+			if v.IsKnown() && !v.IsNull() {
+				return v, nil
+			}
+			priorAtrVal, restPath, err := tftypes.WalkAttributePath(priorObj, ap)
+			if err != nil {
+				return v, ap.NewError(err)
+			}
+			if len(restPath.Steps) > 0 {
+				s.logger.Warn("[PlanResourceChange]", "Unexpected missing attribute at", ap.String(), " + ", restPath.String())
+			}
+			return priorAtrVal.(tftypes.Value), nil
+		})
+		if err != nil {
+			oatp := tftypes.AttributePath{}.WithAttributeName("object")
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity:  tfprotov5.DiagnosticSeverityError,
+				Summary:   "Failed to update proposed state from prior state",
+				Detail:    err.Error(),
+				Attribute: &oatp,
+			})
+			return resp, nil
+		}
+
+		proposedVal["object"] = updatedObj
 	}
 
 	propStateVal := tftypes.NewValue(proposedState.Type(), proposedVal)
