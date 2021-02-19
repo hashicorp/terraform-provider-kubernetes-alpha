@@ -159,15 +159,23 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 			return resp, nil
 		}
 		updatedObj, err := tftypes.Transform(completeObj, func(ap tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
-			if v.IsKnown() && !v.IsNull() {
+			if v.IsKnown() { // this is a value from current configuration - include it in the plan
 				return v, nil
 			}
+			// check if value was present in the previous configuration
+			wasVal, restPath, err := tftypes.WalkAttributePath(priorVal["manifest"], ap)
+			if err == nil && len(restPath.Steps) == 0 && wasVal.(tftypes.Value).IsKnown() {
+				// attribute was previously set in config and has now been removed
+				// return the new unknown value to give the API a chance to set a default
+				return v, nil
+			}
+			// at this point, check if there is a default value in the previous state
 			priorAtrVal, restPath, err := tftypes.WalkAttributePath(priorObj, ap)
 			if err != nil {
 				return v, ap.NewError(err)
 			}
 			if len(restPath.Steps) > 0 {
-				s.logger.Warn("[PlanResourceChange]", "Unexpected missing attribute at", ap.String(), " + ", restPath.String())
+				s.logger.Warn("[PlanResourceChange]", "Unexpected missing attribute from state at", ap.String(), " + ", restPath.String())
 			}
 			return priorAtrVal.(tftypes.Value), nil
 		})
