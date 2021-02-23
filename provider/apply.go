@@ -173,11 +173,10 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		}
 		s.logger.Trace("[ApplyResourceChange][Apply]", "[payload.ToTFValue]", spew.Sdump(newResObject))
 
-		// TODO: convert waiter to tftypes
-		// err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
-		// if err != nil {
-		// 	return resp, err
-		// }
+		err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
+		if err != nil {
+			return resp, err
+		}
 
 		compObj, err := morph.DeepUnknown(tsch, newResObject, tftypes.AttributePath{})
 		if err != nil {
@@ -257,14 +256,14 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		// tsch, err := s.TFTypeFromOpenAPI(gvk)
-		// if err != nil {
-		// 	return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
-		// }
-		// err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
-		// if err != nil {
-		// 	return resp, err
-		// }
+		tsch, err := s.TFTypeFromOpenAPI(gvk)
+		if err != nil {
+			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
+		}
+		err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
+		if err != nil {
+			return resp, err
+		}
 
 		resp.NewState = req.PlannedState
 	}
