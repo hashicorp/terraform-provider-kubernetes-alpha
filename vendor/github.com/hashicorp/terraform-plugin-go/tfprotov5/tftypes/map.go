@@ -6,7 +6,11 @@ import "fmt"
 // all of the same type, each identifiable with a unique string key.
 type Map struct {
 	AttributeType Type
-	_             []struct{}
+
+	// used to make this type uncomparable
+	// see https://golang.org/ref/spec#Comparison_operators
+	// this enforces the use of Is, instead
+	_ []struct{}
 }
 
 // Is returns whether `t` is a Map type or not. If `t` is an instance of the

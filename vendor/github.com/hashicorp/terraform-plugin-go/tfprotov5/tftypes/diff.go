@@ -6,9 +6,23 @@ import (
 	"math/big"
 )
 
+// ValueDiff expresses a subset of a Value that is different between two
+// Values. The Path property indicates where the subset is located within the
+// Value, and Value1 and Value2 indicate what the subset is in each of the
+// Values. If the Value does not contain a subset at that AttributePath, its
+// Value will be nil. This is distinct from a Value with a nil in it (a "null"
+// value), which is present in the Value.
 type ValueDiff struct {
-	Path   AttributePath
+	// The Path these different subsets are located at in the original
+	// Values.
+	Path AttributePath
+
+	// The subset of the first Value passed to Diff found at the
+	// AttributePath indicated by Path.
 	Value1 *Value
+
+	// The subset of the second Value passed to Diff found at the
+	// AttributePath indicated by Path.
 	Value2 *Value
 }
 
@@ -25,6 +39,9 @@ func (v ValueDiff) String() string {
 		v.Path.String(), val1, val2)
 }
 
+// Equal returns whether two ValueDiffs should be considered equal or not.
+// ValueDiffs are consisdered equal when their Path, Value1, and Value2
+// properties are considered equal.
 func (v ValueDiff) Equal(o ValueDiff) bool {
 	if !v.Path.Equal(o.Path) {
 		return false
@@ -35,14 +52,7 @@ func (v ValueDiff) Equal(o ValueDiff) bool {
 	if v.Value1 != nil && o.Value1 == nil {
 		return false
 	}
-	if v.Value1 == nil && o.Value1 == nil {
-		return true
-	}
-	diffs, err := v.Value1.Diff(*o.Value1)
-	if err != nil {
-		panic(err)
-	}
-	if len(diffs) > 0 {
+	if v.Value1 != nil && o.Value1 != nil && !v.Value1.Equal(*o.Value1) {
 		return false
 	}
 	if v.Value2 == nil && o.Value2 != nil {
@@ -51,22 +61,21 @@ func (v ValueDiff) Equal(o ValueDiff) bool {
 	if v.Value2 != nil && o.Value2 == nil {
 		return false
 	}
-	if v.Value2 == nil && o.Value2 == nil {
-		return true
-	}
-	diffs, err = v.Value2.Diff(*o.Value2)
-	if err != nil {
-		panic(err)
-	}
-	if len(diffs) > 0 {
+	if v.Value2 != nil && o.Value2 != nil && !v.Value2.Equal(*o.Value2) {
 		return false
 	}
 	return true
 }
 
+// Diff computes the differences between `val1` and `val2` and surfaces them as
+// a slice of ValueDiffs. The ValueDiffs in the struct will use `val1`'s values
+// as Value1 and `val2`'s values as Value2. An empty or nil slice means the two
+// Values can be considered equal. Values must be the same type when passed to
+// Diff; passing in Values of two different types will result in an error.
+// val1.Type().Is(val2.Type()) is a safe way to check that Values can be
+// compared with Diff.
 func (val1 Value) Diff(val2 Value) ([]ValueDiff, error) {
-	// TODO: replace with Type() when #58 is merged
-	if !val1.typ.Is(val2.typ) {
+	if !val1.Type().Is(val2.Type()) {
 		return nil, errors.New("Can't diff values of different types")
 	}
 	var diffs []ValueDiff
@@ -267,7 +276,7 @@ func (val1 Value) Diff(val2 Value) ([]ValueDiff, error) {
 			// from the walk check the sub-values match
 			return true, nil
 		}
-		return false, fmt.Errorf("unexpected type %v in Diff at %s", value1.typ, path)
+		return false, fmt.Errorf("unexpected type %v in Diff at %s", value1.Type(), path)
 	})
 	return diffs, err
 }

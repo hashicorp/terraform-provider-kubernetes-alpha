@@ -48,6 +48,9 @@ func (a AttributePath) String() string {
 	return res.String()
 }
 
+// Equal returns true if two AttributePaths should be considered equal.
+// AttributePaths are considered equal if they have the same number of steps,
+// the steps are all the same types, and the steps have all the same values.
 func (a AttributePath) Equal(o AttributePath) bool {
 	if len(a.Steps) != len(o.Steps) {
 		return false
@@ -92,7 +95,7 @@ func (a AttributePath) Equal(o AttributePath) bool {
 				return false
 			}
 		default:
-			panic(fmt.Sprintf("unknown step %T in ValueDiff.Equal", aStep))
+			panic(fmt.Sprintf("unknown step %T in AttributePath.Equal", aStep))
 		}
 	}
 	return true
@@ -152,7 +155,7 @@ func (a AttributePath) WithElementKeyValue(key Value) AttributePath {
 	steps := make([]AttributePathStep, len(a.Steps))
 	copy(steps, a.Steps)
 	return AttributePath{
-		Steps: append(steps, ElementKeyValue(key)),
+		Steps: append(steps, ElementKeyValue(key.Copy())),
 	}
 }
 

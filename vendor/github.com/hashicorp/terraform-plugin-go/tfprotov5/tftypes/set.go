@@ -6,7 +6,11 @@ import "fmt"
 // elements, all of the same type.
 type Set struct {
 	ElementType Type
-	_           []struct{}
+
+	// used to make this type uncomparable
+	// see https://golang.org/ref/spec#Comparison_operators
+	// this enforces the use of Is, instead
+	_ []struct{}
 }
 
 // Is returns whether `t` is a Set type or not. If `t` is an instance of the

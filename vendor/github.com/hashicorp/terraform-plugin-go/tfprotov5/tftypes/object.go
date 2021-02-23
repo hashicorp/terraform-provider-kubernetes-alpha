@@ -13,7 +13,11 @@ import (
 // attribute names or types are considered to be distinct types.
 type Object struct {
 	AttributeTypes map[string]Type
-	_              []struct{}
+
+	// used to make this type uncomparable
+	// see https://golang.org/ref/spec#Comparison_operators
+	// this enforces the use of Is, instead
+	_ []struct{}
 }
 
 // Is returns whether `t` is an Object type or not. If `t` is an instance of

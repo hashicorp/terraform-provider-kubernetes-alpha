@@ -27,6 +27,16 @@ import (
 	"errors"
 )
 
+// Walk traverses a Value, calling the passed function for every element and
+// attribute in the Value. The AttributePath passed to the callback function
+// will identify which attribute or element is currently being surfaced by the
+// Walk, and the passed Value will be the element or attribute at that
+// AttributePath. Returning true from the callback function will indicate that
+// any attributes or elements of the surfaced Value should be walked, too;
+// returning false short-circuits the walk at that element or attribute, and
+// does not visit any of its descendants. The return value of the callback does
+// not matter when the Value that has been surfaced has no elements or
+// attributes. Walk uses a depth-first traversal.
 func Walk(val Value, cb func(AttributePath, Value) (bool, error)) error {
 	var path AttributePath
 	return walk(path, val, cb)
@@ -49,8 +59,7 @@ func walk(path AttributePath, val Value, cb func(AttributePath, Value) (bool, er
 		return nil
 	}
 
-	// TODO(paddy): replace with val.Type() once #58 lands
-	ty := val.typ
+	ty := val.Type()
 	switch {
 	case ty.Is(List{}), ty.Is(Set{}), ty.Is(Tuple{}):
 		var v []Value
@@ -103,6 +112,15 @@ func walk(path AttributePath, val Value, cb func(AttributePath, Value) (bool, er
 	return nil
 }
 
+// Transform uses a callback to mutate a Value. Each element or attribute will
+// be visited in turn, with the AttributePath and Value surfaced to the
+// callback, as in Walk. Unlike in Walk, the callback returns a Value instead
+// of a boolean; this is the Value that will be stored at that AttributePath.
+// The callback must return the passed Value unmodified if it wishes to not
+// mutate a Value. Elements and attributes of a Value will be passed to the
+// callback prior to the Value they belong to being passed to the callback,
+// which means a callback can overwrite its own modifications. Values passed to
+// the callback will always reflect the results of earlier callback calls.
 func Transform(val Value, cb func(AttributePath, Value) (Value, error)) (Value, error) {
 	var path AttributePath
 	return transform(path, val, cb)
@@ -110,8 +128,7 @@ func Transform(val Value, cb func(AttributePath, Value) (Value, error)) (Value, 
 
 func transform(path AttributePath, val Value, cb func(AttributePath, Value) (Value, error)) (Value, error) {
 	var newVal Value
-	// TODO(paddy): change this to val.Type() when #58 lands
-	ty := val.typ
+	ty := val.Type()
 
 	switch {
 	case val.IsNull() || !val.IsKnown():

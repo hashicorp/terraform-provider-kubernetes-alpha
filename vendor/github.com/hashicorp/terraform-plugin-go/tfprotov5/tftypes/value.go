@@ -53,15 +53,14 @@ type Value struct {
 	value interface{}
 }
 
-func (v Value) String() string {
-	// TODO: replace with v.Type() once #58 lands
-	typ := v.typ
+func (val Value) String() string {
+	typ := val.Type()
 
 	// null and unknown values we use static strings for
-	if v.IsNull() {
+	if val.IsNull() {
 		return typ.String() + "<null>"
 	}
-	if !v.IsKnown() {
+	if !val.IsKnown() {
 		return typ.String() + "<unknown>"
 	}
 
@@ -70,28 +69,28 @@ func (v Value) String() string {
 	switch {
 	case typ.Is(String):
 		var s string
-		err := v.As(&s)
+		err := val.As(&s)
 		if err != nil {
 			panic(err)
 		}
 		res.WriteString(typ.String() + `<"` + s + `">`)
 	case typ.Is(Number):
 		n := big.NewFloat(0)
-		err := v.As(&n)
+		err := val.As(&n)
 		if err != nil {
 			panic(err)
 		}
 		res.WriteString(typ.String() + `<"` + n.String() + `">`)
 	case typ.Is(Bool):
 		var b bool
-		err := v.As(&b)
+		err := val.As(&b)
 		if err != nil {
 			panic(err)
 		}
 		res.WriteString(typ.String() + `<"` + strconv.FormatBool(b) + `">`)
-	case v.Type().Is(List{}), v.Type().Is(Set{}), v.Type().Is(Tuple{}):
+	case typ.Is(List{}), typ.Is(Set{}), typ.Is(Tuple{}):
 		var l []Value
-		err := v.As(&l)
+		err := val.As(&l)
 		if err != nil {
 			panic(err)
 		}
@@ -103,9 +102,9 @@ func (v Value) String() string {
 			res.WriteString(el.String())
 		}
 		res.WriteString(">")
-	case v.Type().Is(Map{}), v.Type().Is(Object{}):
+	case typ.Is(Map{}), typ.Is(Object{}):
 		m := map[string]Value{}
-		err := v.As(&m)
+		err := val.As(&m)
 		if err != nil {
 			panic(err)
 		}
@@ -127,17 +126,24 @@ func (v Value) String() string {
 	return res.String()
 }
 
-func (v Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (interface{}, error) {
-	if !v.IsKnown() || v.IsNull() {
+// ApplyTerraform5AttributePathStep applies an AttributePathStep to a Value,
+// returning the Value found at that AttributePath within the Value. It
+// fulfills that AttributePathStepper interface, allowing Values to be passed
+// to WalkAttributePath. This allows retrieving a subset of a Value using an
+// AttributePath. If the AttributePathStep can't be applied to the Value,
+// either because it is the wrong type or because no Value exists at that
+// AttributePathStep, an ErrInvalidStep error will be returned.
+func (val Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (interface{}, error) {
+	if !val.IsKnown() || val.IsNull() {
 		return nil, ErrInvalidStep
 	}
 	switch s := step.(type) {
 	case AttributeName:
-		if !v.Type().Is(Object{}) {
+		if !val.Type().Is(Object{}) {
 			return nil, ErrInvalidStep
 		}
 		o := map[string]Value{}
-		err := v.As(&o)
+		err := val.As(&o)
 		if err != nil {
 			return nil, err
 		}
@@ -147,11 +153,11 @@ func (v Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (interfa
 		}
 		return res, nil
 	case ElementKeyString:
-		if !v.Type().Is(Map{}) {
+		if !val.Type().Is(Map{}) {
 			return nil, ErrInvalidStep
 		}
 		m := map[string]Value{}
-		err := v.As(&m)
+		err := val.As(&m)
 		if err != nil {
 			return nil, err
 		}
@@ -161,11 +167,11 @@ func (v Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (interfa
 		}
 		return res, nil
 	case ElementKeyInt:
-		if !v.Type().Is(List{}) && !v.Type().Is(Tuple{}) {
+		if !val.Type().Is(List{}) && !val.Type().Is(Tuple{}) {
 			return nil, ErrInvalidStep
 		}
 		sl := []Value{}
-		err := v.As(&sl)
+		err := val.As(&sl)
 		if err != nil {
 			return nil, err
 		}
@@ -174,11 +180,11 @@ func (v Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (interfa
 		}
 		return sl[int64(s)], nil
 	case ElementKeyValue:
-		if !v.Type().Is(Set{}) {
+		if !val.Type().Is(Set{}) {
 			return nil, ErrInvalidStep
 		}
 		sl := []Value{}
-		err := v.As(&sl)
+		err := val.As(&sl)
 		if err != nil {
 			return nil, err
 		}
@@ -197,34 +203,40 @@ func (v Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (interfa
 	}
 }
 
-func (v Value) Equal(o Value) bool {
-	if !v.Type().Is(o.typ) {
+// Equal returns true if two Values should be considered equal. Values are
+// considered equal if their types are considered equal and if they represent
+// data that is considered equal.
+func (val Value) Equal(o Value) bool {
+	if !val.Type().Is(o.Type()) {
 		return false
 	}
-	diff, err := v.Diff(o)
+	diff, err := val.Diff(o)
 	if err != nil {
 		panic(err)
 	}
 	return len(diff) < 1
 }
 
-func (v Value) Copy() Value {
-	newVal := v.value
-	switch val := v.value.(type) {
+// Copy returns a defensively-copied clone of Value that shares no underlying
+// data structures with the original Value and can be mutated without
+// accidentally mutating the original.
+func (val Value) Copy() Value {
+	newVal := val.value
+	switch v := val.value.(type) {
 	case []Value:
-		newVals := make([]Value, 0, len(val))
-		for _, value := range val {
+		newVals := make([]Value, 0, len(v))
+		for _, value := range v {
 			newVals = append(newVals, value.Copy())
 		}
 		newVal = newVals
 	case map[string]Value:
-		newVals := make(map[string]Value, len(val))
-		for k, value := range val {
+		newVals := make(map[string]Value, len(v))
+		for k, value := range v {
 			newVals[k] = value.Copy()
 		}
 		newVal = newVals
 	}
-	return NewValue(v.typ, newVal)
+	return NewValue(val.Type(), newVal)
 }
 
 // NewValue returns a Value constructed using the specified Type and stores the
@@ -489,7 +501,7 @@ func (val Value) As(dst interface{}) error {
 		}
 		v, ok := val.value.(string)
 		if !ok {
-			return fmt.Errorf("can't unmarshal %s into %T, expected string", val.typ, dst)
+			return fmt.Errorf("can't unmarshal %s into %T, expected string", val.Type(), dst)
 		}
 		*target = v
 		return nil
@@ -506,7 +518,7 @@ func (val Value) As(dst interface{}) error {
 		}
 		v, ok := val.value.(*big.Float)
 		if !ok {
-			return fmt.Errorf("can't unmarshal %s into %T, expected *big.Float", val.typ, dst)
+			return fmt.Errorf("can't unmarshal %s into %T, expected *big.Float", val.Type(), dst)
 		}
 		target.Set(v)
 		return nil
@@ -523,7 +535,7 @@ func (val Value) As(dst interface{}) error {
 		}
 		v, ok := val.value.(bool)
 		if !ok {
-			return fmt.Errorf("can't unmarshal %s into %T, expected boolean", val.typ, dst)
+			return fmt.Errorf("can't unmarshal %s into %T, expected boolean", val.Type(), dst)
 		}
 		*target = v
 		return nil
@@ -540,7 +552,7 @@ func (val Value) As(dst interface{}) error {
 		}
 		v, ok := val.value.(map[string]Value)
 		if !ok {
-			return fmt.Errorf("can't unmarshal %s into %T, expected map[string]tftypes.Value", val.typ, dst)
+			return fmt.Errorf("can't unmarshal %s into %T, expected map[string]tftypes.Value", val.Type(), dst)
 		}
 		*target = v
 		return nil
@@ -557,7 +569,7 @@ func (val Value) As(dst interface{}) error {
 		}
 		v, ok := val.value.([]Value)
 		if !ok {
-			return fmt.Errorf("can't unmarshal %s into %T expected []tftypes.Value", val.typ, dst)
+			return fmt.Errorf("can't unmarshal %s into %T expected []tftypes.Value", val.Type(), dst)
 		}
 		*target = v
 		return nil
@@ -590,7 +602,7 @@ func (val Value) IsFullyKnown() bool {
 	if !val.IsKnown() {
 		return false
 	}
-	switch val.typ.(type) {
+	switch val.Type().(type) {
 	case primitive:
 		return true
 	case List, Set, Tuple:
@@ -608,7 +620,7 @@ func (val Value) IsFullyKnown() bool {
 		}
 		return true
 	}
-	panic(fmt.Sprintf("unknown type %T", val.typ))
+	panic(fmt.Sprintf("unknown type %T", val.Type()))
 }
 
 // IsNull returns true if the Value is null.
@@ -646,7 +658,7 @@ func numberComparer(i, j *big.Float) bool {
 }
 
 func valueComparer(i, j Value) bool {
-	if !i.typ.Is(j.typ) {
+	if !i.Type().Is(j.Type()) {
 		return false
 	}
 	return cmp.Equal(i.value, j.value, cmp.Comparer(numberComparer), ValueComparer())
@@ -659,10 +671,10 @@ func TypeFromElements(elements []Value) (Type, error) {
 	var typ Type
 	for _, el := range elements {
 		if typ == nil {
-			typ = el.typ
+			typ = el.Type()
 			continue
 		}
-		if !typ.Is(el.typ) {
+		if !typ.Is(el.Type()) {
 			return nil, errors.New("elements do not all have the same types")
 		}
 	}
