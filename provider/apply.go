@@ -131,7 +131,13 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 
 		ns, err := IsResourceNamespaced(gvk, m)
 		if err != nil {
-			return resp, err
+			resp.Diagnostics = append(resp.Diagnostics,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   err.Error(),
+					Summary:  fmt.Sprintf("Failed to discover scope of resource '%s'", rnn),
+				})
+			return resp, nil
 		}
 
 		if ns {
