@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/getkin/kin-openapi/openapi2"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -26,8 +27,9 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 	}
 
 	f := foapiv2{
-		swagger:        &swg,
-		typeCache:      make(map[uint64]tftypes.Type),
+		swagger: &swg,
+		// typeCache:      make(map[uint64]tftypes.Type),
+		typeCache:      sync.Map{},
 		recursionDepth: 50, // arbitrarily large number - a type this big will likely kill Terraform anyway
 	}
 
@@ -46,8 +48,9 @@ type Foundry interface {
 }
 
 type foapiv2 struct {
-	swagger        *openapi2.Swagger
-	typeCache      map[uint64]tftypes.Type
+	swagger *openapi2.Swagger
+	// typeCache      map[uint64]tftypes.Type
+	typeCache      sync.Map
 	recursionDepth uint64
 }
 
@@ -146,8 +149,8 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tf
 
 	// check if type is in cache
 	if herr == nil {
-		if t, ok := f.typeCache[h]; ok {
-			return t, nil
+		if t, ok := f.typeCache.Load(h); ok {
+			return t.(tftypes.Type), nil
 		}
 	}
 	switch elem.Type {
@@ -177,7 +180,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tf
 		}
 		t = tftypes.List{ElementType: et}
 		if herr == nil {
-			f.typeCache[h] = t
+			f.typeCache.Store(h, t)
 		}
 		return t, nil
 
@@ -200,7 +203,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tf
 			}
 			t = tftypes.Object{AttributeTypes: atts}
 			if herr == nil {
-				f.typeCache[h] = t
+				f.typeCache.Store(h, t)
 			}
 			return t, nil
 
@@ -216,7 +219,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tf
 			}
 			t = tftypes.Map{AttributeType: pt}
 			if herr == nil {
-				f.typeCache[h] = t
+				f.typeCache.Store(h, t)
 			}
 			return t, nil
 
@@ -224,7 +227,7 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tf
 			// this is a strange case, encountered with io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1 and also io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceSubresourceStatus
 			t = tftypes.DynamicPseudoType
 			if herr == nil {
-				f.typeCache[h] = t
+				f.typeCache.Store(h, t)
 			}
 			return t, nil
 
