@@ -114,7 +114,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		return resp, nil
 	}
 
-	// Validate is resource requires a namespace and fail the plan with
+	// Validate if the resource requires a namespace and fail the plan with
 	// a meaningful error if none is supplied. Ideally this would be done earlier,
 	// during 'ValidateResourceTypeConfig', but at that point we don't have access to API credentials
 	// and we need them for calling IsResourceNamespaced (uses the discovery API).
