@@ -196,9 +196,12 @@ func mapToTFMapValue(in map[string]interface{}, st tftypes.Type, at tftypes.Attr
 func mapToTFObjectValue(in map[string]interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
 	im := make(map[string]tftypes.Value)
 	oTypes := make(map[string]tftypes.Type)
-	for k, v := range in {
+	for k, kt := range st.(tftypes.Object).AttributeTypes {
 		eap := at.WithAttributeName(k)
-		kt := st.(tftypes.Object).AttributeTypes[k]
+		v, ok := in[k]
+		if !ok {
+			v = nil
+		}
 		nv, err := ToTFValue(v, kt, eap)
 		if err != nil {
 			return tftypes.Value{}, eap.NewErrorf("[%s] cannot convert map element value: %s", eap, err)
