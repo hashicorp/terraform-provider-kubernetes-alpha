@@ -128,9 +128,9 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 			})
 		return resp, nil
 	}
+	nsPath := tftypes.AttributePath{}.WithAttributeName("metadata").WithAttributeName("namespace")
+	nsVal, restPath, err := tftypes.WalkAttributePath(ppMan, nsPath)
 	if ns {
-		nsPath := tftypes.AttributePath{}.WithAttributeName("metadata").WithAttributeName("namespace")
-		nsVal, restPath, err := tftypes.WalkAttributePath(ppMan, nsPath)
 		if err != nil || len(restPath.Steps) > 0 {
 			resp.Diagnostics = append(resp.Diagnostics,
 				&tfprotov5.Diagnostic{
@@ -140,7 +140,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 				})
 			return resp, nil
 		}
-		if nsVal.(tftypes.Value).IsNull() || nsVal.(tftypes.Value).IsNull() {
+		if nsVal.(tftypes.Value).IsNull() {
 			resp.Diagnostics = append(resp.Diagnostics,
 				&tfprotov5.Diagnostic{
 					Severity: tfprotov5.DiagnosticSeverityError,
@@ -160,8 +160,19 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 				})
 			return resp, nil
 		}
+	} else {
+		if err == nil && len(restPath.Steps) == 0 && !nsVal.(tftypes.Value).IsNull() {
+			resp.Diagnostics = append(resp.Diagnostics,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   fmt.Sprintf("Resources of type '%s' cannot have a namespace", gvk.String()),
+					Summary:  "Cluster level resource cannot take namespace",
+				})
+			return resp, nil
+		}
 	}
 
+	// Request a complete type for the resource from the OpenAPI spec
 	objectType, err := s.TFTypeFromOpenAPI(gvk)
 	if err != nil {
 		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
