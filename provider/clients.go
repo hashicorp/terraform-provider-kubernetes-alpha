@@ -22,7 +22,7 @@ const (
 	OAPIFoundry string = "OPENAPIFOUNDRY"
 )
 
-// GetDynamicClient returns a configured unstructured (dynamic) client instance
+// getDynamicClient returns a configured unstructured (dynamic) client instance
 func (ps *RawProviderServer) getDynamicClient() (dynamic.Interface, error) {
 	if ps.dynamicClient != nil {
 		return ps.dynamicClient, nil
@@ -69,7 +69,7 @@ func (ps *RawProviderServer) getRestMapper() (meta.RESTMapper, error) {
 	return mapper, nil
 }
 
-// GetRestClient returns a raw REST client instance
+// getRestClient returns a raw REST client instance
 func (ps *RawProviderServer) getRestClient() (rest.Interface, error) {
 	if ps.restClient != nil {
 		return ps.restClient, nil
@@ -85,8 +85,8 @@ func (ps *RawProviderServer) getRestClient() (rest.Interface, error) {
 	return restClient, nil
 }
 
-// GetOAPIFoundry returns an interface to request cty types from an OpenAPI spec
-func (ps *RawProviderServer) GetOAPIFoundry() (openapi.Foundry, error) {
+// getOAPIFoundry returns an interface to request cty types from an OpenAPI spec
+func (ps *RawProviderServer) getOAPIFoundry() (openapi.Foundry, error) {
 	if ps.OAPIFoundry != nil {
 		return ps.OAPIFoundry, nil
 	}

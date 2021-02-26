@@ -11,6 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 	"github.com/mitchellh/hashstructure"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // NewFoundryFromSpecV2 creates a new tftypes.Type foundry from an OpenAPI v2 spec document
@@ -26,37 +27,51 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 		return nil, fmt.Errorf("failed to parse spec: %s", err)
 	}
 
-	f := foapiv2{
-		swagger: &swg,
-		// typeCache:      make(map[uint64]tftypes.Type),
-		typeCache:      sync.Map{},
-		recursionDepth: 50, // arbitrarily large number - a type this big will likely kill Terraform anyway
-	}
-
-	d := f.swagger.Definitions
-
+	d := swg.Definitions
 	if d == nil || len(d) == 0 {
 		return nil, errors.New("spec has no type information")
 	}
 
-	return f, nil
+	f := foapiv2{
+		swagger:        &swg,
+		typeCache:      sync.Map{},
+		gkvIndex:       sync.Map{},
+		recursionDepth: 50, // arbitrarily large number - a type this deep will likely kill Terraform anyway
+	}
+
+	err = f.buildGvkIndex()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build GVK index when creating new foundry: %s", err)
+	}
+
+	return &f, nil
 }
 
-// Foundry is a mechanism to construct tftype out of OpenAPI specifications
+// Foundry is a mechanism to construct tftypes out of OpenAPI specifications
 type Foundry interface {
-	GetTypeByID(id string) (tftypes.Type, error)
+	GetTypeByGVK(gvk schema.GroupVersionKind) (tftypes.Type, error)
 }
 
 type foapiv2 struct {
-	swagger *openapi2.Swagger
-	// typeCache      map[uint64]tftypes.Type
+	swagger        *openapi2.Swagger
 	typeCache      sync.Map
-	recursionDepth uint64
+	gkvIndex       sync.Map
+	recursionDepth uint64 // a last resort circuit-breaker for run-away recursion - hitting this will make for a bad day
 }
 
-// GetTypeById looks up a type by its fully qualified ID in the Definitions sections of
-// the OpenAPI spec and returns its nearest tftypes.Type equivalent
-func (f foapiv2) GetTypeByID(id string) (tftypes.Type, error) {
+// GetTypeByGVK looks up a type by its GVK in the Definitions sections of
+// the OpenAPI spec and returns its (nearest) tftypes.Type equivalent
+func (f *foapiv2) GetTypeByGVK(gvk schema.GroupVersionKind) (tftypes.Type, error) {
+	// the ID string that Swagger / OpenAPI uses to identify the resource
+	// e.g. "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+	id, ok := f.gkvIndex.Load(gvk)
+	if !ok {
+		return nil, fmt.Errorf("%v resource not found in OpenAPI index", gvk)
+	}
+	return f.getTypeByID(id.(string))
+}
+
+func (f *foapiv2) getTypeByID(id string) (tftypes.Type, error) {
 	swd, ok := f.swagger.Definitions[id]
 
 	if !ok {
@@ -75,7 +90,7 @@ func (f foapiv2) GetTypeByID(id string) (tftypes.Type, error) {
 	return f.getTypeFromSchema(sch, 0)
 }
 
-func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, error) {
+func (f *foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, error) {
 	if ref.Value != nil {
 		return ref.Value, nil
 	}
@@ -133,7 +148,7 @@ func (f foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, er
 	return f.resolveSchemaRef(nref)
 }
 
-func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tftypes.Type, error) {
+func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tftypes.Type, error) {
 	if stackdepth > f.recursionDepth {
 		// this is a hack to overcome the inability to express recursion in tftypes
 		return nil, errors.New("recursion runaway while generating type from OpenAPI spec")
@@ -235,4 +250,29 @@ func (f foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (tf
 	}
 
 	return nil, fmt.Errorf("unknown type: %s", elem.Type)
+}
+
+// buildGvkIndex builds the reverse lookup index that associates each GVK
+// to its corresponding string key in the swagger.Definitions map
+func (f *foapiv2) buildGvkIndex() error {
+	for did, dRef := range f.swagger.Definitions {
+		def, err := f.resolveSchemaRef(dRef)
+		if err != nil {
+			return err
+		}
+		ex, ok := def.Extensions["x-kubernetes-group-version-kind"]
+		if !ok {
+			continue
+		}
+		gvk := []schema.GroupVersionKind{}
+		gvkRaw, err := ex.(json.RawMessage).MarshalJSON()
+		err = json.Unmarshal(gvkRaw, &gvk)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshall GVK from OpenAPI schema extention: %v", err)
+		}
+		for i := range gvk {
+			f.gkvIndex.Store(gvk[i], did)
+		}
+	}
+	return nil
 }

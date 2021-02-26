@@ -3,7 +3,6 @@ package provider
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -74,43 +73,17 @@ func IsResourceNamespaced(gvk schema.GroupVersionKind, m meta.RESTMapper) (bool,
 	return false, nil
 }
 
-// OpenAPIPathFromGVK returns the ID used to retrieve a resource type definition
-// from the OpenAPI spec document
-func OpenAPIPathFromGVK(gvk schema.GroupVersionKind) (string, error) {
-	var repo string = "api"
-	g := gvk.Group
-	if g == "" {
-		g = "core"
-	}
-	switch g {
-	case "meta":
-		repo = "apimachinery.pkg.apis"
-	case "apiextensions.k8s.io":
-		repo = "apiextensions-apiserver.pkg.apis"
-	case "apiregistration.k8s.io":
-		repo = "kube-aggregator.pkg.apis"
-	}
-	// the ID string that Swagger / OpenAPI uses to identify the resource
-	// e.g. "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-	return strings.Join([]string{"io", "k8s", repo, strings.Split(g, ".")[0], gvk.Version, gvk.Kind}, "."), nil
-}
-
 // TFTypeFromOpenAPI generates a tftypes.Type representation of a Kubernetes resource
 // designated by the supplied GroupVersionKind resource id
 func (ps *RawProviderServer) TFTypeFromOpenAPI(gvk schema.GroupVersionKind) (tftypes.Type, error) {
-	id, err := OpenAPIPathFromGVK(gvk)
-	if err != nil {
-		return nil, fmt.Errorf("cannot determine resource type ID: %s", err)
-	}
-
-	oapi, err := ps.GetOAPIFoundry()
+	oapi, err := ps.getOAPIFoundry()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get OpenAPI foundry: %s", err)
 	}
 
-	tsch, err := oapi.GetTypeByID(id)
+	tsch, err := oapi.GetTypeByGVK(gvk)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get resource type from OpenAPI (ID %s): %s", id, err)
+		return nil, fmt.Errorf("cannot get resource type from OpenAPI (%s): %s", gvk.String(), err)
 	}
 
 	// remove "status" attribute from resource type
