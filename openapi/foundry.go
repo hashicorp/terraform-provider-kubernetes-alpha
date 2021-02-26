@@ -35,8 +35,8 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 	f := foapiv2{
 		swagger:        &swg,
 		typeCache:      sync.Map{},
-		gkvIndex:       sync.Map{},
-		recursionDepth: 50, // arbitrarily large number - a type this deep will likely kill Terraform anyway
+		gkvIndex:       sync.Map{}, //reverse lookup index from GVK to OpenAPI definition IDs
+		recursionDepth: 50,         // arbitrarily large number - a type this deep will likely kill Terraform anyway
 	}
 
 	err = f.buildGvkIndex()

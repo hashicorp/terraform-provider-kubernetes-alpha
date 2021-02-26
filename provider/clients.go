@@ -86,8 +86,8 @@ func (ps *RawProviderServer) getRestClient() (rest.Interface, error) {
 }
 
 // getOAPIFoundry returns an interface to request cty types from an OpenAPI spec
-func (ps *RawProviderServer) getOAPIFoundry() (openapi.Foundry, error) {
-	if ps.OAPIFoundry != nil {
+func (ps *RawProviderServer) getOAPIFoundry(refresh bool) (openapi.Foundry, error) {
+	if ps.OAPIFoundry != nil && !refresh {
 		return ps.OAPIFoundry, nil
 	}
 

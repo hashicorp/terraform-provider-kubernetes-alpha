@@ -273,5 +273,6 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 
 		resp.NewState = req.PlannedState
 	}
+	s.getOAPIFoundry(true) // this needs to be optimized to refresh only when CRDs are applied (or maybe other schema altering resources too?)
 	return resp, nil
 }
