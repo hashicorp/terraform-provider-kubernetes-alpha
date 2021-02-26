@@ -76,7 +76,7 @@ func IsResourceNamespaced(gvk schema.GroupVersionKind, m meta.RESTMapper) (bool,
 // TFTypeFromOpenAPI generates a tftypes.Type representation of a Kubernetes resource
 // designated by the supplied GroupVersionKind resource id
 func (ps *RawProviderServer) TFTypeFromOpenAPI(gvk schema.GroupVersionKind) (tftypes.Type, error) {
-	oapi, err := ps.getOAPIFoundry(false)
+	oapi, err := ps.getOAPIFoundry()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get OpenAPI foundry: %s", err)
 	}
