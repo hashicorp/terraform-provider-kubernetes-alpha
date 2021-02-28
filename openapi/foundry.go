@@ -98,6 +98,15 @@ func (f *foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, e
 	rp := strings.Split(ref.Ref, "/")
 	sid := rp[len(rp)-1]
 
+	nref, ok := f.swagger.Definitions[sid]
+
+	if !ok {
+		return nil, errors.New("schema not found")
+	}
+	if nref == nil {
+		return nil, errors.New("nil schema reference")
+	}
+
 	// These are exceptional situations that require non-standard types.
 	switch sid {
 	case "io.k8s.apimachinery.pkg.util.intstr.IntOrString":
@@ -135,14 +144,14 @@ func (f *foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, e
 			},
 		}
 		return &t, nil
-	}
-	nref, ok := f.swagger.Definitions[sid]
-
-	if !ok {
-		return nil, errors.New("schema not found")
-	}
-	if nref == nil {
-		return nil, errors.New("nil schema reference")
+	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceDefinitionVersion":
+		t, err := f.resolveSchemaRef(nref)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve schema: %s", err)
+		}
+		t.AdditionalProperties = t.Items
+		t.Items = nil
+		return t, nil
 	}
 
 	return f.resolveSchemaRef(nref)
@@ -185,19 +194,36 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 		return tftypes.DynamicPseudoType, nil
 
 	case "array":
-		it, err := f.resolveSchemaRef(elem.Items)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve schema for items: %s", err)
+		switch {
+		case elem.Items != nil:
+			it, err := f.resolveSchemaRef(elem.Items)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve schema for items: %s", err)
+			}
+			et, err := f.getTypeFromSchema(it, stackdepth+1)
+			if err != nil {
+				return nil, err
+			}
+			t = tftypes.List{ElementType: et}
+			if herr == nil {
+				f.typeCache.Store(h, t)
+			}
+			return t, nil
+		case elem.AdditionalProperties != nil && elem.Items != nil:
+			it, err := f.resolveSchemaRef(elem.Items)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve schema for items: %s", err)
+			}
+			et, err := f.getTypeFromSchema(it, stackdepth+1)
+			if err != nil {
+				return nil, err
+			}
+			t = tftypes.Tuple{ElementTypes: []tftypes.Type{et}}
+			if herr == nil {
+				f.typeCache.Store(h, t)
+			}
+			return t, nil
 		}
-		et, err := f.getTypeFromSchema(it, stackdepth+1)
-		if err != nil {
-			return nil, err
-		}
-		t = tftypes.List{ElementType: et}
-		if herr == nil {
-			f.typeCache.Store(h, t)
-		}
-		return t, nil
 
 	case "object":
 
