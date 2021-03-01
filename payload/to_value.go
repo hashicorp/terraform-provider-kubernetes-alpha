@@ -142,9 +142,16 @@ func sliceToTFListValue(in []interface{}, st tftypes.Type, at tftypes.AttributeP
 func sliceToTFTupleValue(in []interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
 	il := make([]tftypes.Value, len(in), len(in))
 	oTypes := make([]tftypes.Type, len(in), len(in))
+	ttypes := st.(tftypes.Tuple).ElementTypes
+	if len(ttypes) == 1 && len(il) > 1 {
+		ttypes = make([]tftypes.Type, len(in), len(in))
+		for i := range il {
+			ttypes[i] = st.(tftypes.Tuple).ElementTypes[0]
+		}
+	}
 	for k, v := range in {
 		eap := at.WithElementKeyInt(int64(k))
-		et := st.(tftypes.Tuple).ElementTypes[k]
+		et := ttypes[k]
 		iv, err := ToTFValue(v, et, at.WithElementKeyInt(int64(k)))
 		if err != nil {
 			return tftypes.Value{}, eap.NewErrorf("[%s] cannot convert list element [%d] to '%s': %s", eap.String(), k, et.String(), err)
