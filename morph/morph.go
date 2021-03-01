@@ -149,15 +149,37 @@ func morphListToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (
 }
 
 func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
-	if t.Is(tftypes.Tuple{}) {
-		return v, nil
-	}
 	var tvals []tftypes.Value
 	err := v.As(&tvals)
 	if err != nil {
 		return tftypes.Value{}, p.NewErrorf("[%s] failed to morph tuple value: %v", p.String(), err)
 	}
 	switch {
+	case t.Is(tftypes.Tuple{}):
+		var eltypes []tftypes.Type = make([]tftypes.Type, len(tvals))
+		var lvals []tftypes.Value = make([]tftypes.Value, len(tvals))
+		if len(tvals) != len(t.(tftypes.Tuple).ElementTypes) {
+			if len(t.(tftypes.Tuple).ElementTypes) > 1 {
+				return tftypes.Value{}, p.NewErrorf("[%s] failed to morph tuple value: incompatible tuples", p.String())
+			}
+			// this is the special case workaround for non-uniform lists in OpenAPI (e.g. for CustomResourceDefinitionSpec.versions)
+			for i := range tvals {
+				eltypes[i] = t.(tftypes.Tuple).ElementTypes[0]
+			}
+		} else {
+			for i := range tvals {
+				eltypes[i] = t.(tftypes.Tuple).ElementTypes[i]
+			}
+		}
+		for i, v := range tvals {
+			elp := p.WithElementKeyInt(int64(i))
+			nv, err := ValueToType(v, eltypes[i], elp)
+			if err != nil {
+				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph tuple element into tuple element: %v", elp.String(), err)
+			}
+			lvals[i] = nv
+		}
+		return tftypes.NewValue(tftypes.Tuple{ElementTypes: eltypes}, lvals), nil
 	case t.Is(tftypes.List{}):
 		var lvals []tftypes.Value = make([]tftypes.Value, len(tvals))
 		for i, v := range tvals {

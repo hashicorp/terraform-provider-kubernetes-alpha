@@ -31,8 +31,11 @@ func DeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath) (tfty
 				return tftypes.Value{}, np.NewError(err)
 			}
 			ovals[name] = nv
+			if nv.Type().Is(tftypes.Tuple{}) {
+				atts[name] = nv.Type()
+			}
 		}
-		return tftypes.NewValue(t, ovals), nil
+		return tftypes.NewValue(tftypes.Object{AttributeTypes: atts}, ovals), nil
 	case t.Is(tftypes.Map{}):
 		if v.IsNull() {
 			return tftypes.NewValue(t, tftypes.UnknownValue), nil
@@ -56,7 +59,16 @@ func DeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath) (tfty
 			return tftypes.NewValue(t, tftypes.UnknownValue), nil
 		}
 		atts := t.(tftypes.Tuple).ElementTypes
-		vals := make([]tftypes.Value, len(atts))
+		if len(v.Type().(tftypes.Tuple).ElementTypes) != len(atts) {
+			if len(atts) != 1 {
+				return tftypes.Value{}, p.NewErrorf("[%s] incompatible tuple types", p.String())
+			}
+			atts = make([]tftypes.Type, len(v.Type().(tftypes.Tuple).ElementTypes))
+			for i := range v.Type().(tftypes.Tuple).ElementTypes {
+				atts[i] = t.(tftypes.Tuple).ElementTypes[0]
+			}
+		}
+		var vals []tftypes.Value
 		err := v.As(&vals)
 		if err != nil {
 			return tftypes.Value{}, p.NewError(err)
@@ -69,7 +81,7 @@ func DeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath) (tfty
 			}
 			vals[i] = nv
 		}
-		return tftypes.NewValue(t, vals), nil
+		return tftypes.NewValue(tftypes.Tuple{ElementTypes: atts}, vals), nil
 	case t.Is(tftypes.List{}) || t.Is(tftypes.Set{}):
 		if v.IsNull() {
 			return tftypes.NewValue(t, tftypes.UnknownValue), nil

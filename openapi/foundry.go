@@ -144,13 +144,14 @@ func (f *foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, e
 			},
 		}
 		return &t, nil
-	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceDefinitionVersion":
+	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceDefinitionSpec":
 		t, err := f.resolveSchemaRef(nref)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve schema: %s", err)
 		}
-		t.AdditionalProperties = t.Items
-		t.Items = nil
+		vs := t.Properties["versions"]
+		vs.Value.AdditionalProperties = vs.Value.Items
+		vs.Value.Items = nil
 		return t, nil
 	}
 
@@ -195,7 +196,7 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 
 	case "array":
 		switch {
-		case elem.Items != nil:
+		case elem.Items != nil && elem.AdditionalProperties == nil: // normal array - translates to a tftypes.List
 			it, err := f.resolveSchemaRef(elem.Items)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve schema for items: %s", err)
@@ -209,8 +210,8 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 				f.typeCache.Store(h, t)
 			}
 			return t, nil
-		case elem.AdditionalProperties != nil && elem.Items != nil:
-			it, err := f.resolveSchemaRef(elem.Items)
+		case elem.AdditionalProperties != nil && elem.Items == nil: // "overriden" array - translates to a tftypes.List
+			it, err := f.resolveSchemaRef(elem.AdditionalProperties)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve schema for items: %s", err)
 			}
