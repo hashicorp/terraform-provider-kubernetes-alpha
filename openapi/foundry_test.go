@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -263,5 +264,59 @@ func TestFoundryOAPIv2(t *testing.T) {
 	_, err := buildFixtureFoundry()
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestOpenAPIPathFromGVK(t *testing.T) {
+	samples := []struct {
+		gvk schema.GroupVersionKind
+		id  string
+	}{
+		{
+			gvk: schema.GroupVersionKind{
+				Group:   "apiextensions.k8s.io",
+				Version: "v1beta1",
+				Kind:    "CustomResourceDefinition",
+			},
+			id: "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceDefinition",
+		},
+		{
+			gvk: schema.GroupVersionKind{
+				Group:   "storage.k8s.io",
+				Version: "v1beta1",
+				Kind:    "StorageClass",
+			},
+			id: "io.k8s.api.storage.v1beta1.StorageClass",
+		},
+		{
+			gvk: schema.GroupVersionKind{
+				Group:   "apiregistration.k8s.io",
+				Version: "v1",
+				Kind:    "APIService",
+			},
+			id: "io.k8s.kube-aggregator.pkg.apis.apiregistration.v1.APIService",
+		},
+		{
+			gvk: schema.GroupVersionKind{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Namespace",
+			},
+			id: "io.k8s.api.core.v1.Namespace",
+		},
+	}
+
+	tf, err := buildFixtureFoundry()
+	if err != nil {
+		t.Skip()
+	}
+	for _, s := range samples {
+		id, ok := (tf.(*foapiv2)).gkvIndex.Load(s.gvk)
+		if !ok {
+			t.Fatal(err)
+		}
+		if strings.Compare(id.(string), s.id) != 0 {
+			t.Fatalf("IDs don't match\n\tWant:\t%s\n\tGot:\t%s", s.id, id)
+		}
 	}
 }
