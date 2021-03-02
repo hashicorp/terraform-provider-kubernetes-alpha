@@ -8,14 +8,15 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type testSample struct {
-	id   string
+	gvk  schema.GroupVersionKind
 	want tftypes.Type
 }
 
-type testSamples []testSample
+type testSamples map[string]testSample
 
 var objectMetaType = tftypes.Object{
 	AttributeTypes: map[string]tftypes.Type{
@@ -61,25 +62,8 @@ var objectMetaType = tftypes.Object{
 }
 
 var samples = testSamples{
-	{
-		id:   "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
-		want: objectMetaType,
-	},
-	{
-		id: "io.k8s.api.core.v1.ServicePort",
-		want: tftypes.Object{
-			AttributeTypes: map[string]tftypes.Type{
-				"appProtocol": tftypes.String,
-				"name":        tftypes.String,
-				"nodePort":    tftypes.Number,
-				"port":        tftypes.Number,
-				"protocol":    tftypes.String,
-				"targetPort":  tftypes.DynamicPseudoType,
-			},
-		},
-	},
-	{
-		id: "io.k8s.api.core.v1.ConfigMap",
+	"core.v1/ConfigMap": {
+		gvk: schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"},
 		want: tftypes.Object{
 			AttributeTypes: map[string]tftypes.Type{
 				"apiVersion": tftypes.String,
@@ -91,8 +75,8 @@ var samples = testSamples{
 			},
 		},
 	},
-	{
-		id: "io.k8s.api.core.v1.Service",
+	"core.v1/Service": {
+		gvk: schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
 		want: tftypes.Object{
 			AttributeTypes: map[string]tftypes.Type{
 				"apiVersion": tftypes.String,
@@ -147,8 +131,8 @@ var samples = testSamples{
 			},
 		},
 	},
-	{
-		id: "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceDefinition",
+	"apiextensions.v1/CustomResourceDefinition": {
+		gvk: schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"},
 		want: tftypes.Object{
 			AttributeTypes: map[string]tftypes.Type{
 				"apiVersion": tftypes.String,
@@ -182,32 +166,35 @@ var samples = testSamples{
 					}},
 					"preserveUnknownFields": tftypes.Bool,
 					"scope":                 tftypes.String,
-					"versions": tftypes.List{ElementType: tftypes.Object{AttributeTypes: map[string]tftypes.Type{
-						"additionalPrinterColumns": tftypes.List{ElementType: tftypes.Object{AttributeTypes: map[string]tftypes.Type{
-							"description": tftypes.String,
-							"format":      tftypes.String,
-							"jsonPath":    tftypes.String,
-							"name":        tftypes.String,
-							"priority":    tftypes.Number,
-							"type":        tftypes.String,
-						}}},
-						"deprecated":         tftypes.Bool,
-						"deprecationWarning": tftypes.String,
-						"name":               tftypes.String,
-						"schema": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
-							"openAPIV3Schema": tftypes.DynamicPseudoType,
-						}},
-						"served":  tftypes.Bool,
-						"storage": tftypes.Bool,
-						"subresources": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
-							"scale": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
-								"labelSelectorPath":  tftypes.String,
-								"specReplicasPath":   tftypes.String,
-								"statusReplicasPath": tftypes.String,
-							}},
-							"status": tftypes.Map{AttributeType: tftypes.String},
-						}},
-					}}},
+					"versions": tftypes.Tuple{ElementTypes: []tftypes.Type{
+						tftypes.Object{
+							AttributeTypes: map[string]tftypes.Type{
+								"additionalPrinterColumns": tftypes.List{ElementType: tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+									"description": tftypes.String,
+									"format":      tftypes.String,
+									"jsonPath":    tftypes.String,
+									"name":        tftypes.String,
+									"priority":    tftypes.Number,
+									"type":        tftypes.String,
+								}}},
+								"deprecated":         tftypes.Bool,
+								"deprecationWarning": tftypes.String,
+								"name":               tftypes.String,
+								"schema": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+									"openAPIV3Schema": tftypes.DynamicPseudoType,
+								}},
+								"served":  tftypes.Bool,
+								"storage": tftypes.Bool,
+								"subresources": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+									"scale": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+										"labelSelectorPath":  tftypes.String,
+										"specReplicasPath":   tftypes.String,
+										"statusReplicasPath": tftypes.String,
+									}},
+									"status": tftypes.Map{AttributeType: tftypes.String},
+								}},
+							}}},
+					},
 				}},
 				"status": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
 					"acceptedNames": tftypes.Object{AttributeTypes: map[string]tftypes.Type{
@@ -237,10 +224,10 @@ func TestGetType(t *testing.T) {
 	if err != nil {
 		t.Skip()
 	}
-	for _, s := range samples {
-		t.Run(s.id,
+	for name, s := range samples {
+		t.Run(name,
 			func(t *testing.T) {
-				rt, err := tf.GetTypeByID(s.id)
+				rt, err := tf.GetTypeByGVK(s.gvk)
 				if err != nil {
 					t.Fatal(fmt.Errorf("GetTypeByID() failed: %s", err))
 				}
