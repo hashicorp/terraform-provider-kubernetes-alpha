@@ -37,6 +37,7 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 		typeCache:      sync.Map{},
 		gkvIndex:       sync.Map{}, //reverse lookup index from GVK to OpenAPI definition IDs
 		recursionDepth: 50,         // arbitrarily large number - a type this deep will likely kill Terraform anyway
+		gate:           sync.Mutex{},
 	}
 
 	err = f.buildGvkIndex()
@@ -57,6 +58,7 @@ type foapiv2 struct {
 	typeCache      sync.Map
 	gkvIndex       sync.Map
 	recursionDepth uint64 // a last resort circuit-breaker for run-away recursion - hitting this will make for a bad day
+	gate           sync.Mutex
 }
 
 // GetTypeByGVK looks up a type by its GVK in the Definitions sections of
@@ -64,6 +66,9 @@ type foapiv2 struct {
 func (f *foapiv2) GetTypeByGVK(gvk schema.GroupVersionKind) (tftypes.Type, error) {
 	// the ID string that Swagger / OpenAPI uses to identify the resource
 	// e.g. "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+	f.gate.Lock()
+	defer f.gate.Unlock()
+
 	id, ok := f.gkvIndex.Load(gvk)
 	if !ok {
 		return nil, fmt.Errorf("%v resource not found in OpenAPI index", gvk)
