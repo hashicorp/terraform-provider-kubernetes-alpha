@@ -97,3 +97,79 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 
 	return resp, nil
 }
+
+func (s *RawProviderServer) validateResourceOnline(manifest *tftypes.Value) (diags []*tfprotov5.Diagnostic) {
+	rm, err := s.getRestMapper()
+	if err != nil {
+		diags = append(diags, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Summary:  "Failed to create K8s RESTMapper client",
+			Detail:   err.Error(),
+		})
+		return
+	}
+	gvk, err := GVKFromTftypesObject(manifest, rm)
+	if err != nil {
+		diags = append(diags, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Summary:  "Failed to determine GroupVersionResource for manifest",
+			Detail:   err.Error(),
+		})
+		return
+	}
+	// Validate if the resource requires a namespace and fail the plan with
+	// a meaningful error if none is supplied. Ideally this would be done earlier,
+	// during 'ValidateResourceTypeConfig', but at that point we don't have access to API credentials
+	// and we need them for calling IsResourceNamespaced (uses the discovery API).
+	ns, err := IsResourceNamespaced(gvk, rm)
+	if err != nil {
+		diags = append(diags,
+			&tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Detail:   err.Error(),
+				Summary:  fmt.Sprintf("Failed to discover scope of resource '%s'", gvk.String()),
+			})
+		return
+	}
+	nsPath := tftypes.AttributePath{}.WithAttributeName("metadata").WithAttributeName("namespace")
+	nsVal, restPath, err := tftypes.WalkAttributePath(*manifest, nsPath)
+	if ns {
+		if err != nil || len(restPath.Steps) > 0 {
+			diags = append(diags,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   fmt.Sprintf("Resources of type '%s' require a namespace", gvk.String()),
+					Summary:  "Namespace required",
+				})
+			return
+		}
+		if nsVal.(tftypes.Value).IsNull() {
+			diags = append(diags,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   fmt.Sprintf("Namespace for resource '%s' cannot be nil", gvk.String()),
+					Summary:  "Namespace required",
+				})
+		}
+		var nsStr string
+		err := nsVal.(tftypes.Value).As(&nsStr)
+		if nsStr == "" && err == nil {
+			diags = append(diags,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   fmt.Sprintf("Namespace for resource '%s' cannot be empty", gvk.String()),
+					Summary:  "Namespace required",
+				})
+		}
+	} else {
+		if err == nil && len(restPath.Steps) == 0 && !nsVal.(tftypes.Value).IsNull() {
+			diags = append(diags,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   fmt.Sprintf("Resources of type '%s' cannot have a namespace", gvk.String()),
+					Summary:  "Cluster level resource cannot take namespace",
+				})
+		}
+	}
+	return
+}

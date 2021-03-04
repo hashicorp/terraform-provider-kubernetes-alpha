@@ -114,62 +114,10 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		return resp, nil
 	}
 
-	// Validate if the resource requires a namespace and fail the plan with
-	// a meaningful error if none is supplied. Ideally this would be done earlier,
-	// during 'ValidateResourceTypeConfig', but at that point we don't have access to API credentials
-	// and we need them for calling IsResourceNamespaced (uses the discovery API).
-	ns, err := IsResourceNamespaced(gvk, rm)
-	if err != nil {
-		resp.Diagnostics = append(resp.Diagnostics,
-			&tfprotov5.Diagnostic{
-				Severity: tfprotov5.DiagnosticSeverityError,
-				Detail:   err.Error(),
-				Summary:  fmt.Sprintf("Failed to discover scope of resource '%s'", gvk.String()),
-			})
+	vdiags := s.validateResourceOnline(&ppMan)
+	if len(vdiags) > 0 {
+		resp.Diagnostics = append(resp.Diagnostics, vdiags...)
 		return resp, nil
-	}
-	nsPath := tftypes.AttributePath{}.WithAttributeName("metadata").WithAttributeName("namespace")
-	nsVal, restPath, err := tftypes.WalkAttributePath(ppMan, nsPath)
-	if ns {
-		if err != nil || len(restPath.Steps) > 0 {
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfprotov5.Diagnostic{
-					Severity: tfprotov5.DiagnosticSeverityError,
-					Detail:   fmt.Sprintf("Resources of type '%s' require a namespace", gvk.String()),
-					Summary:  "Namespace required",
-				})
-			return resp, nil
-		}
-		if nsVal.(tftypes.Value).IsNull() {
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfprotov5.Diagnostic{
-					Severity: tfprotov5.DiagnosticSeverityError,
-					Detail:   fmt.Sprintf("Namespace for resource '%s' cannot be nil", gvk.String()),
-					Summary:  "Namespace required",
-				})
-			return resp, nil
-		}
-		var nsStr string
-		nsVal.(tftypes.Value).As(&nsStr)
-		if nsStr == "" {
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfprotov5.Diagnostic{
-					Severity: tfprotov5.DiagnosticSeverityError,
-					Detail:   fmt.Sprintf("Namespace for resource '%s' cannot be empty", gvk.String()),
-					Summary:  "Namespace required",
-				})
-			return resp, nil
-		}
-	} else {
-		if err == nil && len(restPath.Steps) == 0 && !nsVal.(tftypes.Value).IsNull() {
-			resp.Diagnostics = append(resp.Diagnostics,
-				&tfprotov5.Diagnostic{
-					Severity: tfprotov5.DiagnosticSeverityError,
-					Detail:   fmt.Sprintf("Resources of type '%s' cannot have a namespace", gvk.String()),
-					Summary:  "Cluster level resource cannot take namespace",
-				})
-			return resp, nil
-		}
 	}
 
 	// Request a complete type for the resource from the OpenAPI spec
