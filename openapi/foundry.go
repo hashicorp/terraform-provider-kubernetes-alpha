@@ -131,22 +131,14 @@ func (f *foapiv2) resolveSchemaRef(ref *openapi3.SchemaRef) (*openapi3.Schema, e
 		return &t, nil
 	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceSubresourceStatus":
 		t := openapi3.Schema{
-			Type: "object",
-			AdditionalProperties: &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
-					Type: "string",
-				},
-			},
+			Type:                 "object",
+			AdditionalProperties: &openapi3.SchemaRef{},
 		}
 		return &t, nil
 	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceSubresourceStatus":
 		t := openapi3.Schema{
-			Type: "object",
-			AdditionalProperties: &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
-					Type: "string",
-				},
-			},
+			Type:                 "object",
+			AdditionalProperties: &openapi3.SchemaRef{},
 		}
 		return &t, nil
 	case "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceDefinitionSpec":
@@ -174,8 +166,6 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 	}
 
 	h, herr := hashstructure.Hash(elem, nil)
-
-	var t tftypes.Type
 
 	// check if type is in cache
 	if herr == nil {
@@ -210,12 +200,12 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 			if err != nil {
 				return nil, err
 			}
-			t = tftypes.List{ElementType: et}
+			t := tftypes.List{ElementType: et}
 			if herr == nil {
 				f.typeCache.Store(h, t)
 			}
 			return t, nil
-		case elem.AdditionalProperties != nil && elem.Items == nil: // "overriden" array - translates to a tftypes.List
+		case elem.AdditionalProperties != nil && elem.Items == nil: // "overriden" array - translates to a tftypes.Tuple
 			it, err := f.resolveSchemaRef(elem.AdditionalProperties)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve schema for items: %s", err)
@@ -224,7 +214,7 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 			if err != nil {
 				return nil, err
 			}
-			t = tftypes.Tuple{ElementTypes: []tftypes.Type{et}}
+			t := tftypes.Tuple{ElementTypes: []tftypes.Type{et}}
 			if herr == nil {
 				f.typeCache.Store(h, t)
 			}
@@ -248,7 +238,7 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 				}
 				atts[p] = pType
 			}
-			t = tftypes.Object{AttributeTypes: atts}
+			t := tftypes.Object{AttributeTypes: atts}
 			if herr == nil {
 				f.typeCache.Store(h, t)
 			}
@@ -256,6 +246,11 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 
 		case elem.Properties == nil && elem.AdditionalProperties != nil:
 			// this is how OpenAPI defines associative arrays
+			t := tftypes.Map{}
+			if elem.AdditionalProperties.Value == nil && elem.AdditionalProperties.Ref == "" {
+				t.AttributeType = tftypes.DynamicPseudoType
+				return t, nil
+			}
 			s, err := f.resolveSchemaRef(elem.AdditionalProperties)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve schema: %s", err)
@@ -264,7 +259,7 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 			if err != nil {
 				return nil, err
 			}
-			t = tftypes.Map{AttributeType: pt}
+			t.AttributeType = pt
 			if herr == nil {
 				f.typeCache.Store(h, t)
 			}
@@ -272,7 +267,7 @@ func (f *foapiv2) getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64) (t
 
 		case elem.Properties == nil && elem.AdditionalProperties == nil:
 			// this is a strange case, encountered with io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1 and also io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceSubresourceStatus
-			t = tftypes.DynamicPseudoType
+			t := tftypes.DynamicPseudoType
 			if herr == nil {
 				f.typeCache.Store(h, t)
 			}

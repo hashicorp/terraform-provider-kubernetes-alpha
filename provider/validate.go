@@ -173,3 +173,57 @@ func (s *RawProviderServer) validateResourceOnline(manifest *tftypes.Value) (dia
 	}
 	return
 }
+
+func (s *RawProviderServer) validateEmptyBlocksOnline(object *tftypes.Value) (diags []*tfprotov5.Diagnostic) {
+	// Validate if the resource contains empty objects and fail the plan with
+	// a meaningful error if none is supplied. Empty object will be swawllowed by
+	// the API and replaced with a nil value which then confuses Terraform when
+	// it tries to save the state after apply. This ensures users don't end up
+	// in that situation, by failing the plan step instead.
+	if object == nil {
+		return
+	}
+	tftypes.Walk(*object, func(ap tftypes.AttributePath, v tftypes.Value) (bool, error) {
+		vt := v.Type()
+		switch {
+		case vt.Is(tftypes.Map{AttributeType: tftypes.DynamicPseudoType}): // special case for masking usable empty blocks
+			return true, nil
+		case vt.Is(tftypes.Object{}) || vt.Is(tftypes.Map{}):
+			var vals map[string]tftypes.Value
+			err := v.As(&vals)
+			if err != nil {
+				return false, err
+			}
+			for i := range vals {
+				if !vals[i].IsNull() {
+					return true, nil
+				}
+			}
+			diags = append(diags,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   fmt.Sprintf(`Unnecessary empty block at "%s"`, ap.String()),
+					Summary:  "Resource cannot have empty blocks",
+				})
+		case vt.Is(tftypes.List{}):
+			var vals []tftypes.Value
+			err := v.As(&vals)
+			if err != nil {
+				return false, err
+			}
+			for i := range vals {
+				if !vals[i].IsNull() {
+					return true, nil
+				}
+			}
+			diags = append(diags,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   fmt.Sprintf(`Unnecessary empty block at "%s"`, ap.String()),
+					Summary:  "Resource cannot have empty blocks",
+				})
+		}
+		return true, nil
+	})
+	return
+}

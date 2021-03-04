@@ -140,6 +140,14 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	}
 	s.logger.Debug("[PlanResourceChange]", "morphed manifest", spew.Sdump(mobj))
 
+	// We check for empty objects introduced from configuration
+	// before back-filling unsed attributes with unknown
+	ebdiags := s.validateEmptyBlocksOnline(&mobj)
+	if len(ebdiags) > 0 {
+		resp.Diagnostics = append(resp.Diagnostics, ebdiags...)
+		return resp, nil
+	}
+
 	completeObj, err := morph.DeepUnknown(objectType, mobj, tftypes.AttributePath{})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
