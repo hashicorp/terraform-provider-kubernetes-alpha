@@ -3,8 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/openapi"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
@@ -96,7 +98,7 @@ func (ps *RawProviderServer) getOAPIFoundry() (openapi.Foundry, error) {
 		return nil, fmt.Errorf("failed get OpenAPI spec: %s", err)
 	}
 
-	rq := rc.Verb("GET").Timeout(10*time.Second).AbsPath("openapi", "v2")
+	rq := rc.Verb("GET").Timeout(30*time.Second).AbsPath("openapi", "v2")
 	rs, err := rq.DoRaw(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed get OpenAPI spec: %s", err)
@@ -110,4 +112,24 @@ func (ps *RawProviderServer) getOAPIFoundry() (openapi.Foundry, error) {
 	ps.OAPIFoundry = oapif
 
 	return oapif, nil
+}
+
+func loggingTransport(rt http.RoundTripper) http.RoundTripper {
+	return &loggingRountTripper{
+		ot: rt,
+		lt: logging.NewTransport("Kubernetes API", rt),
+	}
+}
+
+type loggingRountTripper struct {
+	ot http.RoundTripper
+	lt http.RoundTripper
+}
+
+func (t *loggingRountTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Path == "/openapi/v2" {
+		// don't trace-log the OpenAPI spec document, it's really big
+		return t.ot.RoundTrip(req)
+	}
+	return t.lt.RoundTrip(req)
 }

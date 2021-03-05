@@ -5,7 +5,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -14,7 +13,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/mitchellh/go-homedir"
 	"k8s.io/apimachinery/pkg/runtime"
 	apimachineryschema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -498,9 +496,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 	}
 
 	if s.logger.IsTrace() {
-		clientConfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-			return logging.NewTransport("Kubernetes", rt)
-		}
+		clientConfig.WrapTransport = loggingTransport
 	}
 
 	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
