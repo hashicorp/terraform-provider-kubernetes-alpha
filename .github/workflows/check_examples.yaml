@@ -17,6 +17,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 0.15.0-beta1
       - uses: actions/checkout@v2
       - name: Read go-version
         id: go-version
