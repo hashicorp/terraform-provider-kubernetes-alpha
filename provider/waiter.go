@@ -19,13 +19,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-func (s *RawProviderServer) waitForCompletion(ctx context.Context, applyPlannedState tftypes.Value, rs dynamic.ResourceInterface, rname string, rtype tftypes.Type) error {
-	if applyPlannedState.IsNull() {
-		return nil
-	}
-	applyPlannedStateVal := make(map[string]tftypes.Value)
-	applyPlannedState.As(&applyPlannedStateVal)
-	waitForBlock := applyPlannedStateVal["wait_for"]
+func (s *RawProviderServer) waitForCompletion(ctx context.Context, waitForBlock tftypes.Value, rs dynamic.ResourceInterface, rname string, rtype tftypes.Type) error {
 	if waitForBlock.IsNull() || !waitForBlock.IsKnown() {
 		return nil
 	}
@@ -45,52 +39,54 @@ type Waiter interface {
 // NewResourceWaiter constructs an appropriate Waiter using the supplied waitForBlock configuration
 func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, resourceType tftypes.Type, waitForBlock tftypes.Value) (Waiter, error) {
 	waitForBlockVal := make(map[string]tftypes.Value)
-	err := waitForBlock.As(waitForBlockVal)
+	err := waitForBlock.As(&waitForBlockVal)
 	if err != nil {
 		return nil, err
 	}
 	fields := waitForBlockVal["fields"]
 
-	if !fields.IsNull() || fields.IsKnown() {
-		if !fields.Type().Is(tftypes.Map{}) {
-			return nil, fmt.Errorf(`"fields" should be a map of strings`)
-		}
-
-		var vm map[string]tftypes.Value
-		fields.As(&vm)
-		matchers := []FieldMatcher{}
-		for k, v := range vm {
-			var expr string
-			v.As(&expr)
-			var re *regexp.Regexp
-			if expr == "*" {
-				// NOTE this is just a shorthand so the user doesn't have to
-				// type the expression below all the time
-				re = regexp.MustCompile("(.*)?")
-			} else {
-				var err error
-				re, err = regexp.Compile(expr)
-				if err != nil {
-					return nil, fmt.Errorf("invalid regular expression: %q", expr)
-				}
-			}
-
-			p, err := FieldPathToTftypesPath(k)
-			if err != nil {
-				return nil, err
-			}
-			matchers = append(matchers, FieldMatcher{p, re})
-		}
-
-		return &FieldWaiter{
-			resource,
-			resourceName,
-			resourceType,
-			matchers,
-		}, nil
+	if fields.IsNull() || !fields.IsKnown() {
+		return &NoopWaiter{}, nil
 	}
 
-	return &NoopWaiter{}, nil
+	if !fields.Type().Is(tftypes.Map{}) {
+		return nil, fmt.Errorf(`"fields" should be a map of strings`)
+	}
+
+	var vm map[string]tftypes.Value
+	fields.As(&vm)
+	var matchers []FieldMatcher
+
+	for k, v := range vm {
+		var expr string
+		v.As(&expr)
+		var re *regexp.Regexp
+		if expr == "*" {
+			// NOTE this is just a shorthand so the user doesn't have to
+			// type the expression below all the time
+			re = regexp.MustCompile("(.*)?")
+		} else {
+			var err error
+			re, err = regexp.Compile(expr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid regular expression: %q", expr)
+			}
+		}
+
+		p, err := FieldPathToTftypesPath(k)
+		if err != nil {
+			return nil, err
+		}
+		matchers = append(matchers, FieldMatcher{p, re})
+	}
+
+	return &FieldWaiter{
+		resource,
+		resourceName,
+		resourceType,
+		matchers,
+	}, nil
+
 }
 
 // FieldMatcher contains a tftypes.AttributePath to a field and a regexp to match on it
@@ -189,8 +185,11 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 		if err != nil {
 			return err
 		}
+		resObj := res.Object
+		meta := resObj["metadata"].(map[string]interface{})
+		delete(meta, "managedFields")
 
-		obj, err := payload.ToTFValue(res.Object, rtype, tftypes.AttributePath{})
+		obj, err := payload.ToTFValue(resObj, rtype, tftypes.AttributePath{})
 		if err != nil {
 			return err
 		}

@@ -101,7 +101,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, fmt.Errorf("failed to determine resource GVK: %s", err)
 		}
 
-		tsch, err := s.TFTypeFromOpenAPI(gvk)
+		tsch, err := s.TFTypeFromOpenAPI(gvk, false)
 		if err != nil {
 			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 		}
@@ -179,7 +179,12 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		}
 		s.logger.Trace("[ApplyResourceChange][Apply]", "[payload.ToTFValue]", spew.Sdump(newResObject))
 
-		err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
+		wt, err := s.TFTypeFromOpenAPI(gvk, true)
+		if err != nil {
+			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
+		}
+
+		err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, wt)
 		if err != nil {
 			return resp, err
 		}
@@ -262,11 +267,12 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		tsch, err := s.TFTypeFromOpenAPI(gvk)
+		wt, err := s.TFTypeFromOpenAPI(gvk, true)
 		if err != nil {
 			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 		}
-		err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, tsch)
+
+		err = s.waitForCompletion(ctx, priorStateVal["wait_for"], rs, rname, wt)
 		if err != nil {
 			return resp, err
 		}
