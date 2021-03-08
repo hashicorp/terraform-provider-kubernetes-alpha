@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.go-version.outputs.content }}
-      - uses: engineerd/setup-kind@v0.3.0
+      - uses: engineerd/setup-kind@v0.5.0
       - name: Check examples run
         run: make check-examples
         env:
