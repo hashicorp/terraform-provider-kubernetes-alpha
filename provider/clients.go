@@ -3,9 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
-	"github.com/alexsomesan/openapi-cty/foundry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/openapi"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
@@ -17,143 +19,117 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-// providerState is a very simplistic global state storage.
-//
-// Since the provider is essentially a gRPC server, the execution flow is dictated by the order of the client (Terraform) request calls.
-// Thus it needs a way to persist state between the gRPC calls. This structure stores values that need to be persisted between gRPC calls,
-// such as instances of the Kubernetes clients, configuration options needed at runtime.
-var providerState map[string]interface{}
-
 // keys into the global state storage
 const (
-	ClientConfig    string = "CLIENTCONFIG"
-	DynamicClient   string = "DYNAMICCLIENT"
-	DiscoveryClient string = "DISCOVERYCLIENT"
-	RestClient      string = "RESTCLIENT"
-	RestMapper      string = "RESTMAPPER"
-	SSPlanning      string = "SERVERSIDEPLANNING"
-	OAPIFoundry     string = "OPENAPIFOUNDRY"
+	OAPIFoundry string = "OPENAPIFOUNDRY"
 )
 
-// GetGlobalState returns the global state storage structure.
-func GetGlobalState() map[string]interface{} {
-	if providerState == nil {
-		providerState = make(map[string]interface{})
+// getDynamicClient returns a configured unstructured (dynamic) client instance
+func (ps *RawProviderServer) getDynamicClient() (dynamic.Interface, error) {
+	if ps.dynamicClient != nil {
+		return ps.dynamicClient, nil
 	}
-	return providerState
-}
-
-// GetClientConfig returns the client-go rest.Config produced from the provider block attributes.
-func GetClientConfig() (*rest.Config, error) {
-	s := GetGlobalState()
-	c, ok := s[ClientConfig]
-	if !ok {
-		return nil, fmt.Errorf("no client configuration")
+	if ps.clientConfig == nil {
+		return nil, fmt.Errorf("cannot create dynamic client: no client config")
 	}
-	return c.(*rest.Config), nil
-}
-
-// GetDynamicClient returns a configured unstructured (dynamic) client instance
-func GetDynamicClient() (dynamic.Interface, error) {
-	s := GetGlobalState()
-	c, ok := s[DynamicClient]
-	if ok {
-		return c.(dynamic.Interface), nil
-	}
-	clientConfig, err := GetClientConfig()
+	dynClient, err := dynamic.NewForConfig(ps.clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	dynClient, err := dynamic.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	s[DynamicClient] = dynClient
+	ps.dynamicClient = dynClient
 	return dynClient, nil
 }
 
-// GetDiscoveryClient returns a configured discovery client instance.
-func GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
-	s := GetGlobalState()
-	c, ok := s[DiscoveryClient]
-	if ok {
-		return c.(*discovery.DiscoveryClient), nil
+// getDiscoveryClient returns a configured discovery client instance.
+func (ps *RawProviderServer) getDiscoveryClient() (discovery.DiscoveryInterface, error) {
+	if ps.discoveryClient != nil {
+		return ps.discoveryClient, nil
 	}
-	clientConfig, err := GetClientConfig()
+	if ps.clientConfig == nil {
+		return nil, fmt.Errorf("cannot create discovery client: no client config")
+	}
+	discoClient, err := discovery.NewDiscoveryClientForConfig(ps.clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	discoClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	s[DiscoveryClient] = discoClient
+	ps.discoveryClient = discoClient
 	return discoClient, nil
 }
 
-// GetRestMapper returns a RESTMapper client instance
-func GetRestMapper() (meta.RESTMapper, error) {
-	s := GetGlobalState()
-	c, ok := s[RestMapper]
-	if ok {
-		return c.(meta.RESTMapper), nil
+// getRestMapper returns a RESTMapper client instance
+func (ps *RawProviderServer) getRestMapper() (meta.RESTMapper, error) {
+	if ps.restMapper != nil {
+		return ps.restMapper, nil
 	}
-	dc, err := GetDiscoveryClient()
+	dc, err := ps.getDiscoveryClient()
 	if err != nil {
 		return nil, err
 	}
 	cacher := memory.NewMemCacheClient(dc)
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(cacher)
-	s[RestMapper] = mapper
+	ps.restMapper = mapper
 	return mapper, nil
 }
 
-// GetRestClient returns a raw REST client instance
-func GetRestClient() (rest.Interface, error) {
-	s := GetGlobalState()
-	c, ok := s[RestClient]
-	if ok {
-		return c.(rest.Interface), nil
+// getRestClient returns a raw REST client instance
+func (ps *RawProviderServer) getRestClient() (rest.Interface, error) {
+	if ps.restClient != nil {
+		return ps.restClient, nil
 	}
-	clientConfig, err := GetClientConfig()
+	if ps.clientConfig == nil {
+		return nil, fmt.Errorf("cannot create REST client: no client config")
+	}
+	restClient, err := rest.UnversionedRESTClientFor(ps.clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	restClient, err := rest.UnversionedRESTClientFor(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	s[RestClient] = restClient
+	ps.restClient = restClient
 	return restClient, nil
 }
 
-// GetOAPIFoundry returns an interface to request cty types from an OpenAPI spec
-func GetOAPIFoundry() (foundry.Foundry, error) {
-	s := GetGlobalState()
-
-	f, ok := s[OAPIFoundry]
-
-	if ok {
-		return f.(foundry.Foundry), nil
+// getOAPIFoundry returns an interface to request cty types from an OpenAPI spec
+func (ps *RawProviderServer) getOAPIFoundry() (openapi.Foundry, error) {
+	if ps.OAPIFoundry != nil {
+		return ps.OAPIFoundry, nil
 	}
 
-	rc, err := GetRestClient()
+	rc, err := ps.getRestClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed get OpenAPI spec: %s", err)
 	}
 
-	rq := rc.Verb("GET").Timeout(10*time.Second).AbsPath("openapi", "v2")
+	rq := rc.Verb("GET").Timeout(30*time.Second).AbsPath("openapi", "v2")
 	rs, err := rq.DoRaw(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed get OpenAPI spec: %s", err)
 	}
 
-	oapif, err := foundry.NewFoundryFromSpecV2(rs)
+	oapif, err := openapi.NewFoundryFromSpecV2(rs)
 	if err != nil {
 		return nil, fmt.Errorf("failed construct OpenAPI foundry: %s", err)
 	}
 
-	s[OAPIFoundry] = oapif
+	ps.OAPIFoundry = oapif
 
 	return oapif, nil
+}
+
+func loggingTransport(rt http.RoundTripper) http.RoundTripper {
+	return &loggingRountTripper{
+		ot: rt,
+		lt: logging.NewTransport("Kubernetes API", rt),
+	}
+}
+
+type loggingRountTripper struct {
+	ot http.RoundTripper
+	lt http.RoundTripper
+}
+
+func (t *loggingRountTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Path == "/openapi/v2" {
+		// don't trace-log the OpenAPI spec document, it's really big
+		return t.ot.RoundTrip(req)
+	}
+	return t.lt.RoundTrip(req)
 }

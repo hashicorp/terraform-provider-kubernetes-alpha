@@ -2,7 +2,6 @@
 
 The provider accepts the following configuration attributes under the `provider` block.
 
-* `server_side_planning` - (boolean) Enable usage of dry-run API calls at planning time _(default true)_.
 * `config_path` - (string) (env-var: `KUBE_CONFIG_PATH`) Path to a `kubeconfig` file.
 * `host` - (string) (env-var: `KUBE_HOST`) URL to the base of the API server.
 * `cluster_ca_certificate` - (string) (env-var: `KUBE_CLUSTER_CA_CERT_DATA`) PEM-encoded CA TLS certificate (including intermediates, if any).

@@ -4,6 +4,7 @@ provider "kubernetes-alpha" {
 
 resource "kubernetes_manifest" "test-pod" {
   provider = kubernetes-alpha
+
   manifest = {
     "apiVersion" = "v1"
     "kind"       = "Pod"
@@ -44,4 +45,5 @@ resource "kubernetes_manifest" "test-pod" {
       ]
     }
   }
+
 }

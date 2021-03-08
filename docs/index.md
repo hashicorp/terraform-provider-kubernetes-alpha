@@ -30,7 +30,6 @@ Our eventual goal is for this generic resource to become a part of our [official
 - **host** (String, Optional) (env-var: `KUBE_HOST`) URL to the base of the API server.
 - **insecure** (Boolean, Optional) (env-var: `KUBE_INSECURE`) Disregard invalid TLS certificates _(default false)_.
 - **password** (String, Optional) (env-var: `KUBE_PASSWORD`) Basic authentication password.
-- **server_side_planning** (Boolean, Optional) Enable usage of dry-run API calls at planning time _(default true)_.
 - **token** (String, Optional) (env-var: `KUBE_TOKEN`) Token is a bearer token used by the client for request authentication.
 - **username** (String, Optional) (env-var: `KUBE_USERNAME`) Basic authentication username.
 

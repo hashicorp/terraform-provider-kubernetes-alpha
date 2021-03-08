@@ -1,12 +1,17 @@
 # Example demonstrates how to authenticate to a cluster API using client certificates
 #
+variable "minikube_ip" {
+  type = string
+}
+
 provider "kubernetes-alpha" {
-  host = "https://192.168.246.148:8443"
+
+  host = "https://${var.minikube_ip}:8443"
 
   cluster_ca_certificate = file("~/.minikube/ca.crt")
 
   client_certificate = file("~/.minikube/profiles/minikube/client.crt")
-  client_key = file("~/.minikube/profiles/minikube/client.key")
+  client_key         = file("~/.minikube/profiles/minikube/client.key")
 }
 
 resource "kubernetes_manifest" "test-namespace" {

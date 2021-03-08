@@ -1,9 +1,9 @@
 resource "kubernetes_secret" "tfc-api-token" {
   metadata {
     name      = "terraformrc"
-    namespace = var.namespace
+    namespace = kubernetes_manifest.namespace.object.metadata.name
     labels = {
-      app = var.namespace
+      app = kubernetes_manifest.namespace.object.metadata.name
     }
   }
 

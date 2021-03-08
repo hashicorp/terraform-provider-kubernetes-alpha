@@ -1,102 +1,34 @@
 package provider
 
 import (
-	"github.com/hashicorp/go-cty/cty"
-	proto "github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// WarnsAndErrsToProto converts the warnings and errors returned by the legacy
-// provider to protobuf diagnostics.
-func WarnsAndErrsToProto(warns []string, errs []error) (diags []*proto.Diagnostic) {
-	for _, w := range warns {
-		diags = AppendProtoDiag(diags, w)
+// APIStatusErrorToDiagnostics converts an Kubernetes API machinery StatusError into Terraform Diagnostics
+func APIStatusErrorToDiagnostics(s metav1.Status) []*tfprotov5.Diagnostic {
+	var diags []*tfprotov5.Diagnostic
+	diags = append(diags, &tfprotov5.Diagnostic{
+		Severity: tfprotov5.DiagnosticSeverityError,
+		Summary:  "API response status: " + s.Status,
+		Detail:   s.Message,
+	})
+	if s.Details == nil {
+		return diags
 	}
-
-	for _, e := range errs {
-		diags = AppendProtoDiag(diags, e)
-	}
-
-	return diags
-}
-
-// AppendProtoDiag appends a new diagnostic from a warning string or an error.
-// This panics if d is not a string or error.
-func AppendProtoDiag(diags []*proto.Diagnostic, d interface{}) []*proto.Diagnostic {
-	switch d := d.(type) {
-	case cty.PathError:
-		ap := PathToAttributePath(d.Path)
-		diags = append(diags, &proto.Diagnostic{
-			Severity:  proto.Diagnostic_ERROR,
-			Summary:   d.Error(),
-			Attribute: ap,
+	gk := metav1.GroupKind{Group: s.Details.Group, Kind: s.Details.Kind}
+	diags = append(diags, &tfprotov5.Diagnostic{
+		Severity: tfprotov5.DiagnosticSeverityError,
+		Summary:  fmt.Sprintf("Kubernetes API Error: %s %s [%s]", string(s.Reason), gk.String(), s.Details.Name),
+	})
+	for _, c := range s.Details.Causes {
+		diags = append(diags, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Detail:   c.Message,
+			Summary:  c.Field,
 		})
-	case error:
-		diags = append(diags, &proto.Diagnostic{
-			Severity: proto.Diagnostic_ERROR,
-			Summary:  d.Error(),
-		})
-	case string:
-		diags = append(diags, &proto.Diagnostic{
-			Severity: proto.Diagnostic_WARNING,
-			Summary:  d,
-		})
-	case *proto.Diagnostic:
-		diags = append(diags, d)
-	case []*proto.Diagnostic:
-		diags = append(diags, d...)
 	}
 	return diags
-}
-
-// AttributePathToPath takes the proto encoded path and converts it to a cty.Path
-func AttributePathToPath(ap *proto.AttributePath) cty.Path {
-	var p cty.Path
-	for _, step := range ap.Steps {
-		switch selector := step.Selector.(type) {
-		case *proto.AttributePath_Step_AttributeName:
-			p = p.GetAttr(selector.AttributeName)
-		case *proto.AttributePath_Step_ElementKeyString:
-			p = p.Index(cty.StringVal(selector.ElementKeyString))
-		case *proto.AttributePath_Step_ElementKeyInt:
-			p = p.Index(cty.NumberIntVal(selector.ElementKeyInt))
-		}
-	}
-	return p
-}
-
-// PathToAttributePath takes a cty.Path and converts it to a proto-encoded path.
-func PathToAttributePath(p cty.Path) *proto.AttributePath {
-	ap := &proto.AttributePath{}
-	for _, step := range p {
-		switch selector := step.(type) {
-		case cty.GetAttrStep:
-			ap.Steps = append(ap.Steps, &proto.AttributePath_Step{
-				Selector: &proto.AttributePath_Step_AttributeName{
-					AttributeName: selector.Name,
-				},
-			})
-		case cty.IndexStep:
-			key := selector.Key
-			switch key.Type() {
-			case cty.String:
-				ap.Steps = append(ap.Steps, &proto.AttributePath_Step{
-					Selector: &proto.AttributePath_Step_ElementKeyString{
-						ElementKeyString: key.AsString(),
-					},
-				})
-			case cty.Number:
-				v, _ := key.AsBigFloat().Int64()
-				ap.Steps = append(ap.Steps, &proto.AttributePath_Step{
-					Selector: &proto.AttributePath_Step_ElementKeyInt{
-						ElementKeyInt: v,
-					},
-				})
-			default:
-				// We'll bail early if we encounter anything else, and just
-				// return the valid prefix.
-				return ap
-			}
-		}
-	}
-	return ap
 }

@@ -1,5 +1,4 @@
 provider "kubernetes-alpha" {
-  server_side_planning = true
   config_path = "~/.kube/config"
 }
 
@@ -29,16 +28,15 @@ resource "kubernetes_manifest" "service-injector" {
       "ports" = [
         {
           "port"       = 443
-          "targetPort" = "http"
+          "targetPort" = 80
           "protocol"   = "TCP"
         },
       ]
       "selector" = {
-        "app.kubernetes.io/instance" = "${var.name}"
+        "app.kubernetes.io/instance" = var.name
         "app.kubernetes.io/name"     = "vault-agent-injector"
         "component"                  = "webhook"
       }
-      clusterIP = "10.96.1.1"
     }
   }
 }

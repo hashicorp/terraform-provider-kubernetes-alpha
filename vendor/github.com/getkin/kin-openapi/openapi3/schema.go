@@ -73,10 +73,12 @@ type Schema struct {
 	ExclusiveMin bool `json:"exclusiveMinimum,omitempty" yaml:"exclusiveMinimum,omitempty"`
 	ExclusiveMax bool `json:"exclusiveMaximum,omitempty" yaml:"exclusiveMaximum,omitempty"`
 	// Properties
-	Nullable  bool        `json:"nullable,omitempty" yaml:"nullable,omitempty"`
-	ReadOnly  bool        `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
-	WriteOnly bool        `json:"writeOnly,omitempty" yaml:"writeOnly,omitempty"`
-	XML       interface{} `json:"xml,omitempty" yaml:"xml,omitempty"`
+	Nullable        bool        `json:"nullable,omitempty" yaml:"nullable,omitempty"`
+	ReadOnly        bool        `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
+	WriteOnly       bool        `json:"writeOnly,omitempty" yaml:"writeOnly,omitempty"`
+	AllowEmptyValue bool        `json:"allowEmptyValue,omitempty" yaml:"allowEmptyValue,omitempty"`
+	XML             interface{} `json:"xml,omitempty" yaml:"xml,omitempty"`
+	Deprecated      bool        `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 
 	// Number
 	Min        *float64 `json:"minimum,omitempty" yaml:"minimum,omitempty"`
@@ -122,9 +124,9 @@ func (schema *Schema) NewRef() *SchemaRef {
 }
 
 func NewOneOfSchema(schemas ...*Schema) *Schema {
-	refs := make([]*SchemaRef, len(schemas))
-	for i, schema := range schemas {
-		refs[i] = &SchemaRef{Value: schema}
+	refs := make([]*SchemaRef, 0, len(schemas))
+	for _, schema := range schemas {
+		refs = append(refs, &SchemaRef{Value: schema})
 	}
 	return &Schema{
 		OneOf: refs,
@@ -132,9 +134,9 @@ func NewOneOfSchema(schemas ...*Schema) *Schema {
 }
 
 func NewAnyOfSchema(schemas ...*Schema) *Schema {
-	refs := make([]*SchemaRef, len(schemas))
-	for i, schema := range schemas {
-		refs[i] = &SchemaRef{Value: schema}
+	refs := make([]*SchemaRef, 0, len(schemas))
+	for _, schema := range schemas {
+		refs = append(refs, &SchemaRef{Value: schema})
 	}
 	return &Schema{
 		AnyOf: refs,
@@ -142,9 +144,9 @@ func NewAnyOfSchema(schemas ...*Schema) *Schema {
 }
 
 func NewAllOfSchema(schemas ...*Schema) *Schema {
-	refs := make([]*SchemaRef, len(schemas))
-	for i, schema := range schemas {
-		refs[i] = &SchemaRef{Value: schema}
+	refs := make([]*SchemaRef, 0, len(schemas))
+	for _, schema := range schemas {
+		refs = append(refs, &SchemaRef{Value: schema})
 	}
 	return &Schema{
 		AllOf: refs,
@@ -395,7 +397,7 @@ func (schema *Schema) WithAdditionalProperties(v *Schema) *Schema {
 func (schema *Schema) IsEmpty() bool {
 	if schema.Type != "" || schema.Format != "" || len(schema.Enum) != 0 ||
 		schema.UniqueItems || schema.ExclusiveMin || schema.ExclusiveMax ||
-		!schema.Nullable ||
+		schema.Nullable ||
 		schema.Min != nil || schema.Max != nil || schema.MultipleOf != nil ||
 		schema.MinLength != 0 || schema.MaxLength != nil || schema.Pattern != "" ||
 		schema.MinItems != 0 || schema.MaxItems != nil ||
@@ -439,7 +441,7 @@ func (schema *Schema) IsEmpty() bool {
 }
 
 func (schema *Schema) Validate(c context.Context) error {
-	return schema.validate(c, make([]*Schema, 2))
+	return schema.validate(c, []*Schema{})
 }
 
 func (schema *Schema) validate(c context.Context, stack []*Schema) (err error) {
@@ -993,6 +995,9 @@ func (schema *Schema) visitJSONArray(value []interface{}, fast bool) (err error)
 	}
 
 	// "uniqueItems"
+	if sliceUniqueItemsChecker == nil {
+		sliceUniqueItemsChecker = isSliceOfUniqueItems
+	}
 	if v := schema.UniqueItems; v && !sliceUniqueItemsChecker(value) {
 		if fast {
 			return errSchema
@@ -1108,12 +1113,12 @@ func (schema *Schema) visitJSONObject(value map[string]interface{}, fast bool) (
 			if fast {
 				return errSchema
 			}
-			return &SchemaError{
+			return markSchemaErrorKey(&SchemaError{
 				Value:       value,
 				Schema:      schema,
 				SchemaField: "required",
 				Reason:      fmt.Sprintf("Property '%s' is missing", k),
-			}
+			}, k)
 		}
 	}
 	return
@@ -1158,9 +1163,9 @@ func markSchemaErrorIndex(err error, index int) error {
 
 func (err *SchemaError) JSONPointer() []string {
 	reversePath := err.reversePath
-	path := make([]string, len(reversePath))
-	for i := range path {
-		path[i] = reversePath[len(path)-1-i]
+	path := append([]string(nil), reversePath...)
+	for left, right := 0, len(path)-1; left < right; left, right = left+1, right-1 {
+		path[left], path[right] = path[right], path[left]
 	}
 	return path
 }

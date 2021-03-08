@@ -1,3 +1,5 @@
+// +build acceptance
+
 package provider
 
 import (
@@ -22,9 +24,8 @@ func TestKubernetesManifest_Deployment(t *testing.T) {
 	defer k8shelper.DeleteNamespace(t, namespace)
 
 	tfvars := TFVARS{
-		"server_side_planning": useServerSidePlanning,
-		"namespace":            namespace,
-		"name":                 name,
+		"namespace": namespace,
+		"name":      name,
 	}
 	tfconfig := loadTerraformConfig(t, "deployment.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)

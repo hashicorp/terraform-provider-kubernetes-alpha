@@ -1,3 +1,5 @@
+// +build acceptance
+
 package provider
 
 import (
@@ -12,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	tftest "github.com/hashicorp/terraform-plugin-test/v2"
 
@@ -19,16 +22,13 @@ import (
 	kuberneteshelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/kubernetes"
 )
 
-var useServerSidePlanning bool
-
 var tfhelper *tftest.Helper
 var k8shelper *kuberneteshelper.Helper
 var reattachInfo tfexec.ReattachInfo
 
 func TestMain(m *testing.M) {
-	provider.InitDevLog()
 	var err error
-	reattachInfo, err = provider.ServeTest(context.TODO())
+	reattachInfo, err = provider.ServeTest(context.TODO(), hclog.Default())
 	if err != nil {
 		//lintignore:R009
 		panic(err)
@@ -45,7 +45,6 @@ func TestMain(m *testing.M) {
 
 	k8shelper = kuberneteshelper.NewHelper()
 
-	useServerSidePlanning = *flag.Bool("server-side-plan", true, "Run the tests with server_side_planning set to true")
 	flag.Parse()
 
 	rand.Seed(time.Now().UTC().UnixNano())

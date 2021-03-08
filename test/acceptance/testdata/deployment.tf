@@ -1,5 +1,4 @@
 provider "kubernetes-alpha" {
-  server_side_planning = var.server_side_planning
 }
 
 resource "kubernetes_manifest" "test" {
@@ -7,9 +6,9 @@ resource "kubernetes_manifest" "test" {
 
   manifest = {
     apiVersion = "apps/v1"
-    kind = "Deployment"
+    kind       = "Deployment"
     metadata = {
-      name = var.name
+      name      = var.name
       namespace = var.namespace
       labels = {
         app = "nginx"
@@ -32,11 +31,11 @@ resource "kubernetes_manifest" "test" {
           containers = [
             {
               image = "nginx:1"
-              name = "nginx"
+              name  = "nginx"
               ports = [
                 {
                   containerPort = 80
-                  protocol = "TCP"
+                  protocol      = "TCP"
                 },
               ]
             },

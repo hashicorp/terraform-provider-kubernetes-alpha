@@ -1,31 +1,37 @@
 name: Check examples
 on:
   push:
+    branches:
+      - master
+      - main
     paths:
-    - 'examples/**'
-    - '**.go'
+      - "examples/**"
+      - "**.go"
   pull_request:
     branches:
-    - master
+      - master
     paths:
-    - 'examples/**'
-    - '**.go'
+      - "examples/**"
+      - "**.go"
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Read go-version
-      id: go-version
-      uses: juliangruber/read-file-action@v1
-      with:
-        path: ./go-version
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ steps.go-version.outputs.content }}
-    - uses: engineerd/setup-kind@v0.3.0
-    - name: Check examples run
-      run: make check-examples
-      env:
-        TERM: xterm-256color
+      - uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 0.15.0-beta1
+      - uses: actions/checkout@v2
+      - name: Read go-version
+        id: go-version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./go-version
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ steps.go-version.outputs.content }}
+      - uses: engineerd/setup-kind@v0.5.0
+      - name: Check examples run
+        run: make check-examples
+        env:
+          TERM: xterm-256color

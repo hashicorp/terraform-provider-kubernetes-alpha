@@ -19,7 +19,7 @@ Our eventual goal is for this generic resource to become a part of our [official
 
 ## Requirements
 
-* [Terraform](https://www.terraform.io/downloads.html) version 0.12.x +
+* [Terraform](https://www.terraform.io/downloads.html) version 0.14.8 +
 * [Kubernetes](https://kubernetes.io/docs/reference) version 1.17.x +
 * [Go](https://golang.org/doc/install) version 1.14.x
 

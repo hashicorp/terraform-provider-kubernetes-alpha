@@ -5,7 +5,7 @@ set -e
 TF_IN_AUTOMATION=true
 TF_PLUGIN_VERSION="99.0.0"
 TF_PLUGIN_BINARY_NAME="terraform-provider-kubernetes-alpha"
-TF_PLUGIN_BINARY_PATH=".plugins/registry.terraform.io/hashicorp/kubernetes-alpha/$TF_PLUGIN_VERSION/$(go env GOOS)_$(go env GOARCH)/"
+TF_PLUGIN_BINARY_PATH="${HOME}/.terraform.d/plugins/registry.terraform.io/hashicorp/kubernetes-alpha/$TF_PLUGIN_VERSION/$(go env GOOS)_$(go env GOARCH)/"
 
 if [ ! -f $TF_PLUGIN_BINARY_PATH ]; then
     mkdir -p $TF_PLUGIN_BINARY_PATH
@@ -21,7 +21,7 @@ for example in $PWD/examples/*; do
         echo "$SKIP_CHECKS specified. Skipping this example."
         continue
     fi
-    terraform init -plugin-dir ../../.plugins
+    terraform init
     terraform validate
     terraform plan -out tfplan > /dev/null
     terraform apply tfplan

@@ -1,7 +1,7 @@
 resource "kubernetes_secret" "workspace-secret" {
   metadata {
     name      = var.workspace_secrets
-    namespace = var.namespace
+    namespace = kubernetes_manifest.namespace.object.metadata.name
   }
 
   data = {

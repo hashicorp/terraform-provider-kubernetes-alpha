@@ -24,7 +24,7 @@ resource "kubernetes_manifest" "test-ingress" {
               {
                 "backend" = {
                   "serviceName" = "web"
-                  "servicePort" = "http"
+                  "servicePort" = 80
                 }
                 "path" = "/"
               },

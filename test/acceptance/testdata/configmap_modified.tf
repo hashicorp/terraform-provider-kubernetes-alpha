@@ -1,5 +1,4 @@
 provider "kubernetes-alpha" {
-  server_side_planning = var.server_side_planning
 }
 
 resource "kubernetes_manifest" "test" {
@@ -7,20 +6,20 @@ resource "kubernetes_manifest" "test" {
 
   manifest = {
     apiVersion = "v1"
-    kind = "ConfigMap"
+    kind       = "ConfigMap"
     metadata = {
-	  name = var.name
-	  namespace = var.namespace
-	  annotations = {
-		test = "1"
-	  }
-	  labels = {
-	    test = "2"
-	  }
+      name      = var.name
+      namespace = var.namespace
+      annotations = {
+        test = "1"
+      }
+      labels = {
+        test = "2"
+      }
     }
     data = {
-	  foo = "bar"
-	  fizz = "buzz"
+      foo  = "bar"
+      fizz = "buzz"
     }
   }
 }

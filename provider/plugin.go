@@ -9,35 +9,20 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"github.com/hashicorp/terraform-provider-kubernetes-alpha/tfplugin5"
-	"google.golang.org/grpc"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
+	tf5server "github.com/hashicorp/terraform-plugin-go/tfprotov5/server"
 )
 
-var providerName = "hashicorp/kubernetes-alpha"
-
-var handshakeConfig = plugin.HandshakeConfig{
-	ProtocolVersion: 5,
-	// The magic cookie values should NEVER be changed.
-	MagicCookieKey:   "TF_PLUGIN_MAGIC_COOKIE",
-	MagicCookieValue: "d602bf8f470bc67ca7faa0386276bbdd4330efaf76d1a219cb4d6991ca9872b2",
-}
+var providerName = "registry.terraform.io/hashicorp/kubernetes-alpha"
 
 // Serve is the default entrypoint for the provider.
-func Serve() {
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: handshakeConfig,
-		GRPCServer:      plugin.DefaultGRPCServer,
-		Plugins: plugin.PluginSet{
-			"provider": &grpcPlugin{
-				providerServer: &RawProviderServer{},
-			},
-		},
-	})
+func Serve(ctx context.Context, logger hclog.Logger) error {
+	return tf5server.Serve(providerName, func() tfprotov5.ProviderServer { return &(RawProviderServer{logger: logger}) })
 }
 
 // ServeReattach is the entrypoint for manually starting the provider
 // as a process in reattach mode for debugging.
-func ServeReattach() {
+func ServeReattach(ctx context.Context, logger hclog.Logger) error {
 	reattachConfigCh := make(chan *plugin.ReattachConfig)
 	go func() {
 		reattachConfig, err := waitForReattachConfig(reattachConfigCh)
@@ -48,46 +33,23 @@ func ServeReattach() {
 		printReattachConfig(reattachConfig)
 	}()
 
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: handshakeConfig,
-		GRPCServer:      plugin.DefaultGRPCServer,
-		Plugins: plugin.PluginSet{
-			"provider": &grpcPlugin{
-				providerServer: &RawProviderServer{},
-			},
-		},
-		Test: &plugin.ServeTestConfig{
-			ReattachConfigCh: reattachConfigCh,
-		},
-		Logger: hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
-			JSONFormat: false,
-			Level:      hclog.Debug,
-		}),
-	})
+	return tf5server.Serve(providerName,
+		func() tfprotov5.ProviderServer { return &(RawProviderServer{logger: logger}) },
+		tf5server.WithDebug(ctx, reattachConfigCh, nil),
+		tf5server.WithGoPluginLogger(logger),
+	)
 }
 
 // ServeTest is for serving the provider in-process when testing.
 // Returns a ReattachInfo or an error.
-func ServeTest(ctx context.Context) (tfexec.ReattachInfo, error) {
+func ServeTest(ctx context.Context, logger hclog.Logger) (tfexec.ReattachInfo, error) {
 	reattachConfigCh := make(chan *plugin.ReattachConfig)
 
-	go plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: handshakeConfig,
-		GRPCServer:      plugin.DefaultGRPCServer,
-		Plugins: plugin.PluginSet{
-			"provider": &grpcPlugin{
-				providerServer: &RawProviderServer{},
-			},
-		},
-		Test: &plugin.ServeTestConfig{
-			Context:          ctx,
-			ReattachConfigCh: reattachConfigCh,
-		},
-		Logger: hclog.FromStandardLogger(Dlog, &hclog.LoggerOptions{
-			JSONFormat: false,
-			Level:      hclog.Info,
-		}),
-	})
+	go tf5server.Serve(providerName,
+		func() tfprotov5.ProviderServer { return &(RawProviderServer{logger: logger}) },
+		tf5server.WithDebug(ctx, reattachConfigCh, nil),
+		tf5server.WithGoPluginLogger(logger),
+	)
 
 	reattachConfig, err := waitForReattachConfig(reattachConfigCh)
 	if err != nil {
@@ -134,19 +96,4 @@ func waitForReattachConfig(ch chan *plugin.ReattachConfig) (*plugin.ReattachConf
 	case <-time.After(2 * time.Second):
 		return nil, fmt.Errorf("timeout while waiting for reattach configuration")
 	}
-}
-
-type grpcPlugin struct {
-	plugin.Plugin
-	providerServer *RawProviderServer
-}
-
-func (p *grpcPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	tfplugin5.RegisterProviderServer(s, p.providerServer)
-	return nil
-}
-
-func (p *grpcPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
-	//lintignore:R009
-	panic("This is a plugin - it cannot implement GRPCClient")
 }
