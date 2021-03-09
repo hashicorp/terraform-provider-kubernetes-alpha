@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"regexp"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
 	"github.com/zclconf/go-cty/cty"
@@ -24,7 +25,7 @@ func (s *RawProviderServer) waitForCompletion(ctx context.Context, waitForBlock 
 		return nil
 	}
 
-	waiter, err := NewResourceWaiter(rs, rname, rtype, waitForBlock)
+	waiter, err := NewResourceWaiter(rs, rname, rtype, waitForBlock, s.logger)
 	if err != nil {
 		return err
 	}
@@ -37,7 +38,7 @@ type Waiter interface {
 }
 
 // NewResourceWaiter constructs an appropriate Waiter using the supplied waitForBlock configuration
-func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, resourceType tftypes.Type, waitForBlock tftypes.Value) (Waiter, error) {
+func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, resourceType tftypes.Type, waitForBlock tftypes.Value, hl hclog.Logger) (Waiter, error) {
 	waitForBlockVal := make(map[string]tftypes.Value)
 	err := waitForBlock.As(&waitForBlockVal)
 	if err != nil {
@@ -85,6 +86,7 @@ func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, 
 		resourceName,
 		resourceType,
 		matchers,
+		hl,
 	}, nil
 
 }
@@ -102,11 +104,12 @@ type FieldWaiter struct {
 	resourceName  string
 	resourceType  tftypes.Type
 	fieldMatchers []FieldMatcher
+	logger        hclog.Logger
 }
 
 // Wait blocks until all of the FieldMatchers configured evaluate to true
 func (w *FieldWaiter) Wait(ctx context.Context) error {
-	return wait(ctx, w.resource, w.resourceName, w.resourceType, func(obj tftypes.Value) (bool, error) {
+	return wait(ctx, w.resource, w.resourceName, w.resourceType, w.logger, func(obj tftypes.Value) (bool, error) {
 		for _, m := range w.fieldMatchers {
 			vi, rp, err := tftypes.WalkAttributePath(obj, m.path)
 			if err != nil {
@@ -158,7 +161,7 @@ func (w *NoopWaiter) Wait(_ context.Context) error {
 	return nil
 }
 
-func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName string, rtype tftypes.Type, condition func(tftypes.Value) (bool, error)) error {
+func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName string, rtype tftypes.Type, hl hclog.Logger, condition func(tftypes.Value) (bool, error)) error {
 	w, err := resource.Watch(ctx, v1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("metadata.name", resourceName).String(),
 		Watch:         true,
@@ -167,14 +170,14 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 		return err
 	}
 
-	log.Printf("[ApplyResourceChange][Wait] Waiting until ready...\n")
+	hl.Info("[ApplyResourceChange][Wait] Waiting until ready...\n")
 	for e := range w.ResultChan() {
 		if e.Type == watch.Deleted {
 			return fmt.Errorf("resource was deleted")
 		}
 
 		if e.Type == watch.Error {
-			log.Printf("Error when watching: %#v", e.Object)
+			hl.Error("Error when watching:", e.Object)
 			return fmt.Errorf("watch error")
 		}
 
@@ -189,6 +192,7 @@ func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName 
 		meta := resObj["metadata"].(map[string]interface{})
 		delete(meta, "managedFields")
 
+		hl.Trace("[ApplyResourceChange][Wait]", "API Response", resObj)
 		obj, err := payload.ToTFValue(resObj, rtype, tftypes.AttributePath{})
 		if err != nil {
 			return err
