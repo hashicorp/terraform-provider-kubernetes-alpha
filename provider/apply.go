@@ -184,9 +184,12 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 		}
 
-		err = s.waitForCompletion(ctx, applyPlannedState, rs, rname, wt)
-		if err != nil {
-			return resp, err
+		wf, ok := plannedStateVal["wait_for"]
+		if ok {
+			err = s.waitForCompletion(ctx, wf, rs, rname, wt)
+			if err != nil {
+				return resp, err
+			}
 		}
 
 		compObj, err := morph.DeepUnknown(tsch, newResObject, tftypes.AttributePath{})
@@ -272,9 +275,12 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 		}
 
-		err = s.waitForCompletion(ctx, priorStateVal["wait_for"], rs, rname, wt)
-		if err != nil {
-			return resp, err
+		wf, ok := priorStateVal["wait_for"]
+		if ok {
+			err = s.waitForCompletion(ctx, wf, rs, rname, wt)
+			if err != nil {
+				return resp, err
+			}
 		}
 
 		resp.NewState = req.PlannedState
