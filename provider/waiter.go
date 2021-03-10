@@ -7,15 +7,15 @@ import (
 	"math/big"
 	"regexp"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
 	"github.com/zclconf/go-cty/cty"
 
 	hcl "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -24,7 +24,7 @@ func (s *RawProviderServer) waitForCompletion(ctx context.Context, waitForBlock 
 		return nil
 	}
 
-	waiter, err := NewResourceWaiter(rs, rname, rtype, waitForBlock)
+	waiter, err := NewResourceWaiter(rs, rname, rtype, waitForBlock, s.logger)
 	if err != nil {
 		return err
 	}
@@ -37,15 +37,15 @@ type Waiter interface {
 }
 
 // NewResourceWaiter constructs an appropriate Waiter using the supplied waitForBlock configuration
-func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, resourceType tftypes.Type, waitForBlock tftypes.Value) (Waiter, error) {
-	waitForBlockVal := make(map[string]tftypes.Value)
+func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, resourceType tftypes.Type, waitForBlock tftypes.Value, hl hclog.Logger) (Waiter, error) {
+	var waitForBlockVal map[string]tftypes.Value
 	err := waitForBlock.As(&waitForBlockVal)
 	if err != nil {
 		return nil, err
 	}
-	fields := waitForBlockVal["fields"]
 
-	if fields.IsNull() || !fields.IsKnown() {
+	fields, ok := waitForBlockVal["fields"]
+	if !ok || fields.IsNull() || !fields.IsKnown() {
 		return &NoopWaiter{}, nil
 	}
 
@@ -85,6 +85,7 @@ func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, 
 		resourceName,
 		resourceType,
 		matchers,
+		hl,
 	}, nil
 
 }
@@ -102,52 +103,81 @@ type FieldWaiter struct {
 	resourceName  string
 	resourceType  tftypes.Type
 	fieldMatchers []FieldMatcher
+	logger        hclog.Logger
 }
 
 // Wait blocks until all of the FieldMatchers configured evaluate to true
 func (w *FieldWaiter) Wait(ctx context.Context) error {
-	return wait(ctx, w.resource, w.resourceName, w.resourceType, func(obj tftypes.Value) (bool, error) {
-		for _, m := range w.fieldMatchers {
-			vi, rp, err := tftypes.WalkAttributePath(obj, m.path)
-			if err != nil {
-				return false, err
-			}
-			if len(rp.Steps) > 0 {
-				return false, fmt.Errorf("attribute not present at path '%s'", m.path.String())
-			}
+	w.logger.Info("[ApplyResourceChange][Wait] Waiting until ready...\n")
+	for {
+		// NOTE The typed API resource is actually returned in the
+		// event object but I haven't yet figured out how to convert it
+		// to a cty.Value.
+		res, err := w.resource.Get(ctx, w.resourceName, v1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if errors.IsGone(err) {
+			return fmt.Errorf("resource was deleted")
+		}
+		resObj := res.Object
+		meta := resObj["metadata"].(map[string]interface{})
+		delete(meta, "managedFields")
 
-			var s string
-			v := vi.(tftypes.Value)
-			switch {
-			case v.Type().Is(tftypes.String):
-				v.As(&s)
-			case v.Type().Is(tftypes.Bool):
-				var vb bool
-				v.As(&vb)
-				s = fmt.Sprintf("%t", vb)
-			case v.Type().Is(tftypes.Number):
-				var f big.Float
-				v.As(&f)
-				if f.IsInt() {
-					i, _ := f.Int64()
-					s = fmt.Sprintf("%d", i)
-				} else {
-					i, _ := f.Float64()
-					s = fmt.Sprintf("%f", i)
-				}
-			default:
-				return true, fmt.Errorf("wait_for: cannot match on type %q", v.Type().String())
-			}
+		w.logger.Trace("[ApplyResourceChange][Wait]", "API Response", resObj)
 
-			log.Printf("matching %#v %q", m.valueMatcher, s)
-
-			if !m.valueMatcher.Match([]byte(s)) {
-				return false, nil
-			}
+		obj, err := payload.ToTFValue(resObj, w.resourceType, tftypes.AttributePath{})
+		if err != nil {
+			return err
 		}
 
-		return true, nil
-	})
+		done, err := func(obj tftypes.Value) (bool, error) {
+			for _, m := range w.fieldMatchers {
+				vi, rp, err := tftypes.WalkAttributePath(obj, m.path)
+				if err != nil {
+					return false, err
+				}
+				if len(rp.Steps) > 0 {
+					return false, fmt.Errorf("attribute not present at path '%s'", m.path.String())
+				}
+
+				var s string
+				v := vi.(tftypes.Value)
+				switch {
+				case v.Type().Is(tftypes.String):
+					v.As(&s)
+				case v.Type().Is(tftypes.Bool):
+					var vb bool
+					v.As(&vb)
+					s = fmt.Sprintf("%t", vb)
+				case v.Type().Is(tftypes.Number):
+					var f big.Float
+					v.As(&f)
+					if f.IsInt() {
+						i, _ := f.Int64()
+						s = fmt.Sprintf("%d", i)
+					} else {
+						i, _ := f.Float64()
+						s = fmt.Sprintf("%f", i)
+					}
+				default:
+					return true, fmt.Errorf("wait_for: cannot match on type %q", v.Type().String())
+				}
+
+				log.Printf("matching %#v %q", m.valueMatcher, s)
+
+				if !m.valueMatcher.Match([]byte(s)) {
+					return false, nil
+				}
+			}
+
+			return true, nil
+		}(obj)
+
+		if done {
+			return err
+		}
+	}
 }
 
 // NoopWaiter is a placeholder for when there is nothing to wait on
@@ -155,51 +185,6 @@ type NoopWaiter struct{}
 
 // Wait returns immediately
 func (w *NoopWaiter) Wait(_ context.Context) error {
-	return nil
-}
-
-func wait(ctx context.Context, resource dynamic.ResourceInterface, resourceName string, rtype tftypes.Type, condition func(tftypes.Value) (bool, error)) error {
-	w, err := resource.Watch(ctx, v1.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector("metadata.name", resourceName).String(),
-		Watch:         true,
-	})
-	if err != nil {
-		return err
-	}
-
-	log.Printf("[ApplyResourceChange][Wait] Waiting until ready...\n")
-	for e := range w.ResultChan() {
-		if e.Type == watch.Deleted {
-			return fmt.Errorf("resource was deleted")
-		}
-
-		if e.Type == watch.Error {
-			log.Printf("Error when watching: %#v", e.Object)
-			return fmt.Errorf("watch error")
-		}
-
-		// NOTE The typed API resource is actually returned in the
-		// event object but I haven't yet figured out how to convert it
-		// to a cty.Value.
-		res, err := resource.Get(ctx, resourceName, v1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		resObj := res.Object
-		meta := resObj["metadata"].(map[string]interface{})
-		delete(meta, "managedFields")
-
-		obj, err := payload.ToTFValue(resObj, rtype, tftypes.AttributePath{})
-		if err != nil {
-			return err
-		}
-
-		done, err := condition(obj)
-		if done {
-			return err
-		}
-	}
-
 	return nil
 }
 

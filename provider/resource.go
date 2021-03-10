@@ -89,12 +89,13 @@ func (ps *RawProviderServer) TFTypeFromOpenAPI(gvk schema.GroupVersionKind, stat
 	// remove "status" attribute from resource type
 	if tsch.Is(tftypes.Object{}) && !status {
 		ot := tsch.(tftypes.Object)
-		_, ok := ot.AttributeTypes["status"]
-		if ok {
-			atts := ot.AttributeTypes
-			delete(atts, "status")
-			tsch = tftypes.Object{AttributeTypes: atts}
+		atts := make(map[string]tftypes.Type)
+		for k, t := range ot.AttributeTypes {
+			if k != "status" {
+				atts[k] = t
+			}
 		}
+		tsch = tftypes.Object{AttributeTypes: atts}
 	}
 
 	return tsch, nil
