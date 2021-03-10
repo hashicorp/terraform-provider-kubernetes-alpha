@@ -1,4 +1,4 @@
-## 0.3.0 (Unreleased)
+## 0.3.0 (March 10, 2021)
 
 FEATURES
 * provider can now manage Custom Resources as per Kinds installed by their parent CRDs
