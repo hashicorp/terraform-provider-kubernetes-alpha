@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-provider-kubernetes-alpha
 
-go 1.15
+go 1.16
 
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect
@@ -24,6 +24,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/zclconf/go-cty v1.8.0
+	golang.org/x/mod v0.3.0
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
 	google.golang.org/genproto v0.0.0-20201030142918-24207fddd1c3 // indirect
 	google.golang.org/grpc v1.33.1

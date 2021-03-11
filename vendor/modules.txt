@@ -260,6 +260,7 @@ golang.org/x/crypto/ssh/terminal
 golang.org/x/lint
 golang.org/x/lint/golint
 # golang.org/x/mod v0.3.0
+## explicit
 golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20201110031124-69a78807bb2b

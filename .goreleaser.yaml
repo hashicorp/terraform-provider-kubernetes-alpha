@@ -9,6 +9,7 @@ builds:
   - id: signed
     targets:
       - darwin_amd64
+      - darwin_arm64
       - windows_386
       - windows_amd64
     hooks:
