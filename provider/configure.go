@@ -37,7 +37,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 		response.Diagnostics = append(response.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
 			Summary:  "Incompatible terraform version",
-			Detail:   fmt.Sprintf("This provider requires a Terraform version starting at %s and above", minTFVersion),
+			Detail:   fmt.Sprintf("This provider requires Terraform %s or above", minTFVersion),
 		})
 		return response, nil
 	}
