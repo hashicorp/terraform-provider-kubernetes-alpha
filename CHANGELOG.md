@@ -1,4 +1,4 @@
-## 0.3.1 (Unreleased)
+## 0.3.1 (March 11, 2021)
 
 ENHANCEMENTS:
 * provider will now throw an error when used with a Terraform version older than 0.14.8
