@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/mod/semver"
 	"k8s.io/apimachinery/pkg/runtime"
 	apimachineryschema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -23,12 +24,23 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+const minTFVersion string = "v0.14.8"
+
 // ConfigureProvider function
 func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov5.ConfigureProviderRequest) (*tfprotov5.ConfigureProviderResponse, error) {
 	response := &tfprotov5.ConfigureProviderResponse{}
 	diags := []*tfprotov5.Diagnostic{}
 	var providerConfig map[string]tftypes.Value
 	var err error
+
+	if semver.IsValid("v"+req.TerraformVersion) && semver.Compare("v"+req.TerraformVersion, minTFVersion) < 0 {
+		response.Diagnostics = append(response.Diagnostics, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Summary:  "Incompatible terraform version",
+			Detail:   fmt.Sprintf("This provider requires Terraform %s or above", minTFVersion),
+		})
+		return response, nil
+	}
 
 	// transform provider config schema into tftype.Type and unmarshal the given config into a tftypes.Value
 	cfgType := GetTypeFromSchema(GetProviderConfigSchema())
