@@ -1,3 +1,12 @@
+## 0.3.1 (Unreleased)
+
+ENHANCEMENTS:
+* provider will now throw an error when used with a Terraform version older than 0.14.8
+
+BUG FIXES:
+* fix handling of `token`, `username` and `password` attributes in the provider configuration (#162)
+* fix infinite retries on discovery API with invalid credentials (#159)
+
 ## 0.3.0 (March 10, 2021)
 
 FEATURES
