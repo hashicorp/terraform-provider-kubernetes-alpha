@@ -36,7 +36,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 	if semver.IsValid("v"+req.TerraformVersion) && semver.Compare("v"+req.TerraformVersion, minTFVersion) < 0 {
 		response.Diagnostics = append(response.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "Terraform version too old",
+			Summary:  "Incompatible terraform version",
 			Detail:   fmt.Sprintf("This provider requires a Terraform version starting at %s and above", minTFVersion),
 		})
 		return response, nil
