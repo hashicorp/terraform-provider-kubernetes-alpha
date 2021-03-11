@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"strconv"
@@ -51,7 +50,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 			Summary:  "Failed to decode ConfigureProvider request parameter",
 			Detail:   err.Error(),
 		})
-		return response, err
+		return response, nil
 	}
 	err = cfgVal.As(&providerConfig)
 	if err != nil {
@@ -61,7 +60,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 			Summary:  "Provider configuration: failed to extract 'config_path' value",
 			Detail:   err.Error(),
 		})
-		return response, err
+		return response, nil
 	}
 
 	overrides := &clientcmd.ConfigOverrides{}
@@ -79,7 +78,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to extract 'config_path' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 	}
 	// check environment - this overrides any value found in provider configuration
@@ -112,7 +111,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Invalid attribute in provider configuration",
 				Detail:   "'client_certificate' type cannot be asserted: " + err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 	}
 	if clientCrtEnv, ok := os.LookupEnv("KUBE_CLIENT_CERT_DATA"); ok && clientCrtEnv != "" {
@@ -142,7 +141,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to extract 'cluster_ca_certificate' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 	}
 	if clusterCAEnv, ok := os.LookupEnv("KUBE_CLUSTER_CA_CERT_DATA"); ok && clusterCAEnv != "" {
@@ -172,7 +171,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'insecure' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 	}
 	if insecureEnv, ok := os.LookupEnv("KUBE_INSECURE"); ok && insecureEnv != "" {
@@ -205,7 +204,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to extract 'host' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 	}
 	// check environment - this overrides any value found in provider configuration
@@ -228,7 +227,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Invalid attribute in provider configuration",
 				Detail:   "Invalid value for 'host': " + err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		// Server has to be the complete address of the kubernetes cluster (scheme://hostname:port), not just the hostname,
 		// because `overrides` are processed too late to be taken into account by `defaultServerUrlFor()`.
@@ -249,7 +248,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: ",
 				Detail:   "Failed to extract 'client_key' value" + err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 	}
 	// check environment - this overrides any value found in provider configuration
@@ -270,7 +269,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 
 	if len(diags) > 0 {
 		response.Diagnostics = diags
-		return response, errors.New("failed to validate provider configuration")
+		return response, nil
 	}
 
 	// Handle 'config_context' attribute
@@ -285,7 +284,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'config_context' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		overrides.CurrentContext = cfgContext
 	}
@@ -307,7 +306,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'config_context_cluster' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		overrides.Context.Cluster = cfgCtxCluster
 	}
@@ -327,7 +326,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'config_context_user' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		if cfgContextAuthInfo != nil {
 			overrides.Context.AuthInfo = *cfgContextAuthInfo
@@ -347,7 +346,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'username' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		overrides.AuthInfo.Username = username
 	}
@@ -357,7 +356,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 
 	var password string
 	if !providerConfig["password"].IsNull() && providerConfig["password"].IsKnown() {
-		err = providerConfig["username"].As(&password)
+		err = providerConfig["password"].As(&password)
 		if err != nil {
 			// invalid attribute type - this shouldn't happen, bail out for now
 			response.Diagnostics = append(response.Diagnostics, &tfprotov5.Diagnostic{
@@ -365,7 +364,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'password' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		overrides.AuthInfo.Password = password
 	}
@@ -375,7 +374,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 
 	var token string
 	if !providerConfig["token"].IsNull() && providerConfig["token"].IsKnown() {
-		err = providerConfig["token"].As(&password)
+		err = providerConfig["token"].As(&token)
 		if err != nil {
 			// invalid attribute type - this shouldn't happen, bail out for now
 			response.Diagnostics = append(response.Diagnostics, &tfprotov5.Diagnostic{
@@ -383,7 +382,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'token' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		overrides.AuthInfo.Token = token
 	}
@@ -402,7 +401,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 				Summary:  "Provider configuration: failed to assert type of 'exec' value",
 				Detail:   err.Error(),
 			})
-			return response, err
+			return response, nil
 		}
 		execCfg := clientcmdapi.ExecConfig{}
 		if !execObj["api_version"].IsNull() && execObj["api_version"].IsKnown() {
@@ -415,7 +414,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 					Summary:  "Provider configuration: failed to assert type of 'api_version' value",
 					Detail:   err.Error(),
 				})
-				return response, err
+				return response, nil
 			}
 			execCfg.APIVersion = apiv
 		}
@@ -429,7 +428,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 					Summary:  "Provider configuration: failed to assert type of 'command' value",
 					Detail:   err.Error(),
 				})
-				return response, err
+				return response, nil
 			}
 			execCfg.Command = cmd
 		}
@@ -443,7 +442,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 					Summary:  "Provider configuration: failed to assert type of 'args' value",
 					Detail:   err.Error(),
 				})
-				return response, err
+				return response, nil
 			}
 			execCfg.Args = make([]string, 0, len(xcmdArgs))
 			for _, arg := range xcmdArgs {
@@ -456,7 +455,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 						Summary:  "Provider configuration: failed to assert type of element in 'args' value",
 						Detail:   err.Error(),
 					})
-					return response, err
+					return response, nil
 				}
 				execCfg.Args = append(execCfg.Args, v)
 			}
@@ -471,7 +470,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 					Summary:  "Provider configuration: failed to assert type of element in 'env' value",
 					Detail:   err.Error(),
 				})
-				return response, err
+				return response, nil
 			}
 			execCfg.Env = make([]clientcmdapi.ExecEnvVar, 0, len(xcmdEnvs))
 			for k, v := range xcmdEnvs {
@@ -484,7 +483,7 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 						Summary:  "Provider configuration: failed to assert type of element in 'env' value",
 						Detail:   err.Error(),
 					})
-					return response, err
+					return response, nil
 				}
 				execCfg.Env = append(execCfg.Env, clientcmdapi.ExecEnvVar{
 					Name:  k,
@@ -504,7 +503,12 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 			// this is a terrible fix for if the configuration is a calculated value
 			return response, nil
 		}
-		return response, fmt.Errorf("cannot load Kubernetes client config: %s", err)
+		response.Diagnostics = append(response.Diagnostics, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Summary:  "Provider configuration: cannot load Kubernetes client config",
+			Detail:   err.Error(),
+		})
+		return response, nil
 	}
 
 	if s.logger.IsTrace() {
