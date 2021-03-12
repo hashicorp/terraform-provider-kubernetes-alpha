@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/openapi"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/memory"
@@ -132,4 +135,36 @@ func (t *loggingRountTripper) RoundTrip(req *http.Request) (*http.Response, erro
 		return t.ot.RoundTrip(req)
 	}
 	return t.lt.RoundTrip(req)
+}
+
+func (ps *RawProviderServer) checkValidCredentials(ctx context.Context) (diags []*tfprotov5.Diagnostic) {
+	rc, err := ps.getRestClient()
+	if err != nil {
+		diags = append(diags, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Summary:  "Failed to construct REST client",
+			Detail:   err.Error(),
+		})
+		return
+	}
+	vpath := []string{"/apis"}
+	rs := rc.Get().AbsPath(vpath...).Do(ctx)
+	if rs.Error() != nil {
+		switch {
+		case apierrors.IsUnauthorized(rs.Error()):
+			diags = append(diags, &tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Invalid credentials",
+				Detail:   fmt.Sprintf("The credentials configured in the provider block are not accepted by the API server. Error: %s\n\nSet TF_LOG=debug and look for '[InvalidClientConfiguration]' in the log to see actual configuration.", rs.Error().Error()),
+			})
+		default:
+			diags = append(diags, &tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Invalid configuration for API client",
+				Detail:   rs.Error().Error(),
+			})
+		}
+		ps.logger.Debug("[InvalidClientConfiguration]", "Config", spew.Sdump(ps.clientConfig))
+	}
+	return
 }
