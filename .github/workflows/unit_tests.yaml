@@ -21,7 +21,7 @@ jobs:
         id: go-version
         uses: juliangruber/read-file-action@v1
         with:
-          path: ./go-version
+          path: ./.go-version
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
