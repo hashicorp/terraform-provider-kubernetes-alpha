@@ -62,6 +62,11 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 	rawManifest := make(map[string]tftypes.Value)
 	err = manifest.As(&rawManifest)
 	if err != nil {
+		if err.Error() == "unmarshaling unknown values is not supported" {
+			// likely this validation call came to early and the manifest still contains unknown values
+			// bailing out witout error to allow the resource to be completed at a later stage
+			return resp, nil
+		}
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity:  tfprotov5.DiagnosticSeverityError,
 			Summary:   `Failed to extract "manifest" attribute value from resource configuration`,
