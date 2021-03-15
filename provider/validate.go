@@ -63,8 +63,8 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 	err = manifest.As(&rawManifest)
 	if err != nil {
 		if err.Error() == "unmarshaling unknown values is not supported" {
-			// likely this validation call came to early and the manifest still contains unknown values
-			// bailing out witout error to allow the resource to be completed at a later stage
+			// Likely this validation call came too early and the manifest still contains unknown values.
+			// Bailing out without error to allow the resource to be completed at a later stage.
 			return resp, nil
 		}
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
