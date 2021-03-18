@@ -125,6 +125,15 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	if err != nil {
 		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 	}
+	if !objectType.Is(tftypes.Object{}) {
+		// this is not a valid resource type - likely a freeform CR without schema
+		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Summary:  "No valid OpenAPI definition",
+			Detail:   fmt.Sprintf("Resource %s.%s.%s does not have a valid OpenAPI definition in this cluster.\n\nUsually this is caused by a CustomResource without a schema.", gvk.Kind, gvk.Version, gvk.Group),
+		})
+		return resp, nil
+	}
 	so := objectType.(tftypes.Object)
 	s.logger.Debug("[PlanUpdateResource]", "OAPI type", spew.Sdump(so))
 
