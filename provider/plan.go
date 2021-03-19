@@ -14,6 +14,12 @@ import (
 func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfprotov5.PlanResourceChangeRequest) (*tfprotov5.PlanResourceChangeResponse, error) {
 	resp := &tfprotov5.PlanResourceChangeResponse{}
 
+	// test if credentials are valid - we're going to need them further down
+	resp.Diagnostics = append(resp.Diagnostics, s.checkValidCredentials(ctx)...)
+	if len(resp.Diagnostics) > 0 {
+		return resp, nil
+	}
+
 	rt, err := GetResourceType(req.TypeName)
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
