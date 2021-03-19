@@ -1,4 +1,4 @@
-## 0.3.2 (Unreleased)
+## 0.3.2 (March 19, 2021)
 
 BUG FIXES:
 * Don't fail validation when manifest contains unknown values (#171)
