@@ -1,3 +1,10 @@
+## 0.3.2 (Unreleased)
+
+BUG FIXES:
+* Don't fail validation when manifest contains unknown values (#171)
+* Return meaningful diagnostic in case of invalid OpenAPI definition (instead of panic) (#166)
+* Checks credentials against the API at plan time and avoid infinite retry loop (#159)
+
 ## 0.3.1 (March 11, 2021)
 
 ENHANCEMENTS:
