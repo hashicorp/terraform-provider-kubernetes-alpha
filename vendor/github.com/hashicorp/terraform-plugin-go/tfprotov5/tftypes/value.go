@@ -170,6 +170,9 @@ func (val Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (inter
 		if !val.Type().Is(List{}) && !val.Type().Is(Tuple{}) {
 			return nil, ErrInvalidStep
 		}
+		if int64(s) < 0 {
+			return nil, ErrInvalidStep
+		}
 		sl := []Value{}
 		err := val.As(&sl)
 		if err != nil {
