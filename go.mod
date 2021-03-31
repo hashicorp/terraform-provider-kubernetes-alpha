@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.9.0
 	github.com/hashicorp/terraform-exec v0.13.0
 	github.com/hashicorp/terraform-json v0.8.0
-	github.com/hashicorp/terraform-plugin-go v0.2.1
+	github.com/hashicorp/terraform-plugin-go v0.2.2-0.20210322135653-4adb0989fd88
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.4.4
 	github.com/hashicorp/terraform-plugin-test/v2 v2.1.3
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce // indirect
@@ -32,5 +32,3 @@ require (
 	k8s.io/apimachinery v0.20.0
 	k8s.io/client-go v0.20.0
 )
-
-replace github.com/hashicorp/terraform-plugin-go => github.com/alexsomesan/terraform-plugin-go v0.2.2-0.20210220105816-6d52ca73d2f9 // TODO: Remove once https://github.com/hashicorp/terraform-plugin-go/pull/58 is merged

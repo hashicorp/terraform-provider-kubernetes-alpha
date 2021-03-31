@@ -57,29 +57,9 @@ func (a AttributePath) Equal(o AttributePath) bool {
 	}
 	for pos, aStep := range a.Steps {
 		oStep := o.Steps[pos]
-		switch aVal := aStep.(type) {
-		case AttributeName:
-			oVal, ok := oStep.(AttributeName)
-			if !ok {
-				return false
-			}
-			if oVal != aVal {
-				return false
-			}
-		case ElementKeyString:
-			oVal, ok := oStep.(ElementKeyString)
-			if !ok {
-				return false
-			}
-			if oVal != aVal {
-				return false
-			}
-		case ElementKeyInt:
-			oVal, ok := oStep.(ElementKeyInt)
-			if !ok {
-				return false
-			}
-			if oVal != aVal {
+		switch aStep.(type) {
+		case AttributeName, ElementKeyString, ElementKeyInt:
+			if oStep != aStep {
 				return false
 			}
 		case ElementKeyValue:
@@ -87,11 +67,7 @@ func (a AttributePath) Equal(o AttributePath) bool {
 			if !ok {
 				return false
 			}
-			diffs, err := Value(aVal).Diff(Value(oVal))
-			if err != nil {
-				panic(err)
-			}
-			if len(diffs) > 0 {
+			if !Value(aStep.(ElementKeyValue)).Equal(Value(oVal)) {
 				return false
 			}
 		default:
@@ -295,6 +271,9 @@ type interfaceSliceAttributePathStepper []interface{}
 func (i interfaceSliceAttributePathStepper) ApplyTerraform5AttributePathStep(step AttributePathStep) (interface{}, error) {
 	eki, isElementKeyInt := step.(ElementKeyInt)
 	if !isElementKeyInt {
+		return nil, ErrInvalidStep
+	}
+	if eki < 0 {
 		return nil, ErrInvalidStep
 	}
 	// slices can only have items up to the max value of int
