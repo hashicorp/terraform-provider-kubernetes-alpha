@@ -18,7 +18,7 @@ resource "kubernetes_manifest" "test" {
       }
       scope = "Namespaced"
       versions = [{
-        name    = var.group_version
+        name    = var.cr_version
         served  = true
         storage = true
         schema = {
