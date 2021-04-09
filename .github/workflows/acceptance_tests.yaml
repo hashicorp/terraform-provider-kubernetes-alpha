@@ -29,11 +29,6 @@ jobs:
         with:
           go-version: ${{ steps.go-version.outputs.content }}
       - uses: engineerd/setup-kind@v0.5.0
-      - name: test (server side plan enabled)
-        run: |
-          make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
-      - name: test (server side plan disabled)
-        env:
-          TESTARGS: "-server-side-plan=false"
+      - name: test
         run: |
           make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
