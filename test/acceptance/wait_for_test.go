@@ -28,23 +28,22 @@ func TestKubernetesManifest_WaitForFields_Pod(t *testing.T) {
 		"namespace": namespace,
 		"name":      name,
 	}
-	tfconfig := loadTerraformConfig(t, "wait_for_fields_pod.tf", tfvars)
+	tfconfig := loadTerraformConfig(t, "WaitFor/wait_for_fields_pod.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
 	tf.RequireInit(t)
 
 	startTime := time.Now()
-	t.Log("Running terraform apply. This test should wait around 10 seconds.")
 	tf.RequireApply(t)
+
+	k8shelper.AssertNamespacedResourceExists(t, "v1", "pods", namespace, name)
 
 	// NOTE We set a readinessProbe in the fixture with a delay of 10s
 	// so the apply should take at least 10 seconds to complete.
-	minDuration := time.Duration(10) * time.Second
+	minDuration := time.Duration(5) * time.Second
 	applyDuration := time.Since(startTime)
 	if applyDuration < minDuration {
 		t.Fatalf("the apply should have taken at least %s", minDuration)
 	}
-
-	k8shelper.AssertNamespacedResourceExists(t, "v1", "pods", namespace, name)
 
 	tfstate := tfstatehelper.NewHelper(tf.RequireState(t))
 	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{

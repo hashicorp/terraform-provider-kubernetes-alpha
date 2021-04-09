@@ -3,6 +3,7 @@
 package provider
 
 import (
+	"encoding/json"
 	"testing"
 
 	tfstatehelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/state"
@@ -27,7 +28,7 @@ func TestKubernetesManifest_Deployment(t *testing.T) {
 		"namespace": namespace,
 		"name":      name,
 	}
-	tfconfig := loadTerraformConfig(t, "deployment.tf", tfvars)
+	tfconfig := loadTerraformConfig(t, "Deployment/deployment.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
 	tf.RequireInit(t)
 	tf.RequireApply(t)
@@ -40,6 +41,6 @@ func TestKubernetesManifest_Deployment(t *testing.T) {
 		"kubernetes_manifest.test.object.metadata.name":                                         name,
 		"kubernetes_manifest.test.object.spec.template.spec.containers.0.name":                  "nginx",
 		"kubernetes_manifest.test.object.spec.template.spec.containers.0.image":                 "nginx:1",
-		"kubernetes_manifest.test.object.spec.template.spec.containers.0.ports.0.containerPort": 80,
+		"kubernetes_manifest.test.object.spec.template.spec.containers.0.ports.0.containerPort": json.Number("80"),
 	})
 }
