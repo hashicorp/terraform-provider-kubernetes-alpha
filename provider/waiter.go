@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 	"regexp"
 
@@ -163,8 +162,6 @@ func (w *FieldWaiter) Wait(ctx context.Context) error {
 				default:
 					return true, fmt.Errorf("wait_for: cannot match on type %q", v.Type().String())
 				}
-
-				log.Printf("matching %#v %q", m.valueMatcher, s)
 
 				if !m.valueMatcher.Match([]byte(s)) {
 					return false, nil
