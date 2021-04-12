@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: hashicorp/setup-terraform@v1
         with:
-          terraform_version: 0.14.10
+          terraform_version: 0.15.0-rc2
       - uses: actions/checkout@v2
       - name: Read go-version
         id: go-version
@@ -31,7 +31,9 @@ jobs:
       - uses: engineerd/setup-kind@v0.5.0
         with:
           version: "v0.10.0"
-      - name: test
+      - name: Run tests
         run: |
-          echo $PWD
-          make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
+          make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config" TF_ACC_LOG_PATH=$HOME/tftest.log
+      - name: Print TF log
+        run: |
+          cat $HOME/tftest.log
