@@ -33,4 +33,5 @@ jobs:
           version: "v0.10.0"
       - name: test
         run: |
+          echo $PWD
           make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
