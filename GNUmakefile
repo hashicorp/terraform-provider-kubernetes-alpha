@@ -60,6 +60,7 @@ version:
 	terraform version
 	go version
 	env
+	pwd
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
