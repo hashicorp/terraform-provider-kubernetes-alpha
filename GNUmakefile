@@ -24,7 +24,7 @@ install: build
 test: fmtcheck
 	go test -v $(TESTARGS) -timeout=30s -parallel=4 $(TEST)
 
-testacc: fmtcheck
+testacc: version fmtcheck
 	go test -count=1 -tags acceptance $(ACCTEST) -v $(TESTARGS) -timeout 120m
 
 vet:
@@ -56,6 +56,8 @@ test-compile:
 	fi
 	go test -c $(TEST) $(TESTARGS)
 
+version:
+	terraform version
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
