@@ -58,6 +58,7 @@ test-compile:
 
 version:
 	terraform version
+	env
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
