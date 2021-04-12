@@ -69,6 +69,8 @@ func TestKubernetesManifest_CustomResource(t *testing.T) {
 	step2.RequireInit(t)
 	step2.RequireApply(t)
 
+	time.Sleep(30 * time.Second)
+
 	tfstate := tfstatehelper.NewHelper(step2.RequireState(t))
 	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{
 		"kubernetes_manifest.test.object.metadata.name":      name,
