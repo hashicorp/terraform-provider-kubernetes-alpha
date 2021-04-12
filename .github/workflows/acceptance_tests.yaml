@@ -33,4 +33,4 @@ jobs:
           version: "v0.10.0"
       - name: test
         run: |
-          make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
+          make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config" TF_LOG=trace
