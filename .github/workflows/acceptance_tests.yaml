@@ -34,6 +34,4 @@ jobs:
       - name: Run tests
         run: |
           make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config" TF_ACC_LOG_PATH=$HOME/tftest.log
-      - name: Print TF log
-        run: |
           cat $HOME/tftest.log
