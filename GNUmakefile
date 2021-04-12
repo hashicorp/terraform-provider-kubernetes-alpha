@@ -58,6 +58,7 @@ test-compile:
 
 version:
 	terraform version
+	go version
 	env
 
 website:
