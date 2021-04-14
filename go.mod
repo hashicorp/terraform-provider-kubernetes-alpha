@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect
+	github.com/cenkalti/backoff/v4 v4.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/getkin/kin-openapi v0.22.1

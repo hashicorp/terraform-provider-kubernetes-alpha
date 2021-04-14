@@ -4,9 +4,7 @@ package kubernetes
 
 import (
 	"context"
-	"math"
 	"testing"
-	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,6 +14,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	backoff "github.com/cenkalti/backoff/v4"
 )
 
 // Helper is a Kubernetes dynamic client wrapped with a set of helper functions
@@ -91,12 +91,16 @@ func (k *Helper) AssertNamespacedResourceExists(t *testing.T, gv, resource, name
 	t.Helper()
 
 	gvr := createGroupVersionResource(gv, resource)
-	_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		t.Errorf("Resource %s/%s does not exist", namespace, name)
-		return
-	}
 
+	err := backoff.Retry(
+		func() error {
+			_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+			if err != nil {
+				t.Logf("Retrying on error: %s", err)
+			}
+			return err
+		}, backoff.NewExponentialBackOff(),
+	)
 	if err != nil {
 		t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
 	}
@@ -107,11 +111,16 @@ func (k *Helper) AssertResourceExists(t *testing.T, gv, resource, name string) {
 	t.Helper()
 
 	gvr := createGroupVersionResource(gv, resource)
-	_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		t.Errorf("Resource %s does not exist", name)
-		return
-	}
+
+	err := backoff.Retry(
+		func() error {
+			_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+			if err != nil {
+				t.Logf("Retrying on error: %s", err)
+			}
+			return err
+		}, backoff.NewExponentialBackOff(),
+	)
 
 	if err != nil {
 		t.Errorf("Error when trying to get resource %s: %v", name, err)
@@ -124,23 +133,23 @@ func (k *Helper) AssertNamespacedResourceDoesNotExist(t *testing.T, gv, resource
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	for i := 1; i <= 3; i++ {
-		_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			return
-		}
+	err := backoff.Retry(
+		func() error {
+			_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			if err != nil {
+				t.Logf("Retrying on error: %s", err)
+			}
+			return err
+		},
+		backoff.NewExponentialBackOff(),
+	)
 
-		if err != nil {
-			t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
-			return
-		}
-
-		// NOTE some resources take a few seconds to delete so here we wait and retry so
-		// we don't polute the tests with retry logic
-		time.Sleep(time.Duration(math.Exp2(float64(i))) * time.Second)
+	if err != nil {
+		t.Errorf("Resource %s/%s still exists", namespace, name)
 	}
-
-	t.Errorf("Resource %s/%s still exists", namespace, name)
 }
 
 // AssertResourceDoesNotExist fails the test if the resource still exists
@@ -149,21 +158,20 @@ func (k *Helper) AssertResourceDoesNotExist(t *testing.T, gv, resource, name str
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	for i := 1; i <= 3; i++ {
-		_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			return
-		}
-
-		if err != nil {
-			t.Errorf("Error when trying to get resource %s: %v", name, err)
-			return
-		}
-
-		// NOTE some resources take a second to delete so here we wait and retry so
-		// we don't polute the tests with retry logic
-		time.Sleep(time.Duration(math.Exp2(float64(i))) * time.Second)
+	err := backoff.Retry(
+		func() error {
+			_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			if err != nil {
+				t.Logf("Retrying on error: %s", err)
+			}
+			return err
+		},
+		backoff.NewExponentialBackOff(),
+	)
+	if err != nil {
+		t.Errorf("Resource %s still exists", name)
 	}
-
-	t.Errorf("Resource %s still exists", name)
 }
