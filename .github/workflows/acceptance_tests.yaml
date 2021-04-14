@@ -20,9 +20,6 @@ jobs:
           - "0.14.10"
           - "0.15.0"
     steps:
-      - uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: ${{ matrix.terraform_version }}
       - uses: actions/checkout@v2
       - name: Read go-version
         id: go-version
