@@ -14,10 +14,15 @@ on:
 jobs:
   acceptance_tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        terraform_version:
+          - "0.14.10"
+          - "0.15.0"
     steps:
       - uses: hashicorp/setup-terraform@v1
         with:
-          terraform_version: 0.15.0-rc2
+          terraform_version: ${{ matrix.terraform_version }}
       - uses: actions/checkout@v2
       - name: Read go-version
         id: go-version
@@ -33,6 +38,6 @@ jobs:
           version: "v0.10.0"
       - name: Run tests
         env:
-          TF_ACC_TERRAFORM_VERSION: "0.15.0-rc2"
+          TF_ACC_TERRAFORM_VERSION: ${{ matrix.terraform_version }}
         run: |
           make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config"
