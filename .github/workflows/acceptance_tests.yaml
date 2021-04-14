@@ -17,7 +17,6 @@ jobs:
       image: asomesan/ghworker
       volumes:
         - "$HOME/.kube/config:/home/ghaction/.kube/config"
-      options: --net=host
     runs-on: ubuntu-latest
     steps:
       - uses: hashicorp/setup-terraform@v1
