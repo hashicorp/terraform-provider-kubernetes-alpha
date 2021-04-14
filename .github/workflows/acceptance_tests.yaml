@@ -16,7 +16,7 @@ jobs:
     container:
       image: asomesan/ghworker
       volumes:
-        - "~/.kube/config:/home/ghaction/.kube/config"
+        - "/home/runner/.kube/config:/home/ghaction/.kube/config"
     runs-on: ubuntu-latest
     steps:
       - uses: hashicorp/setup-terraform@v1
