@@ -16,7 +16,7 @@ jobs:
     container:
       image: asomesan/ghworker
       volumes:
-        - "$HOME/.kube/config:/home/ghaction/.kube/config"
+        - "~/.kube/config:/home/ghaction/.kube/config"
     runs-on: ubuntu-latest
     steps:
       - uses: hashicorp/setup-terraform@v1
@@ -38,4 +38,3 @@ jobs:
       - name: Run tests
         run: |
           make testacc KUBE_CONFIG_PATH="${HOME}/.kube/config" TF_ACC_LOG_PATH=$HOME/tftest.log
-          cat $HOME/tftest.log
