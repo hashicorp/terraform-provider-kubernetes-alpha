@@ -4,12 +4,18 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
+	"log"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	k8sretry "k8s.io/client-go/util/retry"
@@ -21,6 +27,9 @@ import (
 // for making assertions about API resources
 type Helper struct {
 	client dynamic.Interface
+}
+
+type apiVersionResponse struct {
 }
 
 // NewHelper initializes a new Kubernetes client
@@ -36,6 +45,10 @@ func NewHelper() *Helper {
 	if config == nil {
 		config = &rest.Config{}
 	}
+
+	// print API server version to log output
+	// also serves as validation for client config
+	logAPIVersion(config)
 
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
@@ -193,4 +206,27 @@ func isErrorRetriable(e error) bool {
 		return false
 	}
 	return true
+}
+
+func logAPIVersion(config *rest.Config) {
+	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
+	config.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
+	rc, err := rest.UnversionedRESTClientFor(config)
+	if err != nil {
+		//lintignore:R009
+		panic(err)
+	}
+	apiVer, err := rc.Get().AbsPath("/version").DoRaw(context.Background())
+	if err != nil {
+		log.Printf("API version check responded with error: %s", err)
+		return
+	}
+	var vInfo version.Info
+	err = json.Unmarshal(apiVer, &vInfo)
+	if err != nil {
+		log.Printf("Failed to decode API version block: %s", err)
+		return
+	}
+	log.Printf("Testing against Kubernetes API version: %s", vInfo.String())
+
 }
