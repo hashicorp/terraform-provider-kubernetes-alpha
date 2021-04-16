@@ -1,4 +1,4 @@
-// +build acceptance
+// + build acceptance
 
 package kubernetes
 
@@ -12,10 +12,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	k8sretry "k8s.io/client-go/util/retry"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	backoff "github.com/cenkalti/backoff/v4"
 )
 
 // Helper is a Kubernetes dynamic client wrapped with a set of helper functions
@@ -92,15 +91,19 @@ func (k *Helper) AssertNamespacedResourceExists(t *testing.T, gv, resource, name
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	err := backoff.Retry(
-		func() error {
-			_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-			if err != nil {
-				t.Logf("Retrying on error: %s", err)
-			}
-			return err
-		}, backoff.NewExponentialBackOff(),
-	)
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		return operr
+	}
+
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return !errors.IsNotFound(e)
+	}, op)
+
 	if err != nil {
 		t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
 	}
@@ -112,16 +115,17 @@ func (k *Helper) AssertResourceExists(t *testing.T, gv, resource, name string) {
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	err := backoff.Retry(
-		func() error {
-			_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-			if err != nil {
-				t.Logf("Retrying on error: %s", err)
-			}
-			return err
-		}, backoff.NewExponentialBackOff(),
-	)
-
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+		return operr
+	}
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return !errors.IsNotFound(e)
+	}, op)
 	if err != nil {
 		t.Errorf("Error when trying to get resource %s: %v", name, err)
 	}
@@ -133,19 +137,20 @@ func (k *Helper) AssertNamespacedResourceDoesNotExist(t *testing.T, gv, resource
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	err := backoff.Retry(
-		func() error {
-			_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-			if errors.IsNotFound(err) {
-				return nil
-			}
-			if err != nil {
-				t.Logf("Retrying on error: %s", err)
-			}
-			return err
-		},
-		backoff.NewExponentialBackOff(),
-	)
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if errors.IsNotFound(operr) {
+			return nil
+		}
+		return operr
+	}
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return e != nil
+	}, op)
 
 	if err != nil {
 		t.Errorf("Resource %s/%s still exists", namespace, name)
@@ -158,20 +163,34 @@ func (k *Helper) AssertResourceDoesNotExist(t *testing.T, gv, resource, name str
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	err := backoff.Retry(
-		func() error {
-			_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-			if errors.IsNotFound(err) {
-				return nil
-			}
-			if err != nil {
-				t.Logf("Retrying on error: %s", err)
-			}
-			return err
-		},
-		backoff.NewExponentialBackOff(),
-	)
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+		if errors.IsNotFound(operr) {
+			return nil
+		}
+		return operr
+	}
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return e != nil
+	}, op)
 	if err != nil {
 		t.Errorf("Resource %s still exists", name)
 	}
+}
+
+func isErrorRetriable(e error) bool {
+	if errors.IsBadRequest(e) ||
+		errors.IsForbidden(e) ||
+		errors.IsTimeout(e) ||
+		errors.IsInvalid(e) ||
+		errors.IsUnauthorized(e) ||
+		errors.IsServiceUnavailable(e) ||
+		errors.IsInternalError(e) {
+		return false
+	}
+	return true
 }

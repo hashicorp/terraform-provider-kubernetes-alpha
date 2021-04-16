@@ -1,6 +1,6 @@
-// +build acceptance
+// + build acceptance
 
-package provider
+package acceptance
 
 import (
 	"encoding/json"
