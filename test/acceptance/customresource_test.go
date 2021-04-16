@@ -50,7 +50,7 @@ func TestKubernetesManifest_CustomResource(t *testing.T) {
 	k8shelper.AssertResourceExists(t, "apiextensions.k8s.io/v1", "customresourcedefinitions", crd)
 
 	// wait for API to finish ingesting the CRD
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	reattachInfo2, err := provider.ServeTest(context.TODO(), hclog.Default())
 	if err != nil {
