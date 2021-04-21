@@ -1,6 +1,6 @@
 // +build acceptance
 
-package provider
+package acceptance
 
 import (
 	"context"
@@ -9,8 +9,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"path"
-	"runtime"
 	"testing"
 	"time"
 
@@ -79,14 +77,7 @@ type TFVARS map[string]interface{}
 // loadTerraformConfig will read the contents of a terraform config from the testdata directory
 // and add the supplied tfvars as variable blocks to the top of the config
 func loadTerraformConfig(t *testing.T, filename string, tfvars TFVARS) string {
-	_, currentFilename, _, ok := runtime.Caller(0)
-	if !ok {
-		//lintignore:R009
-		panic("Could not determine testdir directory")
-	}
-
-	testdata := path.Dir(currentFilename)
-	tfconfig, err := ioutil.ReadFile(fmt.Sprintf("%s/testdata/%s", testdata, filename))
+	tfconfig, err := ioutil.ReadFile(fmt.Sprintf("testdata/%s", filename))
 	if err != nil {
 		t.Fatal(err)
 		return ""

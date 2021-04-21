@@ -1,6 +1,6 @@
 // +build acceptance
 
-package provider
+package acceptance
 
 import (
 	"testing"
@@ -29,7 +29,7 @@ func TestKubernetesManifest_ConfigMap(t *testing.T) {
 		"namespace": namespace,
 		"name":      name,
 	}
-	tfconfig := loadTerraformConfig(t, "configmap.tf", tfvars)
+	tfconfig := loadTerraformConfig(t, "ConfigMap/configmap.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
 	tf.RequireInit(t)
 	tf.RequireApply(t)
@@ -43,7 +43,7 @@ func TestKubernetesManifest_ConfigMap(t *testing.T) {
 		"kubernetes_manifest.test.object.data.foo":           "bar",
 	})
 
-	tfconfigModified := loadTerraformConfig(t, "configmap_modified.tf", tfvars)
+	tfconfigModified := loadTerraformConfig(t, "ConfigMap/configmap_modified.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfigModified)
 	tf.RequireApply(t)
 

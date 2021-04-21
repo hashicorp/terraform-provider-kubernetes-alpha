@@ -270,19 +270,6 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		wt, err := s.TFTypeFromOpenAPI(gvk, true)
-		if err != nil {
-			return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
-		}
-
-		wf, ok := priorStateVal["wait_for"]
-		if ok {
-			err = s.waitForCompletion(ctx, wf, rs, rname, wt)
-			if err != nil {
-				return resp, err
-			}
-		}
-
 		resp.NewState = req.PlannedState
 	}
 	// force a refresh of the OpenAPI foundry on next use

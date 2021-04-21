@@ -4,16 +4,21 @@ package kubernetes
 
 import (
 	"context"
-	"math"
+	"encoding/json"
+	"log"
 	"testing"
-	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	k8sretry "k8s.io/client-go/util/retry"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -22,6 +27,9 @@ import (
 // for making assertions about API resources
 type Helper struct {
 	client dynamic.Interface
+}
+
+type apiVersionResponse struct {
 }
 
 // NewHelper initializes a new Kubernetes client
@@ -37,6 +45,10 @@ func NewHelper() *Helper {
 	if config == nil {
 		config = &rest.Config{}
 	}
+
+	// print API server version to log output
+	// also serves as validation for client config
+	logAPIVersion(config)
 
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
@@ -91,11 +103,19 @@ func (k *Helper) AssertNamespacedResourceExists(t *testing.T, gv, resource, name
 	t.Helper()
 
 	gvr := createGroupVersionResource(gv, resource)
-	_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		t.Errorf("Resource %s/%s does not exist", namespace, name)
-		return
+
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		return operr
 	}
+
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return !errors.IsNotFound(e)
+	}, op)
 
 	if err != nil {
 		t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
@@ -107,12 +127,18 @@ func (k *Helper) AssertResourceExists(t *testing.T, gv, resource, name string) {
 	t.Helper()
 
 	gvr := createGroupVersionResource(gv, resource)
-	_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		t.Errorf("Resource %s does not exist", name)
-		return
-	}
 
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+		return operr
+	}
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return !errors.IsNotFound(e)
+	}, op)
 	if err != nil {
 		t.Errorf("Error when trying to get resource %s: %v", name, err)
 	}
@@ -124,23 +150,24 @@ func (k *Helper) AssertNamespacedResourceDoesNotExist(t *testing.T, gv, resource
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	for i := 1; i <= 3; i++ {
-		_, err := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			return
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if errors.IsNotFound(operr) {
+			return nil
 		}
-
-		if err != nil {
-			t.Errorf("Error when trying to get resource %s/%s: %v", namespace, name, err)
-			return
-		}
-
-		// NOTE some resources take a few seconds to delete so here we wait and retry so
-		// we don't polute the tests with retry logic
-		time.Sleep(time.Duration(math.Exp2(float64(i))) * time.Second)
+		return operr
 	}
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return e != nil
+	}, op)
 
-	t.Errorf("Resource %s/%s still exists", namespace, name)
+	if err != nil {
+		t.Errorf("Resource %s/%s still exists", namespace, name)
+	}
 }
 
 // AssertResourceDoesNotExist fails the test if the resource still exists
@@ -149,21 +176,57 @@ func (k *Helper) AssertResourceDoesNotExist(t *testing.T, gv, resource, name str
 
 	gvr := createGroupVersionResource(gv, resource)
 
-	for i := 1; i <= 3; i++ {
-		_, err := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			return
+	op := func() error {
+		_, operr := k.client.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+		if errors.IsNotFound(operr) {
+			return nil
 		}
-
-		if err != nil {
-			t.Errorf("Error when trying to get resource %s: %v", name, err)
-			return
-		}
-
-		// NOTE some resources take a second to delete so here we wait and retry so
-		// we don't polute the tests with retry logic
-		time.Sleep(time.Duration(math.Exp2(float64(i))) * time.Second)
+		return operr
 	}
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return e != nil
+	}, op)
+	if err != nil {
+		t.Errorf("Resource %s still exists", name)
+	}
+}
 
-	t.Errorf("Resource %s still exists", name)
+func isErrorRetriable(e error) bool {
+	if errors.IsBadRequest(e) ||
+		errors.IsForbidden(e) ||
+		errors.IsTimeout(e) ||
+		errors.IsInvalid(e) ||
+		errors.IsUnauthorized(e) ||
+		errors.IsServiceUnavailable(e) ||
+		errors.IsInternalError(e) {
+		return false
+	}
+	return true
+}
+
+func logAPIVersion(config *rest.Config) {
+	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
+	config.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
+	rc, err := rest.UnversionedRESTClientFor(config)
+	if err != nil {
+		//lintignore:R009
+		panic(err)
+	}
+	apiVer, err := rc.Get().AbsPath("/version").DoRaw(context.Background())
+	if err != nil {
+		log.Printf("API version check responded with error: %s", err)
+		return
+	}
+	var vInfo version.Info
+	err = json.Unmarshal(apiVer, &vInfo)
+	if err != nil {
+		log.Printf("Failed to decode API version block: %s", err)
+		return
+	}
+	log.Printf("Testing against Kubernetes API version: %s", vInfo.String())
+
 }
