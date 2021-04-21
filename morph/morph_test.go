@@ -16,8 +16,9 @@ func TestMorphValueToType(t *testing.T) {
 		T tftypes.Type
 	}
 	samples := map[string]struct {
-		In  sampleInType
-		Out tftypes.Value
+		In      sampleInType
+		Out     tftypes.Value
+		WantErr bool
 	}{
 		"string->string": {
 			In: sampleInType{
@@ -230,13 +231,69 @@ func TestMorphValueToType(t *testing.T) {
 				"three": tftypes.NewValue(tftypes.String, "baz"),
 			}),
 		},
+
+		// Testcases to demonstrate https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/190
+		"string(unknown value)->string": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+				T: tftypes.String,
+			},
+			Out: tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		},
+		"number(unkown value)->number": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Number, tftypes.UnknownValue),
+				T: tftypes.Number,
+			},
+			Out: tftypes.NewValue(tftypes.Number, tftypes.UnknownValue),
+		},
+		"bool(unkown value)->bool": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+				T: tftypes.Bool,
+			},
+			Out: tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+		},
+
+		// Translations that won't work without the values.
+		"number(unkown value)->string": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Number, tftypes.UnknownValue),
+				T: tftypes.String,
+			},
+			WantErr: true,
+		},
+		"string(unkown value)->number": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+				T: tftypes.Number,
+			},
+			WantErr: true,
+		},
+		"bool(unkown value)->string": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+				T: tftypes.String,
+			},
+			WantErr: true,
+		},
+		"string(unkown value)->bool": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+				T: tftypes.Bool,
+			},
+			WantErr: true,
+		},
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
 			r, err := ValueToType(s.In.V, s.In.T, tftypes.AttributePath{})
 			if err != nil {
-				t.Logf("Failed type-morphing for sample '%s': %s", n, err)
-				t.FailNow()
+				if !s.WantErr {
+					t.Logf("Failed type-morphing for sample '%s': %s", n, err)
+					t.FailNow()
+				}
+				return
 			}
 			if !cmp.Equal(r, s.Out, cmp.Exporter(func(t reflect.Type) bool { return true })) {
 				t.Logf("Result doesn't match expectation for sample '%s'", n)

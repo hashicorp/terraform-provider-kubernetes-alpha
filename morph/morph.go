@@ -15,9 +15,6 @@ func ValueToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tfty
 	if v.IsNull() {
 		return v, nil
 	}
-	if !v.IsKnown() {
-		return v, p.NewErrorf("cannot morph value that isn't fully known")
-	}
 	switch {
 	case v.Type().Is(tftypes.String):
 		return morphStringToType(v, t, p)
@@ -37,6 +34,9 @@ func ValueToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tfty
 		return morphMapToType(v, t, p)
 	case v.Type().Is(tftypes.Object{}):
 		return morphObjectToType(v, t, p)
+	}
+	if !v.IsKnown() {
+		return v, p.NewErrorf("cannot morph value that isn't fully known")
 	}
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph from value: %v", p.String(), v)
 }
