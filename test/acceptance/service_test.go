@@ -3,6 +3,7 @@
 package acceptance
 
 import (
+	"encoding/json"
 	"testing"
 
 	tfstatehelper "github.com/hashicorp/terraform-provider-kubernetes-alpha/test/helper/state"
@@ -38,14 +39,14 @@ func TestKubernetesManifest_Service(t *testing.T) {
 
 	tfstate := tfstatehelper.NewHelper(tf.RequireState(t))
 	tfstate.AssertAttributeValues(t, tfstatehelper.AttributeValues{
-		"kubernetes_manifest.test.object.metadata.namespace":       namespace,
-		"kubernetes_manifest.test.object.metadata.name":            name,
-		"kubernetes_manifest.test.object.spec.ports[0].name":       "http",
-		"kubernetes_manifest.test.object.spec.ports[0].port":       "80",
-		"kubernetes_manifest.test.object.spec.ports[0].targetPort": "8080",
-		"kubernetes_manifest.test.object.spec.ports[0].protocol":   "TCP",
-		"kubernetes_manifest.test.object.spec.selector.app":        "test",
-		"kubernetes_manifest.test.object.spec.type":                "LoadBalancer",
+		"kubernetes_manifest.test.object.metadata.namespace":      namespace,
+		"kubernetes_manifest.test.object.metadata.name":           name,
+		"kubernetes_manifest.test.object.spec.ports.0.name":       "http",
+		"kubernetes_manifest.test.object.spec.ports.0.port":       json.Number("80"),
+		"kubernetes_manifest.test.object.spec.ports.0.targetPort": json.Number("8080"),
+		"kubernetes_manifest.test.object.spec.ports.0.protocol":   "TCP",
+		"kubernetes_manifest.test.object.spec.selector.app":       "test",
+		"kubernetes_manifest.test.object.spec.type":               "LoadBalancer",
 	})
 
 	tfconfigModified := loadTerraformConfig(t, "Service/service_modified.tf", tfvars)
@@ -58,10 +59,10 @@ func TestKubernetesManifest_Service(t *testing.T) {
 		"kubernetes_manifest.test.object.metadata.name":             name,
 		"kubernetes_manifest.test.object.metadata.annotations.test": "1",
 		"kubernetes_manifest.test.object.metadata.labels.test":      "2",
-		"kubernetes_manifest.test.object.spec.ports[0].name":        "https",
-		"kubernetes_manifest.test.object.spec.ports[0].port":        "443",
-		"kubernetes_manifest.test.object.spec.ports[0].targetPort":  "8443",
-		"kubernetes_manifest.test.object.spec.ports[0].protocol":    "TCP",
+		"kubernetes_manifest.test.object.spec.ports.0.name":         "https",
+		"kubernetes_manifest.test.object.spec.ports.0.port":         json.Number("443"),
+		"kubernetes_manifest.test.object.spec.ports.0.targetPort":   json.Number("8443"),
+		"kubernetes_manifest.test.object.spec.ports.0.protocol":     "TCP",
 		"kubernetes_manifest.test.object.spec.selector.app":         "test",
 		"kubernetes_manifest.test.object.spec.type":                 "LoadBalancer",
 	})
