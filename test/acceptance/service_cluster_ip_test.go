@@ -11,7 +11,7 @@ import (
 
 // This test case tests a Service but also is a demonstration of some the assert functions
 // available in the test helper
-func TestKubernetesManifest_Service(t *testing.T) {
+func TestKubernetesManifest_Service_ClusterIP(t *testing.T) {
 	name := randName()
 	namespace := randName()
 
@@ -30,7 +30,7 @@ func TestKubernetesManifest_Service(t *testing.T) {
 		"namespace": namespace,
 		"name":      name,
 	}
-	tfconfig := loadTerraformConfig(t, "Service/service.tf", tfvars)
+	tfconfig := loadTerraformConfig(t, "Service_ClusterIP/service.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
 	tf.RequireInit(t)
 	tf.RequireApply(t)
@@ -49,7 +49,7 @@ func TestKubernetesManifest_Service(t *testing.T) {
 		"kubernetes_manifest.test.object.spec.type":               "ClusterIP",
 	})
 
-	tfconfigModified := loadTerraformConfig(t, "Service/service_modified.tf", tfvars)
+	tfconfigModified := loadTerraformConfig(t, "Service_ClusterIP/service_modified.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfigModified)
 	tf.RequireApply(t)
 

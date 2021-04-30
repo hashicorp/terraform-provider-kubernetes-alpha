@@ -28,6 +28,7 @@ resource "kubernetes_manifest" "test" {
       selector = {
         app = "test"
       }
+      type = "ClusterIP"
     }
   }
 }

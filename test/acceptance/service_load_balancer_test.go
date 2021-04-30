@@ -11,7 +11,7 @@ import (
 
 // This test case tests a Service but also is a demonstration of some the assert functions
 // available in the test helper
-func TestKubernetesManifest_Service(t *testing.T) {
+func TestKubernetesManifest_Service_LoadBalancer(t *testing.T) {
 	name := randName()
 	namespace := randName()
 
@@ -30,7 +30,7 @@ func TestKubernetesManifest_Service(t *testing.T) {
 		"namespace": namespace,
 		"name":      name,
 	}
-	tfconfig := loadTerraformConfig(t, "Service/service.tf", tfvars)
+	tfconfig := loadTerraformConfig(t, "Service_LoadBalancer/service.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfig)
 	tf.RequireInit(t)
 	tf.RequireApply(t)
@@ -46,10 +46,10 @@ func TestKubernetesManifest_Service(t *testing.T) {
 		"kubernetes_manifest.test.object.spec.ports.0.targetPort": json.Number("8080"),
 		"kubernetes_manifest.test.object.spec.ports.0.protocol":   "TCP",
 		"kubernetes_manifest.test.object.spec.selector.app":       "test",
-		"kubernetes_manifest.test.object.spec.type":               "ClusterIP",
+		"kubernetes_manifest.test.object.spec.type":               "LoadBalancer",
 	})
 
-	tfconfigModified := loadTerraformConfig(t, "Service/service_modified.tf", tfvars)
+	tfconfigModified := loadTerraformConfig(t, "Service_LoadBalancer/service_modified.tf", tfvars)
 	tf.RequireSetConfig(t, tfconfigModified)
 	tf.RequireApply(t)
 
@@ -64,7 +64,7 @@ func TestKubernetesManifest_Service(t *testing.T) {
 		"kubernetes_manifest.test.object.spec.ports.0.targetPort":   json.Number("8443"),
 		"kubernetes_manifest.test.object.spec.ports.0.protocol":     "TCP",
 		"kubernetes_manifest.test.object.spec.selector.app":         "test",
-		"kubernetes_manifest.test.object.spec.type":                 "ClusterIP",
+		"kubernetes_manifest.test.object.spec.type":                 "LoadBalancer",
 	})
 
 	tfstate.AssertAttributeLen(t, "kubernetes_manifest.test.object.metadata.labels", 1)

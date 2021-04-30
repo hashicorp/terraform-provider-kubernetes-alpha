@@ -24,10 +24,12 @@ resource "kubernetes_manifest" "test" {
         targetPort = 8443,
         # Protcol is required for serverside apply per https://github.com/kubernetes-sigs/structured-merge-diff/issues/130
         protocol = "TCP"
+        nodePort = 32767
       }]
       selector = {
         app = "test"
       }
+      type = "NodePort"
     }
   }
 }
