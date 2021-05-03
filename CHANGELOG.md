@@ -1,3 +1,8 @@
+## 0.3.3 (Unreleased)
+
+BUG FIXES:
+* Opportunistically accept unknown value types (allow setting values from other resources) (#190)
+
 ## 0.3.2 (March 19, 2021)
 
 BUG FIXES:
