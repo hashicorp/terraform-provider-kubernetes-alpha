@@ -26,11 +26,10 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/zclconf/go-cty v1.8.1
 	golang.org/x/mod v0.3.0
-	golang.org/x/tools v0.0.0-20201028111035-eafbe7b904eb // indirect
 	google.golang.org/api v0.34.0 // indirect
 	google.golang.org/genproto v0.0.0-20201030142918-24207fddd1c3 // indirect
 	google.golang.org/grpc v1.33.1
 	k8s.io/apiextensions-apiserver v0.18.0
-	k8s.io/apimachinery v0.20.0
-	k8s.io/client-go v0.20.0
+	k8s.io/apimachinery v0.20.6
+	k8s.io/client-go v0.20.6
 )
