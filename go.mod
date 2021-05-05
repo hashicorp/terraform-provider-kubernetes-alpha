@@ -30,6 +30,6 @@ require (
 	google.golang.org/genproto v0.0.0-20201030142918-24207fddd1c3 // indirect
 	google.golang.org/grpc v1.33.1
 	k8s.io/apiextensions-apiserver v0.18.0
-	k8s.io/apimachinery v0.20.6
-	k8s.io/client-go v0.20.6
+	k8s.io/apimachinery v0.21.0
+	k8s.io/client-go v0.21.0
 )
