@@ -60,7 +60,11 @@ func TestDeepUnknown(t *testing.T) {
 							"app": tftypes.String,
 						}},
 					}}, map[string]tftypes.Value{
-						"name": tftypes.NewValue(tftypes.String, "foo"),
+						"name":      tftypes.NewValue(tftypes.String, "foo"),
+						"namespace": tftypes.NewValue(tftypes.String, nil),
+						"labels": tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+							"app": tftypes.String,
+						}}, nil),
 					}),
 				}),
 			},
