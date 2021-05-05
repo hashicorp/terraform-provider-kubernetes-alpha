@@ -15,7 +15,7 @@ import (
 type ValueDiff struct {
 	// The Path these different subsets are located at in the original
 	// Values.
-	Path AttributePath
+	Path *AttributePath
 
 	// The subset of the first Value passed to Diff found at the
 	// AttributePath indicated by Path.
@@ -81,7 +81,7 @@ func (val1 Value) Diff(val2 Value) ([]ValueDiff, error) {
 	var diffs []ValueDiff
 
 	// make sure everything in val2 is also in val1
-	err := Walk(val2, func(path AttributePath, value2 Value) (bool, error) {
+	err := Walk(val2, func(path *AttributePath, value2 Value) (bool, error) {
 		_, _, err := WalkAttributePath(val1, path)
 		if err != nil && err != ErrInvalidStep {
 			return false, fmt.Errorf("Error walking %q: %w", path, err)
@@ -100,7 +100,7 @@ func (val1 Value) Diff(val2 Value) ([]ValueDiff, error) {
 	}
 
 	// make sure everything in val1 is also in val2 and also that it all matches
-	err = Walk(val1, func(path AttributePath, value1 Value) (bool, error) {
+	err = Walk(val1, func(path *AttributePath, value1 Value) (bool, error) {
 		// pull out the Value at the same path in val2
 		value2I, _, err := WalkAttributePath(val2, path)
 		if err != nil && err != ErrInvalidStep {
@@ -179,11 +179,11 @@ func (val1 Value) Diff(val2 Value) ([]ValueDiff, error) {
 			var s1, s2 string
 			err := value1.As(&s1)
 			if err != nil {
-				return false, fmt.Errorf("Error converting %q: %w", path, err)
+				return false, fmt.Errorf("Error converting %s (value1) at %q: %w", value1, path, err)
 			}
 			err = value2.As(&s2)
 			if err != nil {
-				return false, fmt.Errorf("Error converting %q: %w", path, err)
+				return false, fmt.Errorf("Error converting %s (value2) at %q: %w", value2, path, err)
 			}
 			if s1 != s2 {
 				diffs = append(diffs, ValueDiff{
