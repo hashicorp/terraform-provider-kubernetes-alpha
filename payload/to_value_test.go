@@ -8,7 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 var cmpCompareAllOption cmp.Option = cmp.Exporter(func(t reflect.Type) bool { return true })
@@ -32,7 +32,7 @@ func TestToTFValue(t *testing.T) {
 		"string-nil": {
 			In:  sampleInType{v: "foobar", t: nil},
 			Out: tftypes.Value{},
-			Err: tftypes.AttributePath{}.NewErrorf("[] type cannot be nil"),
+			Err: tftypes.NewAttributePath().NewErrorf("[] type cannot be nil"),
 		},
 		"string-pseudotype": {
 			In:  sampleInType{v: "foobar", t: tftypes.DynamicPseudoType},
@@ -242,7 +242,7 @@ func TestToTFValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := ToTFValue(s.In.v, s.In.t, tftypes.AttributePath{})
+			r, err := ToTFValue(s.In.v, s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)
@@ -286,7 +286,7 @@ func TestSliceToTFDynamicValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := sliceToTFDynamicValue(s.In.v.([]interface{}), s.In.t, tftypes.AttributePath{})
+			r, err := sliceToTFDynamicValue(s.In.v.([]interface{}), s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)
@@ -330,7 +330,7 @@ func TestSliceToTFTupleValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := sliceToTFTupleValue(s.In.v.([]interface{}), s.In.t, tftypes.AttributePath{})
+			r, err := sliceToTFTupleValue(s.In.v.([]interface{}), s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)
@@ -374,7 +374,7 @@ func TestSliceToTFSetValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := sliceToTFSetValue(s.In.v.([]interface{}), s.In.t, tftypes.AttributePath{})
+			r, err := sliceToTFSetValue(s.In.v.([]interface{}), s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)
@@ -418,7 +418,7 @@ func TestSliceToTFListValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := sliceToTFListValue(s.In.v.([]interface{}), s.In.t, tftypes.AttributePath{})
+			r, err := sliceToTFListValue(s.In.v.([]interface{}), s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)
@@ -467,7 +467,7 @@ func TestMapToTFMapValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := mapToTFMapValue(s.In.v.(map[string]interface{}), s.In.t, tftypes.AttributePath{})
+			r, err := mapToTFMapValue(s.In.v.(map[string]interface{}), s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)
@@ -523,7 +523,7 @@ func TestMapToTFObjectValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := mapToTFObjectValue(s.In.v.(map[string]interface{}), s.In.t, tftypes.AttributePath{})
+			r, err := mapToTFObjectValue(s.In.v.(map[string]interface{}), s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)
@@ -555,7 +555,7 @@ func TestMapToTFDynamicValue(t *testing.T) {
 
 	for name, s := range samples {
 		t.Run(name, func(t *testing.T) {
-			r, err := mapToTFDynamicValue(s.In.v.(map[string]interface{}), s.In.t, tftypes.AttributePath{})
+			r, err := mapToTFDynamicValue(s.In.v.(map[string]interface{}), s.In.t, tftypes.NewAttributePath())
 			if err != nil {
 				if s.Err == nil {
 					t.Logf("Unexpected error received for sample '%s': %s", name, err)

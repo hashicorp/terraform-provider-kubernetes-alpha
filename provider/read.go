@@ -6,7 +6,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/morph"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -65,7 +65,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		return resp, nil
 	}
 	co := resState["object"]
-	cu, err := payload.FromTFValue(co, tftypes.AttributePath{})
+	cu, err := payload.FromTFValue(co, tftypes.NewAttributePath())
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
@@ -139,12 +139,12 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 	}
 
 	fo := FilterEphemeralFields(ro.Object)
-	nobj, err := payload.ToTFValue(fo, objectType, tftypes.AttributePath{})
+	nobj, err := payload.ToTFValue(fo, objectType, tftypes.NewAttributePath())
 	if err != nil {
 		return resp, err
 	}
 
-	nobj, err = morph.DeepUnknown(objectType, nobj, tftypes.AttributePath{})
+	nobj, err = morph.DeepUnknown(objectType, nobj, tftypes.NewAttributePath())
 	if err != nil {
 		return resp, err
 	}

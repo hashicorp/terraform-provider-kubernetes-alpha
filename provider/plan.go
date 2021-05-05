@@ -6,7 +6,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/morph"
 )
 
@@ -91,12 +91,13 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 
 	ppMan, ok := proposedVal["manifest"]
 	if !ok {
-		matp := tftypes.AttributePath{}.WithAttributeName("manifest")
+		matp := tftypes.NewAttributePath()
+		matp = matp.WithAttributeName("manifest")
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity:  tfprotov5.DiagnosticSeverityError,
 			Summary:   "Invalid proposed state during planning",
 			Detail:    "Missing 'manifest' attribute",
-			Attribute: &matp,
+			Attribute: matp,
 		})
 		return resp, nil
 	}
@@ -144,7 +145,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	s.logger.Debug("[PlanUpdateResource]", "OAPI type", spew.Sdump(so))
 
 	// Transform the input manifest to adhere to the type model from the OpenAPI spec
-	mobj, err := morph.ValueToType(ppMan, objectType, tftypes.AttributePath{})
+	mobj, err := morph.ValueToType(ppMan, objectType, tftypes.NewAttributePath())
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
@@ -155,7 +156,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	}
 	s.logger.Debug("[PlanResourceChange]", "morphed manifest", spew.Sdump(mobj))
 
-	completeObj, err := morph.DeepUnknown(objectType, mobj, tftypes.AttributePath{})
+	completeObj, err := morph.DeepUnknown(objectType, mobj, tftypes.NewAttributePath())
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
@@ -171,22 +172,23 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	} else { // plan for Update
 		priorObj, ok := priorVal["object"]
 		if !ok {
-			oatp := tftypes.AttributePath{}.WithAttributeName("object")
+			oatp := tftypes.NewAttributePath()
+			oatp = oatp.WithAttributeName("object")
 			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 				Severity:  tfprotov5.DiagnosticSeverityError,
 				Summary:   "Invalid prior state during planning",
 				Detail:    "Missing 'object' attribute",
-				Attribute: &oatp,
+				Attribute: oatp,
 			})
 			return resp, nil
 		}
-		updatedObj, err := tftypes.Transform(completeObj, func(ap tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+		updatedObj, err := tftypes.Transform(completeObj, func(ap *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
 			if v.IsKnown() { // this is a value from current configuration - include it in the plan
 				return v, nil
 			}
 			// check if value was present in the previous configuration
 			wasVal, restPath, err := tftypes.WalkAttributePath(priorVal["manifest"], ap)
-			if err == nil && len(restPath.Steps) == 0 && wasVal.(tftypes.Value).IsKnown() {
+			if err == nil && len(restPath.Steps()) == 0 && wasVal.(tftypes.Value).IsKnown() {
 				// attribute was previously set in config and has now been removed
 				// return the new unknown value to give the API a chance to set a default
 				return v, nil
@@ -196,18 +198,19 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 			if err != nil {
 				return v, ap.NewError(err)
 			}
-			if len(restPath.Steps) > 0 {
+			if len(restPath.Steps()) > 0 {
 				s.logger.Warn("[PlanResourceChange]", "Unexpected missing attribute from state at", ap.String(), " + ", restPath.String())
 			}
 			return priorAtrVal.(tftypes.Value), nil
 		})
 		if err != nil {
-			oatp := tftypes.AttributePath{}.WithAttributeName("object")
+			oatp := tftypes.NewAttributePath()
+			oatp = oatp.WithAttributeName("object")
 			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 				Severity:  tfprotov5.DiagnosticSeverityError,
 				Summary:   "Failed to update proposed state from prior state",
 				Detail:    err.Error(),
-				Attribute: &oatp,
+				Attribute: oatp,
 			})
 			return resp, nil
 		}

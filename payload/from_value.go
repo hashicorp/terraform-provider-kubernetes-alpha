@@ -3,12 +3,12 @@ package payload
 import (
 	"math/big"
 
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // FromTFValue converts a Terraform specific tftypes.Value type object
 // into a Kubernetes dynamic client specific unstructured object
-func FromTFValue(in tftypes.Value, ap tftypes.AttributePath) (interface{}, error) {
+func FromTFValue(in tftypes.Value, ap *tftypes.AttributePath) (interface{}, error) {
 	var err error
 	if !in.IsKnown() {
 		return nil, ap.NewErrorf("[%s] cannot convert unknown value to Unstructured", ap.String())
@@ -84,7 +84,7 @@ func FromTFValue(in tftypes.Value, ap tftypes.AttributePath) (interface{}, error
 			return mv, nil
 		}
 		for k, me := range m {
-			var nextAp tftypes.AttributePath
+			var nextAp *tftypes.AttributePath
 			switch {
 			case in.Type().Is(tftypes.Map{}):
 				nextAp = ap.WithElementKeyString(k)

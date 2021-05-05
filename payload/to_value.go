@@ -5,12 +5,12 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // ToTFValue converts a Kubernetes dynamic client unstructured object
 // into a Terraform specific tftypes.Value type object
-func ToTFValue(in interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func ToTFValue(in interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	if st == nil {
 		return tftypes.Value{}, at.NewErrorf("[%s] type cannot be nil", at.String())
 	}
@@ -101,7 +101,7 @@ func ToTFValue(in interface{}, st tftypes.Type, at tftypes.AttributePath) (tftyp
 	return tftypes.Value{}, at.NewErrorf(`[%s] cannot convert payload of unknown type "%s"`, at.String(), reflect.TypeOf(in).String())
 }
 
-func sliceToTFDynamicValue(in []interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func sliceToTFDynamicValue(in []interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	il := make([]tftypes.Value, len(in), len(in))
 	oTypes := make([]tftypes.Type, len(in), len(in))
 	for k, v := range in {
@@ -117,7 +117,7 @@ func sliceToTFDynamicValue(in []interface{}, st tftypes.Type, at tftypes.Attribu
 	return tftypes.NewValue(tftypes.Tuple{ElementTypes: oTypes}, il), nil
 }
 
-func sliceToTFListValue(in []interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func sliceToTFListValue(in []interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	il := make([]tftypes.Value, 0, len(in))
 	var oType tftypes.Type = tftypes.Type(nil)
 	for k, v := range in {
@@ -139,7 +139,7 @@ func sliceToTFListValue(in []interface{}, st tftypes.Type, at tftypes.AttributeP
 	return tftypes.NewValue(tftypes.List{ElementType: oType}, il), nil
 }
 
-func sliceToTFTupleValue(in []interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func sliceToTFTupleValue(in []interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	il := make([]tftypes.Value, len(in), len(in))
 	oTypes := make([]tftypes.Type, len(in), len(in))
 	ttypes := st.(tftypes.Tuple).ElementTypes
@@ -162,7 +162,7 @@ func sliceToTFTupleValue(in []interface{}, st tftypes.Type, at tftypes.Attribute
 	return tftypes.NewValue(tftypes.Tuple{ElementTypes: oTypes}, il), nil
 }
 
-func sliceToTFSetValue(in []interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func sliceToTFSetValue(in []interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	il := make([]tftypes.Value, len(in), len(in))
 	oType := tftypes.Type(nil)
 	for k, v := range in {
@@ -179,7 +179,7 @@ func sliceToTFSetValue(in []interface{}, st tftypes.Type, at tftypes.AttributePa
 	return tftypes.NewValue(tftypes.Set{ElementType: oType}, il), nil
 }
 
-func mapToTFMapValue(in map[string]interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func mapToTFMapValue(in map[string]interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	var err error
 	im := make(map[string]tftypes.Value)
 	oType := tftypes.Type(nil)
@@ -200,7 +200,7 @@ func mapToTFMapValue(in map[string]interface{}, st tftypes.Type, at tftypes.Attr
 	return tftypes.NewValue(tftypes.Map{AttributeType: oType}, im), nil
 }
 
-func mapToTFObjectValue(in map[string]interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func mapToTFObjectValue(in map[string]interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	im := make(map[string]tftypes.Value)
 	oTypes := make(map[string]tftypes.Type)
 	for k, kt := range st.(tftypes.Object).AttributeTypes {
@@ -219,7 +219,7 @@ func mapToTFObjectValue(in map[string]interface{}, st tftypes.Type, at tftypes.A
 	return tftypes.NewValue(tftypes.Object{AttributeTypes: oTypes}, im), nil
 }
 
-func mapToTFDynamicValue(in map[string]interface{}, st tftypes.Type, at tftypes.AttributePath) (tftypes.Value, error) {
+func mapToTFDynamicValue(in map[string]interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	im := make(map[string]tftypes.Value)
 	oTypes := make(map[string]tftypes.Type)
 	for k, v := range in {

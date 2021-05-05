@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestFromTFValue(t *testing.T) {
@@ -70,7 +70,7 @@ func TestFromTFValue(t *testing.T) {
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
-			r, err := FromTFValue(s.In, tftypes.AttributePath{})
+			r, err := FromTFValue(s.In, tftypes.NewAttributePath())
 			if err != nil {
 				t.Logf("Conversion failed for sample '%s': %s", n, err)
 				t.FailNow()

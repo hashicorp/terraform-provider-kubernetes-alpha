@@ -9,7 +9,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi2"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/mitchellh/hashstructure"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

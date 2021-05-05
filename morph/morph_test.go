@@ -7,7 +7,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestMorphValueToType(t *testing.T) {
@@ -287,7 +287,7 @@ func TestMorphValueToType(t *testing.T) {
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
-			r, err := ValueToType(s.In.V, s.In.T, tftypes.AttributePath{})
+			r, err := ValueToType(s.In.V, s.In.T, tftypes.NewAttributePath())
 			if err != nil {
 				if !s.WantErr {
 					t.Logf("Failed type-morphing for sample '%s': %s", n, err)
