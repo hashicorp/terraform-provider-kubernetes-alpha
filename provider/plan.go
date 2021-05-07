@@ -132,15 +132,28 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	if err != nil {
 		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 	}
+
 	if !objectType.Is(tftypes.Object{}) {
-		// this is not a valid resource type - likely a freeform CR without schema
+		// non-structural resources have no schema so we just use the
+		// type information we can get from the config
+		objectType = ppMan.Type()
+
+		// TODO dry run here to catch any types added on the server side
+
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
-			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "No valid OpenAPI definition",
-			Detail:   fmt.Sprintf("Resource %s.%s.%s does not have a valid OpenAPI definition in this cluster.\n\nUsually this is caused by a CustomResource without a schema.", gvk.Kind, gvk.Version, gvk.Group),
+			Severity: tfprotov5.DiagnosticSeverityWarning,
+			Summary:  "This custom resource does not have an associated OpenAPI schema.",
+			Detail:   "We could not find an OpenAPI schema for this custom resource. Updates to this resource will cause a forced replacement.",
 		})
-		return resp, nil
+
+		manifest := tftypes.AttributePath{}.WithAttributeName("manifest")
+		object := tftypes.AttributePath{}.WithAttributeName("object")
+		resp.RequiresReplace = []*tftypes.AttributePath{
+			&manifest,
+			&object,
+		}
 	}
+
 	so := objectType.(tftypes.Object)
 	s.logger.Debug("[PlanUpdateResource]", "OAPI type", spew.Sdump(so))
 
@@ -168,6 +181,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	s.logger.Debug("[PlanResourceChange]", "backfilled manifest", spew.Sdump(completeObj))
 
 	if proposedVal["object"].IsNull() { // plan for Create
+		s.logger.Debug("[PlanResourceChange]", "creating object", spew.Sdump(completeObj))
 		proposedVal["object"] = completeObj
 	} else { // plan for Update
 		priorObj, ok := priorVal["object"]

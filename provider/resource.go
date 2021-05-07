@@ -134,9 +134,9 @@ func sliceRemoveNulls(in []interface{}) []interface{} {
 	return s
 }
 
-// FilterEphemeralFields removes certain fields from an API response object
-// which would otherwise cause a false diff
-func FilterEphemeralFields(in map[string]interface{}) map[string]interface{} {
+// RemoveServerSideFields removes certain fields which get added to the
+// resource after creation which would cause a perpetual diff
+func RemoveServerSideFields(in map[string]interface{}) map[string]interface{} {
 	// Remove "status" attribute
 	delete(in, "status")
 

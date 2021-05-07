@@ -173,7 +173,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		newResObject, err := payload.ToTFValue(FilterEphemeralFields(result.Object), tsch, tftypes.NewAttributePath())
+		newResObject, err := payload.ToTFValue(RemoveServerSideFields(result.Object), tsch, tftypes.NewAttributePath())
 		if err != nil {
 			return resp, err
 		}

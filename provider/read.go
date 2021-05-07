@@ -138,7 +138,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 	}
 
-	fo := FilterEphemeralFields(ro.Object)
+	fo := RemoveServerSideFields(ro.Object)
 	nobj, err := payload.ToTFValue(fo, objectType, tftypes.NewAttributePath())
 	if err != nil {
 		return resp, err
