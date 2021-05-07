@@ -284,6 +284,31 @@ func TestMorphValueToType(t *testing.T) {
 			},
 			WantErr: true,
 		},
+		"object -> object": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+					"two":   tftypes.String,
+					"three": tftypes.String,
+				}}, map[string]tftypes.Value{
+					"two":   tftypes.NewValue(tftypes.String, "bar"),
+					"three": tftypes.NewValue(tftypes.String, "baz"),
+				}),
+				T: tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+					"one":   tftypes.String,
+					"two":   tftypes.String,
+					"three": tftypes.String,
+				}},
+			},
+			Out: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+				"one":   tftypes.String,
+				"two":   tftypes.String,
+				"three": tftypes.String,
+			}}, map[string]tftypes.Value{
+				"one":   tftypes.NewValue(tftypes.String, nil),
+				"two":   tftypes.NewValue(tftypes.String, "bar"),
+				"three": tftypes.NewValue(tftypes.String, "baz"),
+			}),
+		},
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
