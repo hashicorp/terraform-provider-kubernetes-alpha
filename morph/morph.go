@@ -304,6 +304,13 @@ func morphObjectToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath
 			}
 			ovals[k] = nv
 		}
+		// for attributes not specified by user add a nil value of their respective type
+		// tftypes.NewValue() fails if any of the attributes in the object don't have a corresponding value
+		for k := range t.(tftypes.Object).AttributeTypes {
+			if _, ok := ovals[k]; !ok {
+				ovals[k] = tftypes.NewValue(t.(tftypes.Object).AttributeTypes[k], nil)
+			}
+		}
 		return tftypes.NewValue(t, ovals), nil
 	case t.Is(tftypes.Map{}):
 		var mvals map[string]tftypes.Value = make(map[string]tftypes.Value, len(vals))
