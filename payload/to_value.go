@@ -164,7 +164,7 @@ func sliceToTFTupleValue(in []interface{}, st tftypes.Type, at *tftypes.Attribut
 
 func sliceToTFSetValue(in []interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
 	il := make([]tftypes.Value, len(in), len(in))
-	oType := tftypes.Type(nil)
+	oType := st.(tftypes.Set).ElementType
 	for k, v := range in {
 		eap := at.WithElementKeyInt(int64(k))
 		iv, err := ToTFValue(v, st.(tftypes.Set).ElementType, at.WithElementKeyInt(int64(k)))
@@ -172,29 +172,25 @@ func sliceToTFSetValue(in []interface{}, st tftypes.Type, at *tftypes.AttributeP
 			return tftypes.Value{}, eap.NewErrorf("[%s] cannot convert list element [%d] to '%s': %s", eap, k, st.(tftypes.Set).ElementType.String(), err)
 		}
 		il[k] = iv
-		if oType == tftypes.Type(nil) {
-			oType = iv.Type()
+		if !oType.Is(iv.Type()) {
+			return tftypes.Value{}, eap.NewErrorf("[%s] conflicting list element type: %s", eap.String(), iv.Type())
 		}
 	}
 	return tftypes.NewValue(tftypes.Set{ElementType: oType}, il), nil
 }
 
 func mapToTFMapValue(in map[string]interface{}, st tftypes.Type, at *tftypes.AttributePath) (tftypes.Value, error) {
-	var err error
 	im := make(map[string]tftypes.Value)
-	oType := tftypes.Type(nil)
+	oType := st.(tftypes.Map).AttributeType
 	for k, v := range in {
 		eap := at.WithAttributeName(k)
-		im[k], err = ToTFValue(v, st.(tftypes.Map).AttributeType, eap)
+		mv, err := ToTFValue(v, st.(tftypes.Map).AttributeType, eap)
 		if err != nil {
 			return tftypes.Value{}, eap.NewErrorf("[%s] cannot convert map element '%s' to '%s': err", eap, st.(tftypes.Map).AttributeType.String(), err)
 		}
-		if oType == tftypes.Type(nil) {
-			oType = im[k].Type()
-		} else {
-			if !oType.Is(im[k].Type()) {
-				return tftypes.Value{}, eap.NewErrorf("[%s] conflicting map element type: %s", eap.String(), im[k].Type())
-			}
+		im[k] = mv
+		if !oType.Is(im[k].Type()) {
+			return tftypes.Value{}, eap.NewErrorf("[%s] conflicting map element type: %s", eap.String(), mv.Type())
 		}
 	}
 	return tftypes.NewValue(tftypes.Map{AttributeType: oType}, im), nil
