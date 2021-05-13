@@ -21,8 +21,8 @@ func NewFoundryFromSpecV2(spec []byte) (Foundry, error) {
 		return nil, errors.New("empty spec")
 	}
 
-	var swg openapi2.Swagger
-	err := json.Unmarshal(spec, &swg)
+	var swg openapi2.T
+	err := swg.UnmarshalJSON(spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse spec: %s", err)
 	}
@@ -54,7 +54,7 @@ type Foundry interface {
 }
 
 type foapiv2 struct {
-	swagger        *openapi2.Swagger
+	swagger        *openapi2.T
 	typeCache      sync.Map
 	gkvIndex       sync.Map
 	recursionDepth uint64 // a last resort circuit-breaker for run-away recursion - hitting this will make for a bad day
