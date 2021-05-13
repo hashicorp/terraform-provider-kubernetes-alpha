@@ -1,11 +1,13 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"k8s.io/apimachinery/pkg/api/meta"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -75,7 +77,16 @@ func IsResourceNamespaced(gvk schema.GroupVersionKind, m meta.RESTMapper) (bool,
 
 // TFTypeFromOpenAPI generates a tftypes.Type representation of a Kubernetes resource
 // designated by the supplied GroupVersionKind resource id
-func (ps *RawProviderServer) TFTypeFromOpenAPI(gvk schema.GroupVersionKind, status bool) (tftypes.Type, error) {
+func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.GroupVersionKind, status bool) (tftypes.Type, error) {
+	// check if GVK is from a CRD
+	crdSchema, err := ps.lookUpGVKinCRDs(ctx, gvk)
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup GVK in CRDs: %s", err)
+	}
+	if crdSchema != nil {
+		// parse type from CRD schema
+	}
+
 	oapi, err := ps.getOAPIFoundry()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get OpenAPI foundry: %s", err)
@@ -155,4 +166,57 @@ func RemoveServerSideFields(in map[string]interface{}) map[string]interface{} {
 	delete(meta, "managedFields")
 
 	return in
+}
+
+func (ps *RawProviderServer) lookUpGVKinCRDs(ctx context.Context, gvk schema.GroupVersionKind) (interface{}, error) {
+	c, err := ps.getDynamicClient()
+	if err != nil {
+		return nil, err
+	}
+	crd := schema.GroupResource{Group: "apiextensions.k8s.io", Resource: "customresourcedefinitions"}
+
+	// check  CRD versions
+	for _, crdv := range []string{"v1", "v1beta1"} {
+		crdRes, err := c.Resource(crd.WithVersion(crdv)).List(ctx, v1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, r := range crdRes.Items {
+			spec := r.Object["spec"].(map[string]interface{})
+			if spec == nil {
+				continue
+			}
+			grp := spec["group"].(string)
+			if grp != gvk.Group {
+				continue
+			}
+			names := spec["names"]
+			if names == nil {
+				continue
+			}
+			kind := names.(map[string]interface{})["kind"]
+			if kind != gvk.Kind {
+				continue
+			}
+			ver := spec["versions"]
+			if ver == nil {
+				ver = spec["version"]
+				if ver == nil {
+					continue
+				}
+			}
+			for _, rv := range ver.([]interface{}) {
+				if rv == nil {
+					continue
+				}
+				v := rv.(map[string]interface{})
+				if v["name"] == gvk.Version {
+					s := v["schema"].(map[string]interface{})
+					return s["openAPIV3Schema"], nil
+				}
+			}
+		}
+	}
+	return nil, nil
 }
