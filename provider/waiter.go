@@ -191,7 +191,7 @@ func (w *NoopWaiter) Wait(_ context.Context) error {
 func FieldPathToTftypesPath(fieldPath string) (*tftypes.AttributePath, error) {
 	t, d := hclsyntax.ParseTraversalAbs([]byte(fieldPath), "", hcl.Pos{Line: 1, Column: 1})
 	if d.HasErrors() {
-		return tftypes.NewAttributePath(), fmt.Errorf("invalid field path %q: %s: %s", fieldPath, d[0].Summary, d[0].Detail)
+		return tftypes.NewAttributePath(), fmt.Errorf("invalid field path %q: %s", fieldPath, d.Error())
 	}
 
 	path := tftypes.NewAttributePath()
