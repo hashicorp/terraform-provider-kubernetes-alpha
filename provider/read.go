@@ -80,7 +80,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  fmt.Sprintf("Failed to get RESTMapper client"),
+			Summary:  "Failed to get RESTMapper client",
 			Detail:   err.Error(),
 		})
 		return resp, nil
@@ -89,7 +89,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  fmt.Sprintf("failed to get Dynamic client"),
+			Summary:  "failed to get Dynamic client",
 			Detail:   err.Error(),
 		})
 		return resp, nil
