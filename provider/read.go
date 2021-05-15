@@ -56,15 +56,15 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		return resp, nil
 	}
 
-	if resState["object"].IsNull() {
+	co, hasOb := resState["object"]
+	if !hasOb || co.IsNull() {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
 			Summary:  "Current state of resource has no 'object' attribute",
-			Detail:   err.Error(),
+			Detail:   "This should not happen. The state may be incomplete or corrupted.\nIf this error is reproducible, plese report issue to provider maintainers.",
 		})
 		return resp, nil
 	}
-	co := resState["object"]
 	cu, err := payload.FromTFValue(co, tftypes.NewAttributePath())
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
