@@ -87,7 +87,7 @@ func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.G
 		// parse type from CRD schema
 	}
 
-	oapi, err := ps.getOAPIFoundry()
+	oapi, err := ps.getOAPIv2Foundry()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get OpenAPI foundry: %s", err)
 	}

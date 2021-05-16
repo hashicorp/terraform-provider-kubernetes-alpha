@@ -92,8 +92,8 @@ func (ps *RawProviderServer) getRestClient() (rest.Interface, error) {
 	return restClient, nil
 }
 
-// getOAPIFoundry returns an interface to request cty types from an OpenAPI spec
-func (ps *RawProviderServer) getOAPIFoundry() (openapi.Foundry, error) {
+// getOAPIv2Foundry returns an interface to request tftype types from an OpenAPIv2 spec
+func (ps *RawProviderServer) getOAPIv2Foundry() (openapi.Foundry, error) {
 	if ps.OAPIFoundry != nil {
 		return ps.OAPIFoundry, nil
 	}
@@ -117,6 +117,10 @@ func (ps *RawProviderServer) getOAPIFoundry() (openapi.Foundry, error) {
 	ps.OAPIFoundry = oapif
 
 	return oapif, nil
+}
+
+// getOAPIv2Foundry returns an interface to request tftype types from an OpenAPIv2 spec
+func (ps *RawProviderServer) getOAPIv3Foundry() (openapi.Foundry, error) {
 }
 
 func loggingTransport(rt http.RoundTripper) http.RoundTripper {
