@@ -8,7 +8,73 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/morph"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 )
+
+func (s *RawProviderServer) dryRun(ctx context.Context, obj tftypes.Value) error {
+	c, err := s.getDynamicClient()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve Kubernetes dynamic client during apply: %v", err)
+	}
+	m, err := s.getRestMapper()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve Kubernetes RESTMapper client during apply: %v", err)
+	}
+
+	gvk, err := GVKFromTftypesObject(&obj, m)
+	if err != nil {
+		return fmt.Errorf("failed to determine resource GVK: %s", err)
+	}
+
+	minObj := morph.UnknownToNull(obj)
+	pu, err := payload.FromTFValue(minObj, tftypes.AttributePath{})
+	if err != nil {
+		return err
+	}
+
+	rqObj := mapRemoveNulls(pu.(map[string]interface{}))
+	uo := unstructured.Unstructured{}
+	uo.SetUnstructuredContent(rqObj)
+	rnamespace := uo.GetNamespace()
+	rname := uo.GetName()
+	rnn := types.NamespacedName{Namespace: rnamespace, Name: rname}.String()
+
+	gvr, err := GVRFromUnstructured(&uo, m)
+	if err != nil {
+		return fmt.Errorf("failed to determine resource GVR: %s", err)
+	}
+
+	ns, err := IsResourceNamespaced(gvk, m)
+	if err != nil {
+		return fmt.Errorf("failed to discover scope of resource %q: %v", rnn, err)
+	}
+
+	var rs dynamic.ResourceInterface
+	if ns {
+		rs = c.Resource(gvr).Namespace(rnamespace)
+	} else {
+		rs = c.Resource(gvr)
+	}
+
+	jsonManifest, err := uo.MarshalJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshall resource %q to JSON: %v", rnn, err)
+	}
+
+	// Call the Kubernetes API to create the new resource
+	_, err = rs.Patch(ctx, rname, types.ApplyPatchType, jsonManifest,
+		metav1.PatchOptions{
+			FieldManager: "Terraform",
+			DryRun:       []string{"All"},
+		},
+	)
+
+	return err
+}
 
 // PlanResourceChange function
 func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfprotov5.PlanResourceChangeRequest) (*tfprotov5.PlanResourceChangeResponse, error) {
@@ -138,13 +204,21 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		// type information we can get from the config
 		objectType = ppMan.Type()
 
-		// TODO dry run here to catch any types added on the server side
-
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityWarning,
 			Summary:  "This custom resource does not have an associated OpenAPI schema.",
 			Detail:   "We could not find an OpenAPI schema for this custom resource. Updates to this resource will cause a forced replacement.",
 		})
+
+		err := s.dryRun(ctx, ppMan)
+		if err != nil {
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Dry-run failed for non-structured resource",
+				Detail:   fmt.Sprintf("A dry-run apply was performed for this resource but was unsuccessful: %v", err),
+			})
+			return resp, nil
+		}
 
 		manifest := tftypes.AttributePath{}.WithAttributeName("manifest")
 		object := tftypes.AttributePath{}.WithAttributeName("object")
