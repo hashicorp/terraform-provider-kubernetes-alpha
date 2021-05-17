@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // ValidateResourceTypeConfig function
@@ -35,7 +35,8 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		return resp, nil
 	}
 
-	att := tftypes.AttributePath{}.WithAttributeName("manifest")
+	att := tftypes.NewAttributePath()
+	att = att.WithAttributeName("manifest")
 
 	configVal := make(map[string]tftypes.Value)
 	err = config.As(&configVal)
@@ -54,7 +55,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 			Severity:  tfprotov5.DiagnosticSeverityError,
 			Summary:   "Manifest missing from resource configuration",
 			Detail:    "A manifest attribute containing a valid Kubernetes resource configuration is required.",
-			Attribute: &att,
+			Attribute: att,
 		})
 		return resp, nil
 	}
@@ -71,7 +72,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 			Severity:  tfprotov5.DiagnosticSeverityError,
 			Summary:   `Failed to extract "manifest" attribute value from resource configuration`,
 			Detail:    err.Error(),
-			Attribute: &att,
+			Attribute: att,
 		})
 		return resp, nil
 	}
@@ -83,7 +84,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 				Severity:  tfprotov5.DiagnosticSeverityError,
 				Summary:   `Attribute key missing from "manifest" value`,
 				Detail:    fmt.Sprintf("'%s' attribute key is missing from manifest configuration", key),
-				Attribute: &kp,
+				Attribute: kp,
 			})
 		}
 	}
@@ -95,7 +96,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 				Severity:  tfprotov5.DiagnosticSeverityError,
 				Summary:   `Forbidden attribute key in "manifest" value`,
 				Detail:    fmt.Sprintf("'%s' attribute key is not allowed in manifest configuration", key),
-				Attribute: &kp,
+				Attribute: kp,
 			})
 		}
 	}
@@ -136,10 +137,11 @@ func (s *RawProviderServer) validateResourceOnline(manifest *tftypes.Value) (dia
 			})
 		return
 	}
-	nsPath := tftypes.AttributePath{}.WithAttributeName("metadata").WithAttributeName("namespace")
+	nsPath := tftypes.NewAttributePath()
+	nsPath = nsPath.WithAttributeName("metadata").WithAttributeName("namespace")
 	nsVal, restPath, err := tftypes.WalkAttributePath(*manifest, nsPath)
 	if ns {
-		if err != nil || len(restPath.Steps) > 0 {
+		if err != nil || len(restPath.Steps()) > 0 {
 			diags = append(diags,
 				&tfprotov5.Diagnostic{
 					Severity: tfprotov5.DiagnosticSeverityError,
@@ -167,7 +169,7 @@ func (s *RawProviderServer) validateResourceOnline(manifest *tftypes.Value) (dia
 				})
 		}
 	} else {
-		if err == nil && len(restPath.Steps) == 0 && !nsVal.(tftypes.Value).IsNull() {
+		if err == nil && len(restPath.Steps()) == 0 && !nsVal.(tftypes.Value).IsNull() {
 			diags = append(diags,
 				&tfprotov5.Diagnostic{
 					Severity: tfprotov5.DiagnosticSeverityError,

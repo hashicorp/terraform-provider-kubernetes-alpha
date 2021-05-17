@@ -3,12 +3,12 @@ package morph
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // DeepUnknown creates a value given an arbitrary type
 // with a default value of Unknown for all its primitives.
-func DeepUnknown(t tftypes.Type, v tftypes.Value, p tftypes.AttributePath) (tftypes.Value, error) {
+func DeepUnknown(t tftypes.Type, v tftypes.Value, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t == nil {
 		return tftypes.Value{}, fmt.Errorf("type cannot be nil")
 	}

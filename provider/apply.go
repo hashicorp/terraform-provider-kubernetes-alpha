@@ -7,7 +7,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/morph"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -109,7 +109,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		minObj := morph.UnknownToNull(obj)
 		s.logger.Trace("[ApplyResourceChange][Apply]", "[UnknownToNull]", spew.Sdump(minObj))
 
-		pu, err := payload.FromTFValue(minObj, tftypes.AttributePath{})
+		pu, err := payload.FromTFValue(minObj, tftypes.NewAttributePath())
 		if err != nil {
 			return resp, err
 		}
@@ -173,7 +173,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		newResObject, err := payload.ToTFValue(FilterEphemeralFields(result.Object), tsch, tftypes.AttributePath{})
+		newResObject, err := payload.ToTFValue(FilterEphemeralFields(result.Object), tsch, tftypes.NewAttributePath())
 		if err != nil {
 			return resp, err
 		}
@@ -192,7 +192,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			}
 		}
 
-		compObj, err := morph.DeepUnknown(tsch, newResObject, tftypes.AttributePath{})
+		compObj, err := morph.DeepUnknown(tsch, newResObject, tftypes.NewAttributePath())
 		if err != nil {
 			return resp, err
 		}
@@ -229,7 +229,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 			return resp, nil
 		}
 
-		pu, err := payload.FromTFValue(pco, tftypes.AttributePath{})
+		pu, err := payload.FromTFValue(pco, tftypes.NewAttributePath())
 		if err != nil {
 			return resp, err
 		}

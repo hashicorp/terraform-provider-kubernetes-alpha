@@ -12,7 +12,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/mitchellh/go-homedir"
 	"golang.org/x/mod/semver"
 	"k8s.io/apimachinery/pkg/runtime"

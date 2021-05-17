@@ -2,14 +2,12 @@ package tftypes
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math/big"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/vmihailenco/msgpack"
 )
 
@@ -28,14 +26,6 @@ type ValueConverter interface {
 // be used for that Value.
 type ValueCreator interface {
 	ToTerraform5Value() (interface{}, error)
-}
-
-type msgPackUnknownType struct{}
-
-var msgPackUnknownVal = msgPackUnknownType{}
-
-func (u msgPackUnknownType) MarshalMsgpack() ([]byte, error) {
-	return []byte{0xd4, 0, 0}, nil
 }
 
 // Value is a piece of data from Terraform or being returned to Terraform. It
@@ -210,6 +200,9 @@ func (val Value) ApplyTerraform5AttributePathStep(step AttributePathStep) (inter
 // considered equal if their types are considered equal and if they represent
 // data that is considered equal.
 func (val Value) Equal(o Value) bool {
+	if val.typ == nil && o.typ == nil && val.value == nil && o.value == nil {
+		return true
+	}
 	if !val.Type().Is(o.Type()) {
 		return false
 	}
@@ -248,13 +241,20 @@ func (val Value) Copy() Value {
 // The passed value should be in one of the builtin Value representations or
 // implement the ValueCreator interface.
 //
+// If the passed value is not a valid value for the passed type, NewValue will
+// panic. Any value and type combination that does not return an error from
+// ValidateValue is guaranteed to not panic. When calling NewValue with user
+// input with a type not known at compile time, it is recommended to call
+// ValidateValue before calling NewValue, to allow graceful handling of the
+// error.
+//
 // The builtin Value representations are:
 //
 // * String: string, *string
 //
-// * Number: *big.Float, int64, *int64, int32, *int32, int16, *int16, int8, *int8, int, *int,
-//   uint64, *uint64, uint32, *uint32, uint16, *uint16, uint8, *uint8, byte, *byte, uint, *uint,
-//   float64, *float64, float32, *float32
+// * Number: *big.Float, int64, *int64, int32, *int32, int16, *int16, int8,
+//           *int8, int, *int, uint64, *uint64, uint32, *uint32, uint16,
+//           *uint16, uint8, *uint8, uint, *uint, float64, *float64
 //
 // * Bool: bool, *bool
 //
@@ -262,192 +262,94 @@ func (val Value) Copy() Value {
 //
 // * Tuple, List, and Set: []Value
 func NewValue(t Type, val interface{}) Value {
+	v, err := newValue(t, val)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// ValidateValue checks that the Go type passed as `val` can be used as a value
+// for the Type passed as `t`. A nil error response indicates that the value is
+// valid for the type.
+func ValidateValue(t Type, val interface{}) error {
+	_, err := newValue(t, val)
+	return err
+}
+
+func newValue(t Type, val interface{}) (Value, error) {
 	if val == nil || val == UnknownValue {
 		return Value{
 			typ:   t,
 			value: val,
-		}
+		}, nil
 	}
 	if creator, ok := val.(ValueCreator); ok {
 		var err error
 		val, err = creator.ToTerraform5Value()
 		if err != nil {
-			panic("error creating tftypes.Value: " + err.Error())
+			return Value{}, fmt.Errorf("error creating tftypes.Value: %w", err)
 		}
 	}
 
-	switch val := val.(type) {
-	case *string:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
+	switch {
+	case t.Is(DynamicPseudoType):
+		v, err := valueFromDynamicPseudoType(val)
+		if err != nil {
+			return Value{}, err
 		}
-		return Value{
-			typ:   t,
-			value: *val,
+		return v, nil
+	case t.Is(String):
+		v, err := valueFromString(val)
+		if err != nil {
+			return Value{}, err
 		}
-	case *bool:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
+		return v, nil
+	case t.Is(Number):
+		v, err := valueFromNumber(val)
+		if err != nil {
+			return Value{}, err
 		}
-		return Value{
-			typ:   t,
-			value: *val,
+		return v, nil
+	case t.Is(Bool):
+		v, err := valueFromBool(val)
+		if err != nil {
+			return Value{}, err
 		}
-	case *uint:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
+		return v, nil
+	case t.Is(Map{}):
+		v, err := valueFromMap(t.(Map).AttributeType, val)
+		if err != nil {
+			return Value{}, err
 		}
-		f := new(big.Float).SetUint64(uint64(*val))
-		return Value{
-			typ:   t,
-			value: f,
+		return v, nil
+	case t.Is(Object{}):
+		v, err := valueFromObject(t.(Object).AttributeTypes, t.(Object).OptionalAttributes, val)
+		if err != nil {
+			return Value{}, err
 		}
-	case *uint64:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
+		return v, nil
+	case t.Is(List{}):
+		v, err := valueFromList(t.(List).ElementType, val)
+		if err != nil {
+			return Value{}, err
 		}
-		f := new(big.Float).SetUint64(uint64(*val))
-		return Value{
-			typ:   t,
-			value: f,
+		return v, nil
+	case t.Is(Set{}):
+		v, err := valueFromSet(t.(Set).ElementType, val)
+		if err != nil {
+			return Value{}, err
 		}
-	case *uint8:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
+		return v, nil
+	case t.Is(Tuple{}):
+		v, err := valueFromTuple(t.(Tuple).ElementTypes, val)
+		if err != nil {
+			return Value{}, err
 		}
-		f := new(big.Float).SetInt64(int64(*val))
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *uint16:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		f := new(big.Float).SetInt64(int64(*val))
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *uint32:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		f := new(big.Float).SetInt64(int64(*val))
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *int:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		f := new(big.Float).SetInt64(int64(*val))
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *int8:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		f := new(big.Float).SetInt64(int64(*val))
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *int16:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		f := new(big.Float).SetInt64(int64(*val))
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *int32:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		f := new(big.Float).SetInt64(int64(*val))
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *int64:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		f := new(big.Float).SetInt64(*val)
-		return Value{
-			typ:   t,
-			value: f,
-		}
-	case *float32:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		return Value{
-			typ:   t,
-			value: big.NewFloat(float64(*val)),
-		}
-	case *float64:
-		if val == nil {
-			return Value{
-				typ:   t,
-				value: nil,
-			}
-		}
-		return Value{
-			typ:   t,
-			value: big.NewFloat(*val),
-		}
-	case string, *big.Float, bool, map[string]Value, []Value:
-		return Value{
-			typ:   t,
-			value: val,
-		}
+		return v, nil
+	default:
+		return Value{}, fmt.Errorf("unknown type %s passed to tftypes.NewValue", t)
 	}
-	panic(fmt.Sprintf("unknown type %T passed to NewValue", val))
 }
 
 // As converts a Value into a Go value. `dst` must be set to a pointer to a
@@ -605,6 +507,9 @@ func (val Value) IsFullyKnown() bool {
 	if !val.IsKnown() {
 		return false
 	}
+	if val.value == nil {
+		return true
+	}
 	switch val.Type().(type) {
 	case primitive:
 		return true
@@ -639,50 +544,13 @@ func (val Value) MarshalMsgPack(t Type) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := msgpack.NewEncoder(&buf)
 
-	err := marshalMsgPack(val, t, AttributePath{}, enc)
+	err := marshalMsgPack(val, t, NewAttributePath(), enc)
 	if err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-func unexpectedValueTypeError(p AttributePath, expected, got interface{}, typ Type) error {
+func unexpectedValueTypeError(p *AttributePath, expected, got interface{}, typ Type) error {
 	return p.NewErrorf("unexpected value type %T, %s values must be of type %T", got, typ, expected)
-}
-
-// ValueComparer returns a github.com/google/go-cmp/cmp#Option that can be used
-// to tell go-cmp how to compare Values.
-func ValueComparer() cmp.Option {
-	return cmp.Comparer(valueComparer)
-}
-
-func numberComparer(i, j *big.Float) bool {
-	return (i == nil && j == nil) || (i != nil && j != nil && i.Cmp(j) == 0)
-}
-
-func valueComparer(i, j Value) bool {
-	if !i.Type().Is(j.Type()) {
-		return false
-	}
-	return cmp.Equal(i.value, j.value, cmp.Comparer(numberComparer), ValueComparer())
-}
-
-// TypeFromElements returns the common type that the passed elements all have
-// in common. An error will be returned if the passed elements are not of the
-// same type.
-func TypeFromElements(elements []Value) (Type, error) {
-	var typ Type
-	for _, el := range elements {
-		if typ == nil {
-			typ = el.Type()
-			continue
-		}
-		if !typ.Is(el.Type()) {
-			return nil, errors.New("elements do not all have the same types")
-		}
-	}
-	if typ == nil {
-		return DynamicPseudoType, nil
-	}
-	return typ, nil
 }

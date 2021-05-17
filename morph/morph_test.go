@@ -7,7 +7,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestMorphValueToType(t *testing.T) {
@@ -284,10 +284,35 @@ func TestMorphValueToType(t *testing.T) {
 			},
 			WantErr: true,
 		},
+		"object -> object": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+					"two":   tftypes.String,
+					"three": tftypes.String,
+				}}, map[string]tftypes.Value{
+					"two":   tftypes.NewValue(tftypes.String, "bar"),
+					"three": tftypes.NewValue(tftypes.String, "baz"),
+				}),
+				T: tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+					"one":   tftypes.String,
+					"two":   tftypes.String,
+					"three": tftypes.String,
+				}},
+			},
+			Out: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+				"one":   tftypes.String,
+				"two":   tftypes.String,
+				"three": tftypes.String,
+			}}, map[string]tftypes.Value{
+				"one":   tftypes.NewValue(tftypes.String, nil),
+				"two":   tftypes.NewValue(tftypes.String, "bar"),
+				"three": tftypes.NewValue(tftypes.String, "baz"),
+			}),
+		},
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
-			r, err := ValueToType(s.In.V, s.In.T, tftypes.AttributePath{})
+			r, err := ValueToType(s.In.V, s.In.T, tftypes.NewAttributePath())
 			if err != nil {
 				if !s.WantErr {
 					t.Logf("Failed type-morphing for sample '%s': %s", n, err)

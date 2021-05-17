@@ -37,19 +37,14 @@ import (
 // does not visit any of its descendants. The return value of the callback does
 // not matter when the Value that has been surfaced has no elements or
 // attributes. Walk uses a depth-first traversal.
-func Walk(val Value, cb func(AttributePath, Value) (bool, error)) error {
-	var path AttributePath
-	return walk(path, val, cb)
+func Walk(val Value, cb func(*AttributePath, Value) (bool, error)) error {
+	return walk(nil, val, cb)
 }
 
-func walk(path AttributePath, val Value, cb func(AttributePath, Value) (bool, error)) error {
+func walk(path *AttributePath, val Value, cb func(*AttributePath, Value) (bool, error)) error {
 	shouldContinue, err := cb(path, val)
 	if err != nil {
-		var ape attributePathError
-		if !errors.As(err, &ape) {
-			err = path.NewError(err)
-		}
-		return err
+		return path.NewError(err)
 	}
 	if !shouldContinue {
 		return nil
@@ -76,11 +71,7 @@ func walk(path AttributePath, val Value, cb func(AttributePath, Value) (bool, er
 			}
 			err = walk(path, el, cb)
 			if err != nil {
-				var ape attributePathError
-				if !errors.As(err, &ape) {
-					err = path.NewError(err)
-				}
-				return err
+				return path.NewError(err)
 			}
 			path = path.WithoutLastStep()
 		}
@@ -99,11 +90,7 @@ func walk(path AttributePath, val Value, cb func(AttributePath, Value) (bool, er
 			}
 			err = walk(path, el, cb)
 			if err != nil {
-				var ape attributePathError
-				if !errors.As(err, &ape) {
-					err = path.NewError(err)
-				}
-				return err
+				return path.NewError(err)
 			}
 			path = path.WithoutLastStep()
 		}
@@ -121,12 +108,11 @@ func walk(path AttributePath, val Value, cb func(AttributePath, Value) (bool, er
 // callback prior to the Value they belong to being passed to the callback,
 // which means a callback can overwrite its own modifications. Values passed to
 // the callback will always reflect the results of earlier callback calls.
-func Transform(val Value, cb func(AttributePath, Value) (Value, error)) (Value, error) {
-	var path AttributePath
-	return transform(path, val, cb)
+func Transform(val Value, cb func(*AttributePath, Value) (Value, error)) (Value, error) {
+	return transform(NewAttributePath(), val, cb)
 }
 
-func transform(path AttributePath, val Value, cb func(AttributePath, Value) (Value, error)) (Value, error) {
+func transform(path *AttributePath, val Value, cb func(*AttributePath, Value) (Value, error)) (Value, error) {
 	var newVal Value
 	ty := val.Type()
 
@@ -151,11 +137,7 @@ func transform(path AttributePath, val Value, cb func(AttributePath, Value) (Val
 				}
 				newEl, err := transform(path, el, cb)
 				if err != nil {
-					var ape attributePathError
-					if !errors.As(err, &ape) {
-						err = path.NewError(err)
-					}
-					return val, err
+					return val, path.NewError(err)
 				}
 				elems = append(elems, newEl)
 				path = path.WithoutLastStep()
@@ -180,11 +162,7 @@ func transform(path AttributePath, val Value, cb func(AttributePath, Value) (Val
 				}
 				newEl, err := transform(path, el, cb)
 				if err != nil {
-					var ape attributePathError
-					if !errors.As(err, &ape) {
-						err = path.NewError(err)
-					}
-					return val, err
+					return val, path.NewError(err)
 				}
 				elems[k] = newEl
 				path = path.WithoutLastStep()
@@ -196,11 +174,7 @@ func transform(path AttributePath, val Value, cb func(AttributePath, Value) (Val
 	}
 	res, err := cb(path, newVal)
 	if err != nil {
-		var ape attributePathError
-		if !errors.As(err, &ape) {
-			err = path.NewError(err)
-		}
-		return res, err
+		return res, path.NewError(err)
 	}
 	if !newVal.Type().Is(ty) {
 		return val, path.NewError(errors.New("invalid transform: value changed type"))

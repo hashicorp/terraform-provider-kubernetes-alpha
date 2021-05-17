@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes-alpha/payload"
 	"github.com/zclconf/go-cty/cty"
 
@@ -91,7 +91,7 @@ func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, 
 
 // FieldMatcher contains a tftypes.AttributePath to a field and a regexp to match on it
 type FieldMatcher struct {
-	path         tftypes.AttributePath
+	path         *tftypes.AttributePath
 	valueMatcher *regexp.Regexp
 }
 
@@ -125,7 +125,7 @@ func (w *FieldWaiter) Wait(ctx context.Context) error {
 
 		w.logger.Trace("[ApplyResourceChange][Wait]", "API Response", resObj)
 
-		obj, err := payload.ToTFValue(resObj, w.resourceType, tftypes.AttributePath{})
+		obj, err := payload.ToTFValue(resObj, w.resourceType, tftypes.NewAttributePath())
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func (w *FieldWaiter) Wait(ctx context.Context) error {
 				if err != nil {
 					return false, err
 				}
-				if len(rp.Steps) > 0 {
+				if len(rp.Steps()) > 0 {
 					return false, fmt.Errorf("attribute not present at path '%s'", m.path.String())
 				}
 
@@ -188,13 +188,13 @@ func (w *NoopWaiter) Wait(_ context.Context) error {
 // FieldPathToTftypesPath takes a string representation of
 // a path to a field in dot/square bracket notation
 // and returns a tftypes.AttributePath
-func FieldPathToTftypesPath(fieldPath string) (tftypes.AttributePath, error) {
+func FieldPathToTftypesPath(fieldPath string) (*tftypes.AttributePath, error) {
 	t, d := hclsyntax.ParseTraversalAbs([]byte(fieldPath), "", hcl.Pos{Line: 1, Column: 1})
 	if d.HasErrors() {
-		return tftypes.AttributePath{}, fmt.Errorf("invalid field path %q: %s: %s", fieldPath, d[0].Summary, d[0].Detail)
+		return tftypes.NewAttributePath(), fmt.Errorf("invalid field path %q: %s", fieldPath, d.Error())
 	}
 
-	path := tftypes.AttributePath{}
+	path := tftypes.NewAttributePath()
 	for _, p := range t {
 		switch p.(type) {
 		case hcl.TraverseRoot:
@@ -210,15 +210,15 @@ func FieldPathToTftypesPath(fieldPath string) (tftypes.AttributePath, error) {
 					i, _ := f.Int64()
 					path = path.WithElementKeyInt(int64(i))
 				} else {
-					return tftypes.AttributePath{}, fmt.Errorf("index in field path must be an integer")
+					return tftypes.NewAttributePath(), fmt.Errorf("index in field path must be an integer")
 				}
 			} else {
-				return tftypes.AttributePath{}, fmt.Errorf("unsupported type in field path: %s", indexKeyType.FriendlyName())
+				return tftypes.NewAttributePath(), fmt.Errorf("unsupported type in field path: %s", indexKeyType.FriendlyName())
 			}
 		case hcl.TraverseAttr:
 			path = path.WithAttributeName(p.(hcl.TraverseAttr).Name)
 		case hcl.TraverseSplat:
-			return tftypes.AttributePath{}, fmt.Errorf("splat is not supported")
+			return tftypes.NewAttributePath(), fmt.Errorf("splat is not supported")
 		}
 	}
 

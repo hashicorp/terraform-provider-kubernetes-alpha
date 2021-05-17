@@ -6,7 +6,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 type deepUnknownTestSampleInput struct {
@@ -60,7 +60,11 @@ func TestDeepUnknown(t *testing.T) {
 							"app": tftypes.String,
 						}},
 					}}, map[string]tftypes.Value{
-						"name": tftypes.NewValue(tftypes.String, "foo"),
+						"name":      tftypes.NewValue(tftypes.String, "foo"),
+						"namespace": tftypes.NewValue(tftypes.String, nil),
+						"labels": tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+							"app": tftypes.String,
+						}}, nil),
 					}),
 				}),
 			},
@@ -97,7 +101,7 @@ func TestDeepUnknown(t *testing.T) {
 	}
 	for n, s := range samples {
 		t.Run(n, func(t *testing.T) {
-			rv, err := DeepUnknown(s.In.T, s.In.V, tftypes.AttributePath{})
+			rv, err := DeepUnknown(s.In.T, s.In.V, tftypes.NewAttributePath())
 			if err != nil {
 				t.Logf("Conversion failed for sample '%s': %s", n, err)
 				t.FailNow()

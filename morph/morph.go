@@ -4,11 +4,11 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tftypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // ValueToType transforms a value along a new type and returns a new value conforming to the given type
-func ValueToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func ValueToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t == nil {
 		return tftypes.Value{}, p.NewErrorf("type is nil")
 	}
@@ -41,7 +41,7 @@ func ValueToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tfty
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph from value: %v", p.String(), v)
 }
 
-func morphBoolToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphBoolToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t.Is(tftypes.Bool) {
 		return v, nil
 	}
@@ -59,7 +59,7 @@ func morphBoolToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of bool value into type: %s", p.String(), t.String())
 }
 
-func morphNumberToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphNumberToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t.Is(tftypes.Number) {
 		return v, nil
 	}
@@ -78,7 +78,7 @@ func morphNumberToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath)
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of number value into type: %s", p.String(), t.String())
 }
 
-func morphStringToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphStringToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t.Is(tftypes.String) {
 		return v, nil
 	}
@@ -107,7 +107,7 @@ func morphStringToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath)
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of string value into type: %s", p.String(), t.String())
 }
 
-func morphListToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphListToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t.Is(tftypes.List{}) {
 		return v, nil
 	}
@@ -148,7 +148,7 @@ func morphListToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of list value into type: %s", p.String(), t.String())
 }
 
-func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	var tvals []tftypes.Value
 	err := v.As(&tvals)
 	if err != nil {
@@ -208,7 +208,7 @@ func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of tuple value into type: %s", p.String(), t.String())
 }
 
-func morphSetToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphSetToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t.Is(tftypes.Set{}) {
 		return v, nil
 	}
@@ -249,7 +249,7 @@ func morphSetToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (t
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of set value into type: %s", p.String(), t.String())
 }
 
-func morphMapToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphMapToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	if t.Is(tftypes.Map{}) {
 		return v, nil
 	}
@@ -287,7 +287,7 @@ func morphMapToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (t
 	return tftypes.Value{}, p.NewErrorf("[%s] unsupported morph of map value into type: %s", p.String(), t.String())
 }
 
-func morphObjectToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath) (tftypes.Value, error) {
+func morphObjectToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (tftypes.Value, error) {
 	var vals map[string]tftypes.Value
 	err := v.As(&vals)
 	if err != nil {
@@ -303,6 +303,13 @@ func morphObjectToType(v tftypes.Value, t tftypes.Type, p tftypes.AttributePath)
 				return tftypes.Value{}, elp.NewErrorf("[%s] failed to morph object element into object element: %v", elp.String(), err)
 			}
 			ovals[k] = nv
+		}
+		// for attributes not specified by user add a nil value of their respective type
+		// tftypes.NewValue() fails if any of the attributes in the object don't have a corresponding value
+		for k := range t.(tftypes.Object).AttributeTypes {
+			if _, ok := ovals[k]; !ok {
+				ovals[k] = tftypes.NewValue(t.(tftypes.Object).AttributeTypes[k], nil)
+			}
 		}
 		return tftypes.NewValue(t, ovals), nil
 	case t.Is(tftypes.Map{}):
