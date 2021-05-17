@@ -11,6 +11,7 @@ resource "kubernetes_manifest" "test" {
       name = "${var.plural}.${var.group}"
     }
     spec = {
+      preserveUnknownFields = true
       group = var.group
       names = {
         kind   = var.kind

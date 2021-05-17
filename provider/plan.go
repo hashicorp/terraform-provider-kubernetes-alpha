@@ -31,7 +31,7 @@ func (s *RawProviderServer) dryRun(ctx context.Context, obj tftypes.Value) error
 	}
 
 	minObj := morph.UnknownToNull(obj)
-	pu, err := payload.FromTFValue(minObj, tftypes.AttributePath{})
+	pu, err := payload.FromTFValue(minObj, tftypes.NewAttributePath())
 	if err != nil {
 		return err
 	}
@@ -64,8 +64,6 @@ func (s *RawProviderServer) dryRun(ctx context.Context, obj tftypes.Value) error
 	if err != nil {
 		return fmt.Errorf("failed to marshall resource %q to JSON: %v", rnn, err)
 	}
-
-	// Call the Kubernetes API to create the new resource
 	_, err = rs.Patch(ctx, rname, types.ApplyPatchType, jsonManifest,
 		metav1.PatchOptions{
 			FieldManager: "Terraform",
@@ -220,11 +218,9 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 			return resp, nil
 		}
 
-		manifest := tftypes.AttributePath{}.WithAttributeName("manifest")
-		object := tftypes.AttributePath{}.WithAttributeName("object")
 		resp.RequiresReplace = []*tftypes.AttributePath{
-			&manifest,
-			&object,
+			tftypes.NewAttributePath().WithAttributeName("manifest"),
+			tftypes.NewAttributePath().WithAttributeName("object"),
 		}
 	}
 
