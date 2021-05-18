@@ -144,6 +144,46 @@ func (k *Helper) AssertResourceExists(t *testing.T, gv, resource, name string) {
 	}
 }
 
+// AssertResourceGeneration will fail if the generation does not match
+func (k *Helper) AssertResourceGeneration(t *testing.T, gv, resource, namespace, name string, generation int64) {
+	t.Helper()
+
+	gvr := createGroupVersionResource(gv, resource)
+
+	op := func() error {
+		var res *unstructured.Unstructured
+		var operr error
+		if namespace != "" {
+			res, operr = k.client.Resource(gvr).Namespace(namespace).Get(
+				context.TODO(), name, metav1.GetOptions{})
+		} else {
+			res, operr = k.client.Resource(gvr).Get(context.TODO(),
+				name, metav1.GetOptions{})
+		}
+
+		if operr != nil {
+			return operr
+		}
+
+		g := res.GetGeneration()
+		if g != generation {
+			t.Errorf("Expected generation to be %v actual %v", generation, g)
+		}
+		return nil
+	}
+	err := k8sretry.OnError(k8sretry.DefaultBackoff, func(e error) bool {
+		if !isErrorRetriable(e) {
+			t.Logf("Error not retriable: %s", e)
+			return false
+		}
+		return !errors.IsNotFound(e)
+	}, op)
+	if err != nil {
+		t.Errorf("Error when trying to get resource %s: %v", name, err)
+	}
+
+}
+
 // AssertNamespacedResourceDoesNotExist fails the test if the resource still exists in the namespace specified
 func (k *Helper) AssertNamespacedResourceDoesNotExist(t *testing.T, gv, resource, namespace, name string) {
 	t.Helper()
