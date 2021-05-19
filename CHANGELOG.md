@@ -1,3 +1,9 @@
+## 0.4.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* Support for non-strucural CRs (#170)
+
 ## 0.3.3 (May 03, 2021)
 
 BUG FIXES:
