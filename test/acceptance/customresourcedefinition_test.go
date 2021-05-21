@@ -61,5 +61,24 @@ func TestKubernetesManifest_CustomResourceDefinition(t *testing.T) {
 				},
 			},
 		},
+		"kubernetes_manifest.test.object.spec.versions.1.name":    version + "beta1",
+		"kubernetes_manifest.test.object.spec.versions.1.served":  true,
+		"kubernetes_manifest.test.object.spec.versions.1.storage": false,
+		"kubernetes_manifest.test.object.spec.versions.1.schema": map[string]interface{}{
+			"openAPIV3Schema": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"data": map[string]interface{}{
+						"type": "string",
+					},
+					"otherData": map[string]interface{}{
+						"type": "string",
+					},
+					"refs": map[string]interface{}{
+						"type": "number",
+					},
+				},
+			},
+		},
 	})
 }

@@ -17,24 +17,47 @@ resource "kubernetes_manifest" "test" {
         plural = var.plural
       }
       scope = "Namespaced"
-      versions = [{
-        name    = var.cr_version
-        served  = true
-        storage = true
-        schema = {
-          openAPIV3Schema = {
-            type = "object"
-            properties = {
-              data = {
-                type = "string"
+      versions = [
+        {
+          name    = var.cr_version
+          served  = true
+          storage = true
+          schema = {
+            openAPIV3Schema = {
+              type = "object"
+              properties = {
+                data = {
+                  type = "string"
+                }
+                refs = {
+                  type = "number"
+                }
               }
-              refs = {
-                type = "number"
+            }
+          }
+        },
+        {
+          name    = "${var.cr_version}beta1"
+          served  = true
+          storage = false
+          schema = {
+            openAPIV3Schema = {
+              type = "object"
+              properties = {
+                data = {
+                  type = "string"
+                }
+                otherData = {
+                  type = "string"
+                }
+                refs = {
+                  type = "number"
+                }
               }
             }
           }
         }
-      }]
+      ]
     }
   }
 }

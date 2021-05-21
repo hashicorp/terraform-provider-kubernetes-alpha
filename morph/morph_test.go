@@ -129,6 +129,23 @@ func TestMorphValueToType(t *testing.T) {
 				tftypes.NewValue(tftypes.String, "baz"),
 			}),
 		},
+		// This covers the case were we need to represent lists that contain dynamicPseudoType sub-elements
+		// because the dynamicPseudoType might hold heterogenous types
+		"tuple(single)->tuple": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.String, tftypes.String, tftypes.String}}, []tftypes.Value{
+					tftypes.NewValue(tftypes.String, "foo"),
+					tftypes.NewValue(tftypes.String, "bar"),
+					tftypes.NewValue(tftypes.String, "baz"),
+				}),
+				T: tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.DynamicPseudoType}},
+			},
+			Out: tftypes.NewValue(tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.DynamicPseudoType, tftypes.DynamicPseudoType, tftypes.DynamicPseudoType}}, []tftypes.Value{
+				tftypes.NewValue(tftypes.String, "foo"),
+				tftypes.NewValue(tftypes.String, "bar"),
+				tftypes.NewValue(tftypes.String, "baz"),
+			}),
+		},
 		"tuple->list": {
 			In: sampleInType{
 				V: tftypes.NewValue(tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.String, tftypes.String, tftypes.String}}, []tftypes.Value{
@@ -307,6 +324,32 @@ func TestMorphValueToType(t *testing.T) {
 				"one":   tftypes.NewValue(tftypes.String, nil),
 				"two":   tftypes.NewValue(tftypes.String, "bar"),
 				"three": tftypes.NewValue(tftypes.String, "baz"),
+			}),
+		},
+		// morphing to tuple attributes to "template tuples" (containing dynamic) should result in the same number of elements as the input
+		"object(dynamic) -> object": {
+			In: sampleInType{
+				V: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+					"one": tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.String, tftypes.String}},
+				}}, map[string]tftypes.Value{
+					"one": tftypes.NewValue(tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.String, tftypes.String}},
+						[]tftypes.Value{
+							tftypes.NewValue(tftypes.String, "bar"),
+							tftypes.NewValue(tftypes.String, "baz"),
+						}),
+				}),
+				T: tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+					"one": tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.DynamicPseudoType}},
+				}},
+			},
+			Out: tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+				"one": tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.DynamicPseudoType, tftypes.DynamicPseudoType}},
+			}}, map[string]tftypes.Value{
+				"one": tftypes.NewValue(tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.DynamicPseudoType, tftypes.DynamicPseudoType}},
+					[]tftypes.Value{
+						tftypes.NewValue(tftypes.String, "bar"),
+						tftypes.NewValue(tftypes.String, "baz"),
+					}),
 			}),
 		},
 	}
