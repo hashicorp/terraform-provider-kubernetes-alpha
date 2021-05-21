@@ -112,6 +112,32 @@ func TestToTFValue(t *testing.T) {
 			}),
 			Err: nil,
 		},
+		"list (empty)": {
+			In:  sampleInType{[]interface{}{}, tftypes.List{ElementType: tftypes.String}},
+			Out: tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, []tftypes.Value{}),
+			Err: nil,
+		},
+		"set": {
+			In: sampleInType{[]interface{}{"test1", "test2"}, tftypes.Set{ElementType: tftypes.String}},
+			Out: tftypes.NewValue(tftypes.Set{ElementType: tftypes.String}, []tftypes.Value{
+				tftypes.NewValue(tftypes.String, "test1"),
+				tftypes.NewValue(tftypes.String, "test2"),
+			}),
+			Err: nil,
+		},
+		"set (empty)": {
+			In:  sampleInType{[]interface{}{}, tftypes.Set{ElementType: tftypes.String}},
+			Out: tftypes.NewValue(tftypes.Set{ElementType: tftypes.String}, []tftypes.Value{}),
+			Err: nil,
+		},
+		"tuple": {
+			In: sampleInType{[]interface{}{"test1", "test2"}, tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.String, tftypes.String}}},
+			Out: tftypes.NewValue(tftypes.Tuple{ElementTypes: []tftypes.Type{tftypes.String, tftypes.String}}, []tftypes.Value{
+				tftypes.NewValue(tftypes.String, "test1"),
+				tftypes.NewValue(tftypes.String, "test2"),
+			}),
+			Err: nil,
+		},
 		"map": {
 			In: sampleInType{
 				v: map[string]interface{}{
