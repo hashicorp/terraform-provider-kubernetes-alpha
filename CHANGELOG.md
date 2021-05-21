@@ -1,3 +1,10 @@
+## 0.4.1 (Unreleased)
+
+BUG FIXES:
+
+* CRDs with multiple versions now correctly handled again (#212)
+* empty list and map attributes are now correctly handled (#212)
+
 ## 0.4.0 (May 19, 2021)
 
 ENHANCEMENTS:
