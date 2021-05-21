@@ -311,7 +311,11 @@ func morphObjectToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath
 				ovals[k] = tftypes.NewValue(t.(tftypes.Object).AttributeTypes[k], nil)
 			}
 		}
-		return tftypes.NewValue(t, ovals), nil
+		otypes := make(map[string]tftypes.Type, len(ovals))
+		for k, v := range ovals {
+			otypes[k] = v.Type()
+		}
+		return tftypes.NewValue(tftypes.Object{AttributeTypes: otypes}, ovals), nil
 	case t.Is(tftypes.Map{}):
 		var mvals map[string]tftypes.Value = make(map[string]tftypes.Value, len(vals))
 		for k, v := range vals {
