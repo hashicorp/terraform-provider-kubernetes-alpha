@@ -57,7 +57,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		resp.Diagnostics = append(resp.Diagnostics,
 			&tfprotov5.Diagnostic{
 				Severity: tfprotov5.DiagnosticSeverityError,
-				Summary:  "Failed to retrieve Kubrentes dynamic client during apply",
+				Summary:  "Failed to retrieve Kubernetes dynamic client during apply",
 				Detail:   err.Error(),
 			})
 		return resp, nil
@@ -67,7 +67,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		resp.Diagnostics = append(resp.Diagnostics,
 			&tfprotov5.Diagnostic{
 				Severity: tfprotov5.DiagnosticSeverityError,
-				Summary:  "Failed to retrieve Kubrentes RESTMapper client during apply",
+				Summary:  "Failed to retrieve Kubernetes RESTMapper client during apply",
 				Detail:   err.Error(),
 			})
 		return resp, nil
