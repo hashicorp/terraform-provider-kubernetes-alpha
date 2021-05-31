@@ -7,13 +7,11 @@ description: |-
 
 # Kubernetes alpha provider
 
-This Kubernetes provider for Terraform (alpha) supports all API resources in a generic fashion.
+This Terraform provider offers a dynamic interface that enables support for any Kubernetes API resource, including Custom Resources. 
 
-This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
+The provider allows any Kubernetes resource to be codified using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have existing YAML you want to use with Terraform.
 
-Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) generously and detail your experience while using the provider. We welcome your feedback.
-
-Our eventual goal is for this generic resource to become a part of our [official Kubernetes provider](https://github.com/hashicorp/terraform-provider-kubernetes) once it is supported by the Terraform Plugin SDK. However, this work is subject to signficant changes as we iterate towards that level of quality.
+This project is currently in beta. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues) generously. 
 
 ## Schema
 
@@ -62,10 +60,6 @@ There are five options for providing identity information to the provider for au
 * a static token
 * a username & password pair
 * an authentication plugin, such as `oidc` or `exec` (see examples folder).
-
-## Experimental Status
-
-By using the software in this repository (the "Software"), you acknowledge that: (1) the Software is still in development, may change, and has not been released as a commercial product by HashiCorp and is not currently supported in any way by HashiCorp; (2) the Software is provided on an "as-is" basis, and may include bugs, errors, or other issues;  (3) the Software is NOT INTENDED FOR PRODUCTION USE, use of the Software may result in unexpected results, loss of data, or other unexpected results, and HashiCorp disclaims any and all liability resulting from use of the Software; and (4) HashiCorp reserves all rights to make all decisions about the features, functionality and commercial release (or non-release) of the Software, at any time and without any obligation or liability whatsoever.
 
 ## Getting Started
 
@@ -179,13 +173,14 @@ resource "kubernetes_manifest" "test" {
 
 The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step and then manage that resource in Terraform, rather than using `yamldecode()` inside the resource block. 
 
-You can quickly convert a single YAML file to an HCL map using this one liner:
+You can quickly convert a single document YAML file to an HCL map using this one liner:
 
 ```
-echo 'yamldecode(file("test.yaml"))' | terraform console
+echo 'yamldecode(file("input.yaml"))' | terraform console
 ```
 
-Alternatively, there is also an experimental command line tool [tfk8s](https://github.com/jrhouston/tfk8s) you could use to convert Kubernetes YAML manifests into complete Terraform configurations.
+There is also a command line tool [tfk8s](https://github.com/jrhouston/tfk8s) you can use to convert multi-document Kubernetes YAML manifests into complete Terraform configurations.
+
 
 ## Contributing
 
