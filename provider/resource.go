@@ -2,10 +2,12 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-kubernetes-alpha/openapi"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -78,25 +80,38 @@ func IsResourceNamespaced(gvk schema.GroupVersionKind, m meta.RESTMapper) (bool,
 // TFTypeFromOpenAPI generates a tftypes.Type representation of a Kubernetes resource
 // designated by the supplied GroupVersionKind resource id
 func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.GroupVersionKind, status bool) (tftypes.Type, error) {
-	// check if GVK is from a CRD
-	crdSchema, err := ps.lookUpGVKinCRDs(ctx, gvk)
-	if err != nil {
-		return nil, fmt.Errorf("failed to lookup GVK in CRDs: %s", err)
-	}
-	if crdSchema != nil {
-		// parse type from CRD schema
-	}
+	var tsch tftypes.Type
 
 	oapi, err := ps.getOAPIv2Foundry()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get OpenAPI foundry: %s", err)
 	}
-
-	tsch, err := oapi.GetTypeByGVK(gvk)
+	// check if GVK is from a CRD
+	crdSchema, err := ps.lookUpGVKinCRDs(ctx, gvk)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get resource type from OpenAPI (%s): %s", gvk.String(), err)
+		return nil, err // TODO: refine error
 	}
-
+	if crdSchema != nil {
+		js, err := json.Marshal(openapi.SchemaToSpec("", crdSchema.(map[string]interface{})))
+		if err != nil {
+			return nil, err // TODO: refine error
+		}
+		oapiv3, err := openapi.NewFoundryFromSpecV3(js)
+		if err != nil {
+			return nil, err
+		}
+		tsch, err = oapiv3.GetTypeByGVK(gvk)
+		if err != nil {
+			return nil, err // TODO: refine error
+		}
+	}
+	if tsch == nil {
+		// Not a CRD type - look GVK up in cluster OpenAPI spec
+		tsch, err = oapi.GetTypeByGVK(gvk)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get resource type from OpenAPI (%s): %s", gvk.String(), err)
+		}
+	}
 	// remove "status" attribute from resource type
 	if tsch.Is(tftypes.Object{}) && !status {
 		ot := tsch.(tftypes.Object)
@@ -106,6 +121,22 @@ func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.G
 				atts[k] = t
 			}
 		}
+		// types from CRDs only contain specific attributes
+		// we need to backfill metadata and apiVersion/kind attributes
+		if _, ok := atts["apiVersion"]; !ok {
+			atts["apiVersion"] = tftypes.String
+		}
+		if _, ok := atts["kind"]; !ok {
+			atts["kind"] = tftypes.String
+		}
+		if _, ok := atts["metadata"]; !ok {
+			metaType, err := oapi.GetTypeByGVK(openapi.ObjectMetaGVK)
+			if err != nil {
+				return nil, err // TODO: refine error
+			}
+			atts["metadata"] = metaType.(tftypes.Object)
+		}
+
 		tsch = tftypes.Object{AttributeTypes: atts}
 	}
 
@@ -212,7 +243,10 @@ func (ps *RawProviderServer) lookUpGVKinCRDs(ctx context.Context, gvk schema.Gro
 				}
 				v := rv.(map[string]interface{})
 				if v["name"] == gvk.Version {
-					s := v["schema"].(map[string]interface{})
+					s, ok := v["schema"].(map[string]interface{})
+					if !ok {
+						return nil, nil // non-structural CRD
+					}
 					return s["openAPIV3Schema"], nil
 				}
 			}

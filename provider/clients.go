@@ -119,10 +119,6 @@ func (ps *RawProviderServer) getOAPIv2Foundry() (openapi.Foundry, error) {
 	return oapif, nil
 }
 
-// getOAPIv2Foundry returns an interface to request tftype types from an OpenAPIv2 spec
-func (ps *RawProviderServer) getOAPIv3Foundry() (openapi.Foundry, error) {
-}
-
 func loggingTransport(rt http.RoundTripper) http.RoundTripper {
 	return &loggingRountTripper{
 		ot: rt,
