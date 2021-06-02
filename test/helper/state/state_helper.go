@@ -156,7 +156,7 @@ func (s *Helper) AssertAttributeDoesNotExist(t *testing.T, address string) {
 	}
 }
 
-// AssertAttributeNotEmpty will fail the test if the attribute is not empty
+// AssertAttributeNotEmpty will fail the test if the attribute is empty
 func (s *Helper) AssertAttributeNotEmpty(t *testing.T, address string) {
 	t.Helper()
 
@@ -164,11 +164,11 @@ func (s *Helper) AssertAttributeNotEmpty(t *testing.T, address string) {
 		fmt.Sprintf("Address: %q", address))
 }
 
-// AssertAttributeEmpty will fail the test if the attribute is empty
+// AssertAttributeEmpty will fail the test if the attribute is not empty
 func (s *Helper) AssertAttributeEmpty(t *testing.T, address string) {
 	t.Helper()
 
-	assert.NotEmpty(t, s.GetAttributeValue(t, address),
+	assert.Empty(t, s.GetAttributeValue(t, address),
 		fmt.Sprintf("Address: %q", address))
 }
 
