@@ -44,6 +44,8 @@ func TestKubernetesManifest_CustomResource_OAPIv3(t *testing.T) {
 		// k8shelper.AssertResourceDoesNotExist(t, "apiextensions.k8s.io/v1", "customresourcedefinitions", crd)
 	}()
 
+	// Step 1: Create a structural CRD with a fairly complex schema
+	// (inspired by the Prostgres Operator)
 	tfconfig := loadTerraformConfig(t, "CustomResourceOAPI3/custom_resource_definition.tf", tfvars)
 	step1.RequireSetConfig(t, string(tfconfig))
 	step1.RequireInit(t)
@@ -65,6 +67,7 @@ func TestKubernetesManifest_CustomResource_OAPIv3(t *testing.T) {
 		// k8shelper.AssertResourceDoesNotExist(t, groupVersion, kind, name)
 	}()
 
+	// Step 2: create a CR of the type defined by the CRD above
 	tfconfig = loadTerraformConfig(t, "CustomResourceOAPI3/custom_resource.tf", tfvars)
 	step2.RequireSetConfig(t, string(tfconfig))
 	step2.RequireInit(t)
