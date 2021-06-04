@@ -150,6 +150,10 @@ func GetProviderConfigSchema() *tfprotov5.Schema {
 						"env":         tftypes.Map{AttributeType: tftypes.String},
 						"args":        tftypes.List{ElementType: tftypes.String},
 					},
+					OptionalAttributes: map[string]struct{}{
+						"env":  {},
+						"args": {},
+					},
 				},
 				Description:     "",
 				Required:        false,
