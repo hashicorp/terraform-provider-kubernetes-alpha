@@ -1,26 +1,22 @@
-// Package openapi2 parses and writes OpenAPI 2 specifications.
-//
-// Does not cover all elements of OpenAPI 2.
-// When OpenAPI version 3 is backwards-compatible with version 2, version 3 elements have been used.
-//
-// The specification:
-// https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
 package openapi2
 
 import (
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/getkin/kin-openapi/jsoninfo"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-type Swagger struct {
+// T is the root of an OpenAPI v2 document
+type T struct {
 	openapi3.ExtensionProps
 	Swagger             string                         `json:"swagger"`
 	Info                openapi3.Info                  `json:"info"`
 	ExternalDocs        *openapi3.ExternalDocs         `json:"externalDocs,omitempty"`
 	Schemes             []string                       `json:"schemes,omitempty"`
+	Consumes            []string                       `json:"consumes,omitempty"`
 	Host                string                         `json:"host,omitempty"`
 	BasePath            string                         `json:"basePath,omitempty"`
 	Paths               map[string]*PathItem           `json:"paths,omitempty"`
@@ -32,19 +28,19 @@ type Swagger struct {
 	Tags                openapi3.Tags                  `json:"tags,omitempty"`
 }
 
-func (swagger *Swagger) MarshalJSON() ([]byte, error) {
-	return jsoninfo.MarshalStrictStruct(swagger)
+func (doc *T) MarshalJSON() ([]byte, error) {
+	return jsoninfo.MarshalStrictStruct(doc)
 }
 
-func (swagger *Swagger) UnmarshalJSON(data []byte) error {
-	return jsoninfo.UnmarshalStrictStruct(data, swagger)
+func (doc *T) UnmarshalJSON(data []byte) error {
+	return jsoninfo.UnmarshalStrictStruct(data, doc)
 }
 
-func (swagger *Swagger) AddOperation(path string, method string, operation *Operation) {
-	paths := swagger.Paths
+func (doc *T) AddOperation(path string, method string, operation *Operation) {
+	paths := doc.Paths
 	if paths == nil {
 		paths = make(map[string]*PathItem, 8)
-		swagger.Paths = paths
+		doc.Paths = paths
 	}
 	pathItem := paths[path]
 	if pathItem == nil {
@@ -118,7 +114,7 @@ func (pathItem *PathItem) GetOperation(method string) *Operation {
 	case http.MethodPut:
 		return pathItem.Put
 	default:
-		panic(fmt.Errorf("Unsupported HTTP method '%s'", method))
+		panic(fmt.Errorf("unsupported HTTP method %q", method))
 	}
 }
 
@@ -139,7 +135,7 @@ func (pathItem *PathItem) SetOperation(method string, operation *Operation) {
 	case http.MethodPut:
 		pathItem.Put = operation
 	default:
-		panic(fmt.Errorf("Unsupported HTTP method '%s'", method))
+		panic(fmt.Errorf("unsupported HTTP method %q", method))
 	}
 }
 
@@ -166,6 +162,20 @@ func (operation *Operation) UnmarshalJSON(data []byte) error {
 }
 
 type Parameters []*Parameter
+
+var _ sort.Interface = Parameters{}
+
+func (ps Parameters) Len() int      { return len(ps) }
+func (ps Parameters) Swap(i, j int) { ps[i], ps[j] = ps[j], ps[i] }
+func (ps Parameters) Less(i, j int) bool {
+	if ps[i].Name != ps[j].Name {
+		return ps[i].Name < ps[j].Name
+	}
+	if ps[i].In != ps[j].In {
+		return ps[i].In < ps[j].In
+	}
+	return ps[i].Ref < ps[j].Ref
+}
 
 type Parameter struct {
 	openapi3.ExtensionProps
@@ -221,9 +231,18 @@ func (response *Response) UnmarshalJSON(data []byte) error {
 }
 
 type Header struct {
+	openapi3.ExtensionProps
 	Ref         string `json:"$ref,omitempty"`
 	Description string `json:"description,omitempty"`
 	Type        string `json:"type,omitempty"`
+}
+
+func (header *Header) MarshalJSON() ([]byte, error) {
+	return jsoninfo.MarshalStrictStruct(header)
+}
+
+func (header *Header) UnmarshalJSON(data []byte) error {
+	return jsoninfo.UnmarshalStrictStruct(data, header)
 }
 
 type SecurityRequirements []map[string][]string

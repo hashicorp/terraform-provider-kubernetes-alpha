@@ -133,7 +133,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		return resp, fmt.Errorf("failed to determine resource GVR: %s", err)
 	}
 
-	objectType, err := s.TFTypeFromOpenAPI(gvk, false)
+	objectType, err := s.TFTypeFromOpenAPI(ctx, gvk, false)
 	if err != nil {
 		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 	}

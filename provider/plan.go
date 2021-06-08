@@ -192,7 +192,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 	}
 
 	// Request a complete type for the resource from the OpenAPI spec
-	objectType, err := s.TFTypeFromOpenAPI(gvk, false)
+	objectType, err := s.TFTypeFromOpenAPI(ctx, gvk, false)
 	if err != nil {
 		return resp, fmt.Errorf("failed to determine resource type ID: %s", err)
 	}

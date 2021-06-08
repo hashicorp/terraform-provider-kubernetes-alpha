@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.37.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.10.0 // indirect
-	github.com/getkin/kin-openapi v0.22.1
+	github.com/getkin/kin-openapi v0.62.0
 	github.com/google/go-cmp v0.5.5
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/hashicorp/go-plugin v1.4.0
