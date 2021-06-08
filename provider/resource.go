@@ -89,12 +89,12 @@ func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.G
 	// check if GVK is from a CRD
 	crdSchema, err := ps.lookUpGVKinCRDs(ctx, gvk)
 	if err != nil {
-		return nil, err // TODO: refine error
+		return nil, fmt.Errorf("failed to look up GVK [%s] among available CRDs: %s", gvk.String(), err)
 	}
 	if crdSchema != nil {
 		js, err := json.Marshal(openapi.SchemaToSpec("", crdSchema.(map[string]interface{})))
 		if err != nil {
-			return nil, err // TODO: refine error
+			return nil, fmt.Errorf("CRD schema fails to marshal into JSON: %s", err)
 		}
 		oapiv3, err := openapi.NewFoundryFromSpecV3(js)
 		if err != nil {
@@ -102,7 +102,7 @@ func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.G
 		}
 		tsch, err = oapiv3.GetTypeByGVK(gvk)
 		if err != nil {
-			return nil, err // TODO: refine error
+			return nil, fmt.Errorf("failed to generate tftypes for GVK [%s] from CRD schema: %s", gvk.String(), err)
 		}
 	}
 	if tsch == nil {
@@ -132,7 +132,7 @@ func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.G
 		if _, ok := atts["metadata"]; !ok {
 			metaType, err := oapi.GetTypeByGVK(openapi.ObjectMetaGVK)
 			if err != nil {
-				return nil, err // TODO: refine error
+				return nil, fmt.Errorf("failed to generate tftypes for v1.ObjectMeta: %s", err)
 			}
 			atts["metadata"] = metaType.(tftypes.Object)
 		}
