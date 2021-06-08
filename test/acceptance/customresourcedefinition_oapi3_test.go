@@ -39,9 +39,9 @@ func TestKubernetesManifest_CustomResource_OAPIv3(t *testing.T) {
 	step1 := tfhelper.RequireNewWorkingDir(t)
 	step1.SetReattachInfo(reattachInfo)
 	defer func() {
-		// step1.RequireDestroy(t)
+		step1.RequireDestroy(t)
 		step1.Close()
-		// k8shelper.AssertResourceDoesNotExist(t, "apiextensions.k8s.io/v1", "customresourcedefinitions", crd)
+		k8shelper.AssertResourceDoesNotExist(t, "apiextensions.k8s.io/v1", "customresourcedefinitions", crd)
 	}()
 
 	// Step 1: Create a structural CRD with a fairly complex schema
@@ -62,9 +62,9 @@ func TestKubernetesManifest_CustomResource_OAPIv3(t *testing.T) {
 	step2 := tfhelper.RequireNewWorkingDir(t)
 	step2.SetReattachInfo(reattachInfo2)
 	defer func() {
-		// step2.RequireDestroy(t)
+		step2.RequireDestroy(t)
 		step2.Close()
-		// k8shelper.AssertResourceDoesNotExist(t, groupVersion, kind, name)
+		k8shelper.AssertResourceDoesNotExist(t, groupVersion, kind, name)
 	}()
 
 	// Step 2: create a CR of the type defined by the CRD above

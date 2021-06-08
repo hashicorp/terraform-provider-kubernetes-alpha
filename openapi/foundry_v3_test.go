@@ -35,9 +35,6 @@ func TestNewFoundryFromSpecV3(t *testing.T) {
 	if f.(*foapiv3).doc.Components.Schemas == nil {
 		t.Fail()
 	}
-	if f.(*foapiv3).doc.Components.Schemas == nil {
-		t.Fail()
-	}
 	crd, ok := f.(*foapiv3).doc.Components.Schemas["com.hashicorp.v1.TestCrd"]
 	if !ok {
 		t.Fail()
