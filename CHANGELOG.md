@@ -1,3 +1,13 @@
+## 0.5.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* Improved CRD schema support: retrieve OpenAPIv3 schema directly from CRD objects (#210)
+
+BUG FIXES:
+
+* Fix a typo in an error message during "apply" (#220)
+
 ## 0.4.1 (May 21, 2021)
 
 BUG FIXES:
