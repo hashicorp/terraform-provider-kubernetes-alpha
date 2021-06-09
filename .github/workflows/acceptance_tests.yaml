@@ -18,7 +18,8 @@ jobs:
       matrix:
         terraform_version:
           - "0.14.10"
-          - "0.15.0"
+          - "0.15.5"
+          - "1.0.0"
     steps:
       - uses: actions/checkout@v2
       - name: Read go-version
