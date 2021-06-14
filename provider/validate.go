@@ -36,7 +36,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 	}
 
 	err = tftypes.Walk(config, func(path *tftypes.AttributePath, val tftypes.Value) (bool, error) {
-		if val.Type().Is(tftypes.Tuple{}){
+		if val.Type().Is(tftypes.Tuple{}) {
 			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 				Severity: tfprotov5.DiagnosticSeverityError,
 				Summary:  "Values for Lists and Maps must be all one type. Received list with mixed types: " + val.Type().String(),
