@@ -35,6 +35,24 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		return resp, nil
 	}
 
+	err = tftypes.Walk(config, func(path *tftypes.AttributePath, val tftypes.Value) (bool, error) {
+		if val.Type().Is(tftypes.Tuple{}){
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Values for Lists and Maps must be all one type. Received list with mixed types: " + val.Type().String(),
+			})
+		}
+		return true, nil
+	})
+	if err != nil {
+		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+			Severity: tfprotov5.DiagnosticSeverityError,
+			Summary:  "Resource walk() failed during validation" + config.String(),
+			Detail:   err.Error(),
+		})
+		return resp, nil
+	}
+
 	att := tftypes.NewAttributePath()
 	att = att.WithAttributeName("manifest")
 
