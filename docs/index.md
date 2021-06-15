@@ -39,19 +39,19 @@ This project is currently in beta. Please [file issues](https://github.com/hashi
 - **command** (String) The plugin executable (absolute path, or expects the plugin to be in OS PATH).
 - **env** (Map of String) Environment values to set on the plugin process.
 
-All attributes are optional, but you must either set a config path or static credentials. An empty provider block will not be a functional configuration.
+**NOTE:** You must either set a config path (`config_path`) or configure static credentials in the provider block. An empty provider block is not a valid configuration. 
 
-Due to the internal design of this provider, access to a responsive API server is required both during PLAN and APPLY. The provider makes calls to the Kubernetes API to retrieve metadata and type information during all stages of Terraform operations.
+Due to the internal design of this provider, access to the Kubernetes API server is required both during plan and apply. The provider makes requests to the Kubernetes API to retrieve the OpenAPI type information for each resource, and do dry-runs using [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/).
 
 ### Credentials
 
 For authentication, the provider can be configured with identity credentials sourced from either a `kubeconfig` file, explicit values in the `provider` block, or a combination of both.
 
-If the `config_path` attribute is set to the path of a `kubeconfig` file, the provider will load it and use the credential values in it. When `config_path` is not set **NO EXTERNAL KUBECONFIG WILL BE LOADED**. Specifically, $KUBECONFIG environment variable is **NOT** considered.
+If the `config_path` attribute is set to the path of a kubeconfig file, the provider will load it and use the credential values in it. When `config_path` is not set **NO EXTERNAL KUBECONFIG WILL BE LOADED**. Specifically, `KUBECONFIG` environment variable is **NOT** read and the provider does not default to using `~/.kube/config`. This explicitness is to prevent a configuration accidentally being applied to the wrong environment. 
 
-Take note of the `current-context` configured in the file. You can override it using the `config_context` provider attribute.
+The `current-context` can be overriden by using the `config_context` provider attribute.
 
-If both `kubeconfig` and static credentials are defined in the `provider` block, the provider will prefer any attributes specified by the static credentials and ignore the corresponding attributes in the `kubeconfig`.
+If both `config_path` and static credentials are defined in the `provider` block, the provider will prefer any attributes specified by the static credentials and ignore `config_path`.
 
 There are five options for providing identity information to the provider for authentication purposes:
 
