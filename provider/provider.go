@@ -61,6 +61,12 @@ func GetProviderResourceSchema() map[string]*tfprotov5.Schema {
 						Optional:    true,
 						Description: "A map of attribute paths and desired patterns to be matched. After each apply the provider will wait for all attributes listed here to reach a value that matches the desired pattern.",
 					},
+					{
+						Name:        "timeouts",
+						Type:        tftypes.Map{AttributeType: tftypes.String},
+						Optional:    true,
+						Description: "Configurable timeouts for each operation.",
+					},
 				},
 			},
 		},
