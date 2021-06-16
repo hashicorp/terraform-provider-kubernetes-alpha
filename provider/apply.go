@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
@@ -268,6 +269,17 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 					Summary:  fmt.Sprintf("DELETE resource %s failed: %s", rn, err),
 				})
 			return resp, nil
+		}
+
+		// wait for the resource to be deleted
+		s.logger.Trace("[ApplyResourceChange][Apply]", "Waiting for resource to be deleted...")
+		for {
+			_, err := rs.Get(ctx, rname, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				s.logger.Trace("[ApplyResourceChange][Apply]", "Resource is deleted")
+				break
+			}
+			time.Sleep(1 * time.Second)
 		}
 
 		resp.NewState = req.PlannedState
