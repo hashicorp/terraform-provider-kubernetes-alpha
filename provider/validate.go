@@ -39,23 +39,33 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		if val.IsNull() || !val.IsKnown() {
 			return false, nil
 		}
+
+		// Only walk through elements of a Tuple.
 		if val.Type().Is(tftypes.Tuple{}) {
-			var v []tftypes.Value
-			err := val.As(&v)
-			if err != nil {
-				return false, err
-			}
-			_, err = tftypes.TypeFromElements(v)
-			if err != nil {
-				resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
-					Severity: tfprotov5.DiagnosticSeverityError,
-					Summary:  "Values for Lists and Maps must be all one type. Received types: " + val.Type().String(),
-					Detail:   err.Error(),
-				})
+			err = tftypes.Walk(val, func(elemPath *tftypes.AttributePath, elemVal tftypes.Value) (bool, error) {
+				if elemVal.IsNull() || !elemVal.IsKnown() {
+					return false, nil
+				}
+
+				if elemVal.Type().Is(tftypes.Object{}) {
+					var v []tftypes.Value
+					err := elemVal.As(&v)
+					if err != nil {
+						return false, err
+					}
+					_, err = tftypes.TypeFromElements(v)
+					if err != nil {
+						resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+							Severity: tfprotov5.DiagnosticSeverityError,
+							Summary:  "Values for Lists and Maps must be all one type. Received types: " + val.String(),
+							Detail:   err.Error(),
+						})
+					}
+				}
 				return false, nil
-			}
+			})
 		}
-		return true, nil
+		return false, nil
 	})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
