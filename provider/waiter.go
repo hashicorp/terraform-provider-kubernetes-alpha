@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -17,6 +18,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 )
+
+const defaultWaitTimeout = "10m"
 
 func (s *RawProviderServer) waitForCompletion(ctx context.Context, waitForBlock tftypes.Value, rs dynamic.ResourceInterface, rname string, rtype tftypes.Type) error {
 	if waitForBlock.IsNull() || !waitForBlock.IsKnown() {
@@ -79,12 +82,22 @@ func NewResourceWaiter(resource dynamic.ResourceInterface, resourceName string, 
 		matchers = append(matchers, FieldMatcher{p, re})
 	}
 
+	t := defaultWaitTimeout
+	if tt, ok := waitForBlockVal["timeout"]; ok && !tt.IsNull() {
+		tt.As(&t)
+	}
+	timeout, err := time.ParseDuration(t)
+	if err != nil {
+		return nil, fmt.Errorf("wait_for: could not parse duration %q: %v", t, err)
+	}
+
 	return &FieldWaiter{
 		resource,
 		resourceName,
 		resourceType,
 		matchers,
 		hl,
+		timeout,
 	}, nil
 
 }
@@ -103,15 +116,14 @@ type FieldWaiter struct {
 	resourceType  tftypes.Type
 	fieldMatchers []FieldMatcher
 	logger        hclog.Logger
+	timeout       time.Duration
 }
 
 // Wait blocks until all of the FieldMatchers configured evaluate to true
 func (w *FieldWaiter) Wait(ctx context.Context) error {
 	w.logger.Info("[ApplyResourceChange][Wait] Waiting until ready...\n")
+	end := time.Now().Add(w.timeout)
 	for {
-		// NOTE The typed API resource is actually returned in the
-		// event object but I haven't yet figured out how to convert it
-		// to a cty.Value.
 		res, err := w.resource.Get(ctx, w.resourceName, v1.GetOptions{})
 		if err != nil {
 			return err
@@ -173,6 +185,10 @@ func (w *FieldWaiter) Wait(ctx context.Context) error {
 
 		if done {
 			return err
+		}
+
+		if time.Now().After(end) {
+			return fmt.Errorf("wait_for: timed out after %s", w.timeout)
 		}
 	}
 }

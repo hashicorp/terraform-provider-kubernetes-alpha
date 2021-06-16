@@ -27,5 +27,6 @@ Once applied, the `object` attribute reflects the state of the resource as retur
 ### Nested Schema for `wait_for`
 
 - **fields** (Map of String)
+- **timeout** (string). Time to wait before timing out. Defaults to `10m`.
 
 
