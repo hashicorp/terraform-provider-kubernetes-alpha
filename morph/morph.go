@@ -8,11 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-
 // ValidateNewValue runs tftypes.ValidateValue before running tftypes.NewValue to ensure the given value will
 // not cause a panic when converted into the specified Type.
 func ValidateNewValue(t tftypes.Type, val interface{}) (tftypes.Value, error) {
-	err:= tftypes.ValidateValue(t, val)
+	err := tftypes.ValidateValue(t, val)
 	if err != nil {
 		return tftypes.Value{}, err
 	}
