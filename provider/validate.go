@@ -53,6 +53,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 				if tupleElem.Type().Is(tftypes.Object{}) {
 					containsObjects = true
 					tupleElem.As(&objectAsMap)
+
 				}
 
 				// Collect the element types from the Object.
@@ -64,6 +65,11 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 				// Check the list of element types.
 				_, err := tftypes.TypeFromElements(elementTypes)
 				if err != nil {
+					resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+						Severity: tfprotov5.DiagnosticSeverityError,
+						Summary:  "Tuple element failed validation:" + tupleElem.String(),
+						Detail: err.Error(),
+					})
 					return false, err
 				}
 			}
@@ -71,6 +77,11 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 			if !containsObjects {
 				_, err := tftypes.TypeFromElements(tuple)
 				if err != nil {
+					resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+						Severity: tfprotov5.DiagnosticSeverityError,
+						Summary:  "Tuple failed validation:" + val.String(),
+						Detail: err.Error(),
+					})
 					return false, err
 				}
 			}
