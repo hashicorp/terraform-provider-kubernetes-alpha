@@ -8,9 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-// NewValue runs tftypes.ValidateValue before running tftypes.NewValue to ensure the given value will
+// newValue runs tftypes.ValidateValue before running tftypes.NewValue to ensure the given value will
 // not cause a panic when converted into the specified Type.
-func NewValue(t tftypes.Type, val interface{}) (tftypes.Value, error) {
+func newValue(t tftypes.Type, val interface{}) (tftypes.Value, error) {
 	err := tftypes.ValidateValue(t, val)
 	if err != nil {
 		return tftypes.Value{}, err
@@ -63,7 +63,7 @@ func morphBoolToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) 
 	}
 	switch {
 	case t.Is(tftypes.String):
-		return NewValue(t, strconv.FormatBool(bnat))
+		return newValue(t, strconv.FormatBool(bnat))
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
@@ -81,7 +81,7 @@ func morphNumberToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath
 	}
 	switch {
 	case t.Is(tftypes.String):
-		return NewValue(t, vnat.String())
+		return newValue(t, vnat.String())
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 
@@ -105,13 +105,13 @@ func morphStringToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath
 			return tftypes.Value{}, p.NewErrorf("[%s] failed to morph string value to tftypes.Number: %v", p.String(), err)
 		}
 		nv := new(big.Float).SetFloat64(fv)
-		return NewValue(t, nv)
+		return newValue(t, nv)
 	case t.Is(tftypes.Bool):
 		bv, err := strconv.ParseBool(vnat)
 		if err != nil {
 			return tftypes.Value{}, p.NewErrorf("[%s] failed to morph string value: %v", p.String(), err)
 		}
-		return NewValue(t, bv)
+		return newValue(t, bv)
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
@@ -141,7 +141,7 @@ func morphListToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) 
 			}
 			tvals[i] = nv
 		}
-		return NewValue(t, tvals)
+		return newValue(t, tvals)
 	case t.Is(tftypes.Set{}):
 		var svals []tftypes.Value = make([]tftypes.Value, len(lvals))
 		for i, v := range lvals {
@@ -152,7 +152,7 @@ func morphListToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) 
 			}
 			svals[i] = nv
 		}
-		return NewValue(t, svals)
+		return newValue(t, svals)
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
@@ -190,7 +190,7 @@ func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePat
 			}
 			lvals[i] = nv
 		}
-		return NewValue(tftypes.Tuple{ElementTypes: eltypes}, lvals)
+		return newValue(tftypes.Tuple{ElementTypes: eltypes}, lvals)
 	case t.Is(tftypes.List{}):
 		var lvals []tftypes.Value = make([]tftypes.Value, len(tvals))
 		for i, v := range tvals {
@@ -201,7 +201,7 @@ func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePat
 			}
 			lvals[i] = nv
 		}
-		return NewValue(t, lvals)
+		return newValue(t, lvals)
 	case t.Is(tftypes.Set{}):
 		var svals []tftypes.Value = make([]tftypes.Value, len(tvals))
 		for i, v := range tvals {
@@ -212,7 +212,7 @@ func morphTupleIntoType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePat
 			}
 			svals[i] = nv
 		}
-		return NewValue(t, svals)
+		return newValue(t, svals)
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
@@ -239,7 +239,7 @@ func morphSetToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (
 			}
 			lvals[i] = nv
 		}
-		return NewValue(t, lvals)
+		return newValue(t, lvals)
 	case t.Is(tftypes.Tuple{}):
 		if len(t.(tftypes.Tuple).ElementTypes) != len(svals) {
 			return tftypes.Value{}, p.NewErrorf("[%s] failed to morph list into tuple (length mismatch)", p.String())
@@ -253,7 +253,7 @@ func morphSetToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (
 			}
 			tvals[i] = nv
 		}
-		return NewValue(t, tvals)
+		return newValue(t, tvals)
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
@@ -280,7 +280,7 @@ func morphMapToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (
 			}
 			ovals[k] = nv
 		}
-		return NewValue(t, ovals)
+		return newValue(t, ovals)
 	case t.Is(tftypes.Map{}):
 		var mvals map[string]tftypes.Value = make(map[string]tftypes.Value, len(mvals))
 		for k, v := range mvals {
@@ -291,7 +291,7 @@ func morphMapToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath) (
 			}
 			mvals[k] = nv
 		}
-		return NewValue(t, mvals)
+		return newValue(t, mvals)
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
@@ -316,10 +316,10 @@ func morphObjectToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath
 			ovals[k] = nv
 		}
 		// for attributes not specified by user add a nil value of their respective type
-		// tftypes.NewValue() fails if any of the attributes in the object don't have a corresponding value
+		// tftypes.newValue() fails if any of the attributes in the object don't have a corresponding value
 		for k := range t.(tftypes.Object).AttributeTypes {
 			if _, ok := ovals[k]; !ok {
-				ovals[k], err = NewValue(t.(tftypes.Object).AttributeTypes[k], nil)
+				ovals[k], err = newValue(t.(tftypes.Object).AttributeTypes[k], nil)
 				if err != nil {
 					return tftypes.Value{}, fmt.Errorf("failed to add nil to object. Check configuration for '{}': %v", err)
 				}
@@ -329,7 +329,7 @@ func morphObjectToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath
 		for k, v := range ovals {
 			otypes[k] = v.Type()
 		}
-		return NewValue(tftypes.Object{AttributeTypes: otypes}, ovals)
+		return newValue(tftypes.Object{AttributeTypes: otypes}, ovals)
 	case t.Is(tftypes.Map{}):
 		var mvals map[string]tftypes.Value = make(map[string]tftypes.Value, len(vals))
 		for k, v := range vals {
@@ -340,7 +340,7 @@ func morphObjectToType(v tftypes.Value, t tftypes.Type, p *tftypes.AttributePath
 			}
 			mvals[k] = nv
 		}
-		return NewValue(t, mvals)
+		return newValue(t, mvals)
 	case t.Is(tftypes.DynamicPseudoType):
 		return v, nil
 	}
