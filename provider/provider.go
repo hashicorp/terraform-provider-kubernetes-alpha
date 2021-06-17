@@ -36,6 +36,9 @@ func GetProviderResourceSchema() map[string]*tfprotov5.Schema {
 				AttributeType: tftypes.String,
 			},
 		},
+		OptionalAttributes: map[string]struct{}{
+			"timeout": {},
+		},
 	}
 
 	return map[string]*tfprotov5.Schema{
