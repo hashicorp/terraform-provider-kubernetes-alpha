@@ -12,11 +12,11 @@ require (
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/hashicorp/go-plugin v1.4.0
 	github.com/hashicorp/hcl/v2 v2.9.0
-	github.com/hashicorp/terraform-exec v0.13.2
+	github.com/hashicorp/terraform-exec v0.13.3
 	github.com/hashicorp/terraform-json v0.10.0
 	github.com/hashicorp/terraform-plugin-go v0.3.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.5.0
-	github.com/hashicorp/terraform-plugin-test/v2 v2.2.0
+	github.com/hashicorp/terraform-plugin-test/v2 v2.2.1
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
@@ -24,7 +24,7 @@ require (
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/stretchr/testify v1.7.0
-	github.com/zclconf/go-cty v1.8.1
+	github.com/zclconf/go-cty v1.8.2
 	golang.org/x/mod v0.3.0
 	google.golang.org/api v0.34.0 // indirect
 	google.golang.org/genproto v0.0.0-20201030142918-24207fddd1c3 // indirect
