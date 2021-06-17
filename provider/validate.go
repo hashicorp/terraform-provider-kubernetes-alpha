@@ -68,7 +68,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 				}
 			}
 			// If a Tuple contains no Objects, its elements can be checked.
-			if ! containsObjects {
+			if !containsObjects {
 				_, err := tftypes.TypeFromElements(tuple)
 				if err != nil {
 					return false, err
