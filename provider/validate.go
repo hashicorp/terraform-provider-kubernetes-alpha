@@ -35,7 +35,7 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		return resp, nil
 	}
 
-	// This section validates that all Objects within a Tuple have the same Type.
+	// This section validates that all elements within a Tuple have the same Type.
 	// https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/231
 	err = tftypes.Walk(config, func(path *tftypes.AttributePath, val tftypes.Value) (bool, error) {
 		if val.IsNull() || !val.IsKnown() {
@@ -45,10 +45,13 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 			// Convert the Tuple into a Go value that can be inspected.
 			var tuple []tftypes.Value
 			val.As(&tuple)
+			containsObjects := false
+
 			// Inspect each Object in the Tuple.
 			for _, tupleElem := range tuple {
 				var objectAsMap map[string]tftypes.Value
 				if tupleElem.Type().Is(tftypes.Object{}) {
+					containsObjects = true
 					tupleElem.As(&objectAsMap)
 				}
 
@@ -60,6 +63,13 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 
 				// Check the list of element types.
 				_, err := tftypes.TypeFromElements(elementTypes)
+				if err != nil {
+					return false, err
+				}
+			}
+			// If a Tuple contains no Objects, its elements can be checked.
+			if ! containsObjects {
+				_, err := tftypes.TypeFromElements(tuple)
 				if err != nil {
 					return false, err
 				}
