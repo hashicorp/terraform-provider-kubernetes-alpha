@@ -35,42 +35,42 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		return resp, nil
 	}
 
+	// This section validates that all elements within a Tuple have the same Type.
+	// Specifically, the Objects inside of the Tuple all need to have the same Type.
+	// https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/231
 	err = tftypes.Walk(config, func(path *tftypes.AttributePath, val tftypes.Value) (bool, error) {
 		if val.IsNull() || !val.IsKnown() {
 			return false, nil
 		}
-
-		// Only walk through elements of a Tuple.
 		if val.Type().Is(tftypes.Tuple{}) {
-			err = tftypes.Walk(val, func(elemPath *tftypes.AttributePath, elemVal tftypes.Value) (bool, error) {
-				if elemVal.IsNull() || !elemVal.IsKnown() {
-					return false, nil
+			var tuple []tftypes.Value
+			val.As(&tuple)
+
+			for _, tupleElem := range tuple {
+				var objectAsMap map[string]tftypes.Value
+				if tupleElem.Type().Is(tftypes.Object{}) {
+					tupleElem.As(&objectAsMap)
 				}
 
-				if elemVal.Type().Is(tftypes.Object{}) {
-					var v []tftypes.Value
-					err := elemVal.As(&v)
-					if err != nil {
-						return false, err
-					}
-					_, err = tftypes.TypeFromElements(v)
-					if err != nil {
-						resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
-							Severity: tfprotov5.DiagnosticSeverityError,
-							Summary:  "Values for Lists and Maps must be all one type. Received types: " + val.String(),
-							Detail:   err.Error(),
-						})
-					}
+				// Collect the element types from the Object.
+				var elementTypes []tftypes.Value
+				for _, v := range objectAsMap {
+					elementTypes = append(elementTypes, v)
 				}
-				return false, nil
-			})
+
+				// Check the element Types inside the Object.
+				_, err := tftypes.TypeFromElements(elementTypes)
+				if err != nil {
+					return false, err
+				}
+			}
 		}
-		return false, nil
+		return true, nil
 	})
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "Resource walk() failed during validation" + config.String(),
+			Summary:  "Config validation failed",
 			Detail:   err.Error(),
 		})
 		return resp, nil
