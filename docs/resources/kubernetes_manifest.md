@@ -22,7 +22,7 @@ Once applied, the `object` attribute reflects the state of the resource as retur
 
 - **object** (Dynamic, Optional) The resulting resource state, as returned by the API server after applying the desired state from `manifest`.
 - **wait_for** (Object, Optional) (see [below for nested schema](#nestedatt--wait_for))
-- **timeouts** (Object, Optional) (see [below for nested schema](#nestedatt--timeouts))
+- **timeouts** (Map of String, Optional) (see [below for nested schema](#nestedatt--timeouts))
 
 <a id="nestedatt--wait_for"></a>
 ### Nested Schema for `wait_for`
