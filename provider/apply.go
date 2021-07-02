@@ -188,7 +188,13 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		if ok {
 			err = s.waitForCompletion(ctx, wf, rs, rname, wt)
 			if err != nil {
-				return resp, err
+				resp.Diagnostics = append(resp.Diagnostics,
+					&tfprotov5.Diagnostic{
+						Severity: tfprotov5.DiagnosticSeverityError,
+						Detail:   err.Error(),
+						Summary:  fmt.Sprintf(`wait_for: timed out waiting on resource %q`, rnn),
+					})
+				return resp, nil
 			}
 		}
 

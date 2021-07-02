@@ -101,6 +101,18 @@ func (s *RawProviderServer) ValidateResourceTypeConfig(ctx context.Context, req 
 		}
 	}
 
+	// validate wait_for block
+	if v, ok := configVal["wait_for"]; ok && !v.IsNull() {
+		if err := s.waitForValidate(v); err != nil {
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity:  tfprotov5.DiagnosticSeverityError,
+				Summary:   `Invalid "wait_for" configuration`,
+				Detail:    err.Error(),
+				Attribute: tftypes.NewAttributePath().WithAttributeName("wait_for"),
+			})
+		}
+	}
+
 	return resp, nil
 }
 

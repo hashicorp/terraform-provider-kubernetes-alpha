@@ -31,9 +31,13 @@ func GetResourceType(name string) (tftypes.Type, error) {
 func GetProviderResourceSchema() map[string]*tfprotov5.Schema {
 	waitForType := tftypes.Object{
 		AttributeTypes: map[string]tftypes.Type{
+			"timeout": tftypes.String,
 			"fields": tftypes.Map{
 				AttributeType: tftypes.String,
 			},
+		},
+		OptionalAttributes: map[string]struct{}{
+			"timeout": {},
 		},
 	}
 
