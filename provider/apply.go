@@ -283,7 +283,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 				v.As(&timeout)
 			}
 		}
-		s.logger.Trace("[ApplyResourceChange][Apply]", "Using timeout %q for delete", timeout)
+		s.logger.Trace("[ApplyResourceChange][Delete]", "Using timeout %q for delete", timeout)
 		duration, err := time.ParseDuration(timeout)
 		if err != nil {
 			resp.Diagnostics = append(resp.Diagnostics,
@@ -298,7 +298,7 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		for {
 			_, err := rs.Get(ctx, rname, metav1.GetOptions{})
 			if apierrors.IsNotFound(err) {
-				s.logger.Trace("[ApplyResourceChange][Apply]", "Resource is deleted")
+				s.logger.Trace("[ApplyResourceChange][Delete]", "Resource is deleted")
 				break
 			}
 			time.Sleep(1 * time.Second) // lintignore:R018
