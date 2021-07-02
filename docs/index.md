@@ -175,6 +175,20 @@ resource "kubernetes_manifest" "test" {
 
 ```
 
+## Configuring a timeout for delete operations
+
+resource "kubernetes_manifest" "test" {
+  provider = kubernetes-alpha
+
+  manifest = {
+    // ...
+  }
+
+  timeouts = {
+    delete = "10m"
+  }
+}
+
 ## Moving from YAML to HCL
 
 The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step and then manage that resource in Terraform, rather than using `yamldecode()` inside the resource block. 

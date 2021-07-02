@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
@@ -16,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 )
+
+const defaultDeleteTimeout = "1m"
 
 // ApplyResourceChange function
 func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprotov5.ApplyResourceChangeRequest) (*tfprotov5.ApplyResourceChangeResponse, error) {
@@ -268,6 +271,46 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 					Summary:  fmt.Sprintf("DELETE resource %s failed: %s", rn, err),
 				})
 			return resp, nil
+		}
+
+		// wait for the resource to be deleted
+		s.logger.Trace("[ApplyResourceChange][Apply]", "Waiting for resource to be deleted...")
+		timeout := defaultDeleteTimeout
+		if v, ok := priorStateVal["timeouts"]; ok && !v.IsNull() {
+			timeouts := map[string]tftypes.Value{}
+			v.As(&timeouts)
+			if v, ok := timeouts["delete"]; ok && !v.IsNull() {
+				v.As(&timeout)
+			}
+		}
+		s.logger.Trace("[ApplyResourceChange][Delete]", "Using timeout %q for delete", timeout)
+		duration, err := time.ParseDuration(timeout)
+		if err != nil {
+			resp.Diagnostics = append(resp.Diagnostics,
+				&tfprotov5.Diagnostic{
+					Severity: tfprotov5.DiagnosticSeverityError,
+					Detail:   err.Error(),
+					Summary:  fmt.Sprintf("error parsing timeout %q: %v", timeout, err),
+				})
+			return resp, nil
+		}
+		end := time.Now().Add(duration)
+		for {
+			_, err := rs.Get(ctx, rname, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				s.logger.Trace("[ApplyResourceChange][Delete]", "Resource is deleted")
+				break
+			}
+			time.Sleep(1 * time.Second) // lintignore:R018
+			if time.Now().After(end) {
+				resp.Diagnostics = append(resp.Diagnostics,
+					&tfprotov5.Diagnostic{
+						Severity: tfprotov5.DiagnosticSeverityError,
+						Detail:   "Deletion timed out. This can happen when there is a finalizer on a resource. You may need to delete this resource manually with kubectl.",
+						Summary:  fmt.Sprintf("Timed out when waiting for resource %q to be deleted", rname),
+					})
+				return resp, nil
+			}
 		}
 
 		resp.NewState = req.PlannedState
