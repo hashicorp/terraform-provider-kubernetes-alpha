@@ -21,6 +21,43 @@ import (
 
 const defaultWaitTimeout = "10m"
 
+func (s *RawProviderServer) waitForValidate(waitForBlock tftypes.Value) error {
+	var waitForBlockVal map[string]tftypes.Value
+	err := waitForBlock.As(&waitForBlockVal)
+	if err != nil {
+		return err
+	}
+
+	if v, ok := waitForBlockVal["timeout"]; ok && !v.IsNull() {
+		var timeout string
+		v.As(&timeout)
+		_, err := time.ParseDuration(timeout)
+		if err != nil {
+			return err
+		}
+	}
+
+	fields, ok := waitForBlockVal["fields"]
+	if !ok || fields.IsNull() || !fields.IsKnown() {
+		return nil
+	}
+
+	if !fields.Type().Is(tftypes.Map{}) {
+		return fmt.Errorf(`"fields" should be a map of strings`)
+	}
+
+	var fieldsMap map[string]tftypes.Value
+	fields.As(&fieldsMap)
+	for k := range fieldsMap {
+		_, err := FieldPathToTftypesPath(k)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *RawProviderServer) waitForCompletion(ctx context.Context, waitForBlock tftypes.Value, rs dynamic.ResourceInterface, rname string, rtype tftypes.Type) error {
 	if waitForBlock.IsNull() || !waitForBlock.IsKnown() {
 		return nil
