@@ -157,7 +157,7 @@ github.com/hashicorp/hcl/v2/ext/customdecode
 github.com/hashicorp/hcl/v2/hclsyntax
 # github.com/hashicorp/logutils v1.0.0
 github.com/hashicorp/logutils
-# github.com/hashicorp/terraform-exec v0.13.2
+# github.com/hashicorp/terraform-exec v0.13.3
 ## explicit
 github.com/hashicorp/terraform-exec/internal/version
 github.com/hashicorp/terraform-exec/tfexec
@@ -176,7 +176,7 @@ github.com/hashicorp/terraform-plugin-go/tftypes
 # github.com/hashicorp/terraform-plugin-sdk/v2 v2.5.0
 ## explicit
 github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging
-# github.com/hashicorp/terraform-plugin-test/v2 v2.2.0
+# github.com/hashicorp/terraform-plugin-test/v2 v2.2.1
 ## explicit
 github.com/hashicorp/terraform-plugin-test/v2
 # github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce
@@ -240,7 +240,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/vmihailenco/msgpack v4.0.4+incompatible
 github.com/vmihailenco/msgpack
 github.com/vmihailenco/msgpack/codes
-# github.com/zclconf/go-cty v1.8.1
+# github.com/zclconf/go-cty v1.8.2
 ## explicit
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert
