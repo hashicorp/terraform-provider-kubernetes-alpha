@@ -522,5 +522,11 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 	s.logger.Trace("[Configure]", "[ClientConfig]", spew.Sdump(*clientConfig))
 	s.clientConfig = clientConfig
 
+	response.Diagnostics = append(response.Diagnostics, &tfprotov5.Diagnostic{
+		Severity: tfprotov5.DiagnosticSeverityWarning,
+		Summary:  "PROVIDER DEPRECATED",
+		Detail:   "This provider was experimental and has been deprecated. The kubernetes_manifest resource has been integrated into the main Terraform Provider for Kubernetes at https://github.com/hashicorp/terraform-provider-kubernetes.",
+	})
+
 	return response, nil
 }
