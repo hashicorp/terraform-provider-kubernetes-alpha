@@ -7,13 +7,11 @@ description: |-
 
 # Kubernetes alpha provider
 
-This Kubernetes provider for Terraform (alpha) supports all API resources in a generic fashion.
+This Terraform provider offers a dynamic interface that enables support for any Kubernetes API resource, including Custom Resources. 
 
-This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
+The provider allows any Kubernetes resource to be codified using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have existing YAML you want to use with Terraform.
 
-Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) generously and detail your experience while using the provider. We welcome your feedback.
-
-Our eventual goal is for this generic resource to become a part of our [official Kubernetes provider](https://github.com/hashicorp/terraform-provider-kubernetes) once it is supported by the Terraform Plugin SDK. However, this work is subject to signficant changes as we iterate towards that level of quality.
+This project is currently in beta. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues) generously. 
 
 ## Schema
 
@@ -41,19 +39,19 @@ Our eventual goal is for this generic resource to become a part of our [official
 - **command** (String) The plugin executable (absolute path, or expects the plugin to be in OS PATH).
 - **env** (Map of String) Environment values to set on the plugin process.
 
-All attributes are optional, but you must either set a config path or static credentials. An empty provider block will not be a functional configuration.
+**NOTE:** You must either set a config path (`config_path`) or configure static credentials in the provider block. An empty provider block is not a valid configuration. 
 
-Due to the internal design of this provider, access to a responsive API server is required both during PLAN and APPLY. The provider makes calls to the Kubernetes API to retrieve metadata and type information during all stages of Terraform operations.
+Due to the internal design of this provider, access to the Kubernetes API server is required both during plan and apply. The provider makes requests to the Kubernetes API to retrieve the OpenAPI type information for each resource, and do dry-runs using [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/).
 
 ### Credentials
 
 For authentication, the provider can be configured with identity credentials sourced from either a `kubeconfig` file, explicit values in the `provider` block, or a combination of both.
 
-If the `config_path` attribute is set to the path of a `kubeconfig` file, the provider will load it and use the credential values in it. When `config_path` is not set **NO EXTERNAL KUBECONFIG WILL BE LOADED**. Specifically, $KUBECONFIG environment variable is **NOT** considered.
+If the `config_path` attribute is set to the path of a kubeconfig file, the provider will load it and use the credential values in it. When `config_path` is not set **NO EXTERNAL KUBECONFIG WILL BE LOADED**. Specifically, `KUBECONFIG` environment variable is **NOT** read and the provider does not default to using `~/.kube/config`. This explicitness is to prevent a configuration accidentally being applied to the wrong environment. 
 
-Take note of the `current-context` configured in the file. You can override it using the `config_context` provider attribute.
+The `current-context` can be overriden by using the `config_context` provider attribute.
 
-If both `kubeconfig` and static credentials are defined in the `provider` block, the provider will prefer any attributes specified by the static credentials and ignore the corresponding attributes in the `kubeconfig`.
+If both `config_path` and static credentials are defined in the `provider` block, the provider will prefer any attributes specified by the static credentials and ignore `config_path`.
 
 There are five options for providing identity information to the provider for authentication purposes:
 
@@ -62,10 +60,6 @@ There are five options for providing identity information to the provider for au
 * a static token
 * a username & password pair
 * an authentication plugin, such as `oidc` or `exec` (see examples folder).
-
-## Experimental Status
-
-By using the software in this repository (the "Software"), you acknowledge that: (1) the Software is still in development, may change, and has not been released as a commercial product by HashiCorp and is not currently supported in any way by HashiCorp; (2) the Software is provided on an "as-is" basis, and may include bugs, errors, or other issues;  (3) the Software is NOT INTENDED FOR PRODUCTION USE, use of the Software may result in unexpected results, loss of data, or other unexpected results, and HashiCorp disclaims any and all liability resulting from use of the Software; and (4) HashiCorp reserves all rights to make all decisions about the features, functionality and commercial release (or non-release) of the Software, at any time and without any obligation or liability whatsoever.
 
 ## Getting Started
 
@@ -179,13 +173,14 @@ resource "kubernetes_manifest" "test" {
 
 The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step and then manage that resource in Terraform, rather than using `yamldecode()` inside the resource block. 
 
-You can quickly convert a single YAML file to an HCL map using this one liner:
+You can quickly convert a single document YAML file to an HCL map using this one liner:
 
 ```
-echo 'yamldecode(file("test.yaml"))' | terraform console
+echo 'yamldecode(file("input.yaml"))' | terraform console
 ```
 
-Alternatively, there is also an experimental command line tool [tfk8s](https://github.com/jrhouston/tfk8s) you could use to convert Kubernetes YAML manifests into complete Terraform configurations.
+There is also a command line tool [tfk8s](https://github.com/jrhouston/tfk8s) you can use to convert multi-document Kubernetes YAML manifests into complete Terraform configurations.
+
 
 ## Contributing
 

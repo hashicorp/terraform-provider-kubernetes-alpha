@@ -1,27 +1,24 @@
-# Kubernetes provider for Terraform (alpha) 
+# Kubernetes-alpha provider for Terraform 
+
 <a href="https://terraform.io">
     <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" alt="Terraform logo" align="right" height="50" />
-</a>
 
-
-![Status: Experimental](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha.svg)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
+![Status: Beta](https://img.shields.io/badge/status-beta-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-kubernetes-alpha.svg)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/releases)
 [![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-kubernetes-alpha.svg)](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/LICENSE)
 ![unit tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/unit%20tests/badge.svg)
 ![acceptance tests](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/workflows/acceptance%20tests/badge.svg)
 
-This Kubernetes provider for Terraform (alpha) supports all API resources in a generic fashion.
+This Terraform provider offers a dynamic interface that enables support for any Kubernetes API resource, including Custom Resources. 
 
-This provider allows you to describe any Kubernetes resource using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have YAML you want to use with the provider.
+The provider allows any Kubernetes resource to be codified using HCL. See [Moving from YAML to HCL](#moving-from-yaml-to-hcl) if you have existing YAML you want to use with Terraform.
 
-Please regard this project as experimental. It still requires extensive testing and polishing to mature into production-ready quality. At this time, we are not planning to create a migration path for resources created with the kubernetes-alpha provider when the `manifest` resource is merged into the official kubernetes provider. For this reason, please do not rely on this provider for production use while we strive towards project maturity. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) generously and detail your experience while using the provider. We welcome your feedback.
-
-Our eventual goal is for this generic resource to become a part of our [official Kubernetes provider](https://github.com/hashicorp/terraform-provider-kubernetes) once it is supported by the Terraform Plugin SDK. However, this work is subject to signficant changes as we iterate towards that level of quality.
+This project is currently in beta. Please [file issues](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues) generously. 
 
 ## Requirements
 
-* [Terraform](https://www.terraform.io/downloads.html) version 0.14.8 +
-* [Kubernetes](https://kubernetes.io/docs/reference) version 1.17.x +
-* [Go](https://golang.org/doc/install) version 1.14.x
+* [Terraform](https://www.terraform.io/downloads.html) version 0.14.8+
+* [Kubernetes](https://kubernetes.io/docs/reference) version 1.17.x+
+* [Go](https://golang.org/doc/install) version 1.14.x+
 
 ## Getting Started
 
@@ -33,11 +30,11 @@ Once you have the plugin installed, review the [usage document](https://github.c
 
 ### Create a Kubernetes ConfigMap
 ```hcl
-provider "kubernetes-alpha" {
+provider kubernetes-alpha {
   config_path = "~/.kube/config" // path to kubeconfig
 }
 
-resource "kubernetes_manifest" "test-configmap" {
+resource kubernetes_manifest test-configmap {
   provider = kubernetes-alpha
 
   manifest = {
@@ -57,11 +54,11 @@ resource "kubernetes_manifest" "test-configmap" {
 ### Create a Kubernetes Custom Resource Definition
 
 ```hcl
-provider "kubernetes-alpha" {
+provider kubernetes-alpha {
   config_path = "~/.kube/config" // path to kubeconfig
 }
 
-resource "kubernetes_manifest" "test-crd" {
+resource kubernetes_manifest test-crd {
   provider = kubernetes-alpha
 
   manifest = {
@@ -107,7 +104,7 @@ The `kubernetes_manifest` resource supports the ability to block create and upda
 `wait_for` currently supports a `fields` attribute which allows you specify a map of fields paths to regular expressions. You can also specify `*` if you just want to wait for a field to have any value.
 
 ```hcl
-resource "kubernetes_manifest" "test" {
+resource kubernetes_manifest test {
   provider = kubernetes-alpha
 
   manifest = {
@@ -140,20 +137,16 @@ resource "kubernetes_manifest" "test" {
 
 The `manifest` attribute of the `kubernetes_manifest` resource accepts any arbitrary Kubernetes API object, using Terraform's [map](https://www.terraform.io/docs/configuration/expressions.html#map) syntax. If you have YAML you want to use with this provider, we recommend that you convert it to a map as an initial step and then manage that resource in Terraform, rather than using `yamldecode()` inside the resource block. 
 
-You can quickly convert a single YAML file to an HCL map using this one liner:
+You can quickly convert a single document YAML file to an HCL map using this one liner:
 
 ```
-echo 'yamldecode(file("test.yaml"))' | terraform console
+echo 'yamldecode(file("input.yaml"))' | terraform console
 ```
 
-Alternatively, there is also an experimental command line tool [tfk8s](https://github.com/jrhouston/tfk8s) you could use to convert Kubernetes YAML manifests into complete Terraform configurations.
+There is also a command line tool [tfk8s](https://github.com/jrhouston/tfk8s) you can use to convert multi-document Kubernetes YAML manifests into complete Terraform configurations.
 
 ## Contributing
 
 We welcome your contribution. Please understand that the experimental nature of this repository means that contributing code may be a bit of a moving target. If you have an idea for an enhancement or bug fix, and want to take on the work yourself, please first [create an issue](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/issues/new/choose) so that we can discuss the implementation with you before you proceed with the work.
 
 You can review our [contribution guide](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/_about/CONTRIBUTING.md) to begin. You can also check out our [frequently asked questions](https://github.com/hashicorp/terraform-provider-kubernetes-alpha/blob/master/_about/FAQ.md).
-
-## Experimental Status
-
-By using the software in this repository (the "Software"), you acknowledge that: (1) the Software is still in development, may change, and has not been released as a commercial product by HashiCorp and is not currently supported in any way by HashiCorp; (2) the Software is provided on an "as-is" basis, and may include bugs, errors, or other issues;  (3) the Software is NOT INTENDED FOR PRODUCTION USE, use of the Software may result in unexpected results, loss of data, or other unexpected results, and HashiCorp disclaims any and all liability resulting from use of the Software; and (4) HashiCorp reserves all rights to make all decisions about the features, functionality and commercial release (or non-release) of the Software, at any time and without any obligation or liability whatsoever.
