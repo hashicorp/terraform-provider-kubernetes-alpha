@@ -1,3 +1,8 @@
+# ⚠️ Archived
+
+This repository was experimental and is now archived. The `kubernetes_manifest` resource and associated issues has been moved to the repository for the official [Terraform Provider for Kubernetes](https://github.com/hashicorp/terraform-provider-kubernetes). 
+
+
 # Kubernetes provider for Terraform (alpha) 
 <a href="https://terraform.io">
     <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" alt="Terraform logo" align="right" height="50" />
