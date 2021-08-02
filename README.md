@@ -1,6 +1,6 @@
 # ⚠️ Archived
 
-This repository was experimental and is now archived. The `kubernetes_manifest` resource and associated issues has been moved to the repository for the official [Terraform Provider for Kubernetes](https://github.com/hashicorp/terraform-provider-kubernetes). 
+This repository was experimental and is now archived. The `kubernetes_manifest` resource and associated issues has been moved to the repository for the official [Terraform Provider for Kubernetes](https://github.com/hashicorp/terraform-provider-kubernetes).  While the kubernetes-alpha provider will continue to be downloadable from the Terraform Registry up to the last version released, we recommend migrating your configurations to use the `kubernetes_manifest` resource in our official Terraform provider. For further details, take a look at our [blog post]() announcing this change.
 
 
 # Kubernetes provider for Terraform (alpha) 
