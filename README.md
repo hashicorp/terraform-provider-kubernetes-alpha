@@ -1,3 +1,8 @@
+# ⚠️ Archived
+
+This repository was experimental and is now archived. The `kubernetes_manifest` resource and associated issues has been moved to the repository for the official [Terraform Provider for Kubernetes](https://github.com/hashicorp/terraform-provider-kubernetes).  While the kubernetes-alpha provider will continue to be downloadable from the Terraform Registry up to the last version released, we recommend migrating your configurations to use the `kubernetes_manifest` resource in our official Terraform provider. For further details, take a look at our [blog post](https://www.hashicorp.com/blog/beta-support-for-crds-in-the-terraform-provider-for-kubernetes) announcing this change.
+
+
 # Kubernetes provider for Terraform (alpha) 
 <a href="https://terraform.io">
     <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" alt="Terraform logo" align="right" height="50" />
