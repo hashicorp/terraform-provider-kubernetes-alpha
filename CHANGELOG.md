@@ -1,4 +1,4 @@
-## 0.6.0 (Unreleased)
+## 0.6.0 (August 04, 2021)
 
 * Deprecate the provider. 
 
