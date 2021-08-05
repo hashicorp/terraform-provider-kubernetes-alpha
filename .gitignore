@@ -6,3 +6,4 @@
 *.log
 **/terraform-provider-kubernetes*
 /terraform-provider-kubernetes*
+/test/acceptance/testdata/*/*.tfvars
